@@ -1,0 +1,17 @@
+parameters:
+    app.timezone: '%env(APP_TIMEZONE)%'
+    app.page_size: '%env(int:ZUNAFLUX_PAGE_SIZE)%'
+    app.max_subscriptions: '%env(int:ZUNAFLUX_MAX_SUBSCRIPTIONS)%'
+    app.media_storage: '%env(resolve:ZUNAFLUX_MEDIA_STORAGE)%'
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'

@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+@theme {
+    --font-serif: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    --font-mono: "IBM Plex Mono", "Courier New", monospace;
+}

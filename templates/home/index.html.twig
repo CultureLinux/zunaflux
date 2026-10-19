@@ -1,0 +1,12 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <main class="grid min-h-screen place-items-center px-6 text-center">
+        <div>
+            <p class="font-mono text-xs uppercase tracking-[.35em] text-cyan-300">Zunaflux</p>
+            <h1 class="mt-4 font-serif text-5xl text-white">Vos sources. Votre rythme.</h1>
+            <p class="mt-5 max-w-xl text-slate-300">Le lecteur RSS multi-utilisateur, auto-hébergé et conçu pour une lecture attentive.</p>
+            <a class="mt-8 inline-block border border-cyan-300 px-5 py-3 font-semibold text-cyan-200 hover:bg-cyan-300 hover:text-slate-950" href="{{ path('app_login') }}">Accéder à Zunaflux</a>
+        </div>
+    </main>
+{% endblock %}

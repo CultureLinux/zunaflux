@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "skills": [
+    {
+      "name": "caveman",
+      "source": "JuliusBrussee/caveman",
+      "path": "skills/caveman"
+    },
+    {
+      "name": "investigate-first",
+      "source": "JuliusBrussee/caveman",
+      "path": "skills/investigate-first"
+    },
+    {
+      "name": "safe-refactor",
+      "source": "JuliusBrussee/caveman",
+      "path": "skills/safe-refactor"
+    },
+    {
+      "name": "surgical-patch",
+      "source": "JuliusBrussee/caveman",
+      "path": "skills/surgical-patch"
+    },
+    {
+      "name": "test-driven-development",
+      "source": "https://github.com/obra/superpowers/tree/main/skills/test-driven-development",
+      "path": "skills/test-driven-development"
+    },
+    {
+      "name": "verification-before-completion",
+      "source": "https://github.com/obra/superpowers/tree/main/skills/verification-before-completion",
+      "path": "skills/verification-before-completion"
+    },
+    {
+      "name": "verify-and-stop",
+      "source": "JuliusBrussee/caveman",
+      "path": "skills/verify-and-stop"
+    },
+    {
+      "name": "frontend-design",
+      "source": "vercel-labs/open-agents",
+      "path": ".agents/skills/frontend-design"
+    },
+    {
+      "name": "web-design-guidelines",
+      "source": "vercel-labs/agent-skills",
+      "path": "skills/web-design-guidelines"
+    },
+    {
+      "name": "tailwind-design-system",
+      "source": "https://github.com/wshobson/agents/tree/main/plugins/frontend-mobile-development/skills/tailwind-design-system",
+      "path": "plugins/frontend-mobile-development/skills/tailwind-design-system"
+    }
+  ]
+}

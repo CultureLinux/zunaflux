@@ -1,3 +1,8 @@
-/.agents
-/AGENTS.md  
-/mon-flux-rss-cahier-des-charges-v1.0 (1).md
+/.env.local
+/.env.*.local
+/vendor/
+/var/
+/public/assets/
+/public/styles/
+/node_modules/
+/.phpunit.result.cache
