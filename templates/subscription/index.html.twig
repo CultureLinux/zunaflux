@@ -1,0 +1,58 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Abonnements · Zunaflux{% endblock %}
+
+{% block body %}
+    <main class="mx-auto min-h-screen max-w-5xl px-6 py-16">
+        <a class="font-mono text-xs uppercase tracking-[.25em] text-cyan-300 hover:text-cyan-100" href="{{ path('app_home') }}">Zunaflux</a>
+        <h1 class="mt-6 font-serif text-5xl text-white">Vos abonnements</h1>
+        <p class="mt-4 max-w-2xl text-slate-300">Ajoutez vos sources et organisez-les par catégories. La découverte automatique et l’import OPML arrivent dans cette section.</p>
+
+        {% for message in app.flashes('success') %}
+            <p class="mt-8 border border-emerald-400/40 bg-emerald-400/10 px-4 py-3 text-emerald-200" role="status">{{ message }}</p>
+        {% endfor %}
+        {% for message in app.flashes('error') %}
+            <p class="mt-8 border border-rose-400/40 bg-rose-400/10 px-4 py-3 text-rose-200" role="alert">{{ message }}</p>
+        {% endfor %}
+
+        <form class="mt-10 grid gap-4 border border-slate-700 bg-slate-900/60 p-6 md:grid-cols-[1fr_auto]" action="{{ path('app_subscriptions') }}" method="post">
+            <div>
+                <label class="font-mono text-xs uppercase tracking-[.18em] text-slate-400" for="feed_url">Adresse du flux RSS ou Atom</label>
+                <input class="mt-2 w-full border border-slate-600 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-300" id="feed_url" name="feed_url" type="url" required placeholder="https://example.test/feed.xml">
+            </div>
+            <input type="hidden" name="_token" value="{{ csrf_token('subscribe-feed') }}">
+            <input type="hidden" name="intent" value="subscribe-feed">
+            <button class="self-end border border-cyan-300 bg-cyan-300 px-5 py-3 font-semibold text-slate-950 hover:bg-cyan-200" type="submit">Ajouter le flux</button>
+        </form>
+
+        <section class="mt-10 grid gap-5 border border-slate-800 p-6 md:grid-cols-[1fr_auto]" aria-labelledby="categories-heading">
+            <div>
+                <h2 class="font-serif text-2xl text-white" id="categories-heading">Catégories</h2>
+                <p class="mt-2 text-sm text-slate-400">Des repères personnels, sans hiérarchie.</p>
+                <p class="mt-4 text-slate-200">{{ categories is empty ? 'Aucune catégorie.' : categories|map(category => category.name)|join(' · ') }}</p>
+            </div>
+            <form class="grid gap-3 self-end" action="{{ path('app_subscriptions') }}" method="post">
+                <label class="font-mono text-xs uppercase tracking-[.18em] text-slate-400" for="category_name">Nouvelle catégorie</label>
+                <input class="border border-slate-600 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-300" id="category_name" name="category_name" required maxlength="100">
+                <input type="hidden" name="_token" value="{{ csrf_token('create-category') }}">
+                <input type="hidden" name="intent" value="create-category">
+                <button class="border border-slate-600 px-4 py-3 text-slate-100 hover:border-cyan-300 hover:text-cyan-200" type="submit">Créer la catégorie</button>
+            </form>
+        </section>
+
+        <section class="mt-12" aria-labelledby="subscriptions-heading">
+            <h2 class="font-serif text-2xl text-white" id="subscriptions-heading">Sources suivies</h2>
+            {% if subscriptions is empty %}
+                <p class="mt-4 text-slate-400">Aucune source pour le moment.</p>
+            {% else %}
+                <ul class="mt-5 divide-y divide-slate-800 border-y border-slate-800">
+                    {% for subscription in subscriptions %}
+                        <li class="py-4">
+                            <a class="text-cyan-200 hover:text-cyan-100" href="{{ subscription.feed.canonicalUrl }}" rel="noreferrer" target="_blank">{{ subscription.feed.canonicalUrl }}</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </section>
+    </main>
+{% endblock %}
