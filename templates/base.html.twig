@@ -19,6 +19,9 @@
                         <a class="px-3 py-2 transition {{ current_route starts with 'app_articles' ? 'bg-cyan-300 text-slate-950' : 'text-slate-300 hover:text-cyan-200' }}" href="{{ path('app_articles') }}">Lecture</a>
                         <a class="px-3 py-2 transition {{ current_route starts with 'app_subscriptions' ? 'bg-cyan-300 text-slate-950' : 'text-slate-300 hover:text-cyan-200' }}" href="{{ path('app_subscriptions') }}">Sources</a>
                         <a class="px-3 py-2 transition text-slate-300 hover:text-cyan-200" href="{{ path('app_preferences') }}">Préférences</a>
+                        {% if is_granted('ROLE_ADMIN') %}
+                            <a class="px-3 py-2 transition {{ current_route starts with 'app_admin' ? 'bg-orange-300 text-slate-950' : 'text-slate-300 hover:text-orange-200' }}" href="{{ path('app_admin') }}">Administration</a>
+                        {% endif %}
                     </div>
                     <p class="max-w-48 truncate text-xs text-slate-500" title="{{ app.user.userIdentifier }}">{{ app.user.userIdentifier }}</p>
                     <form action="{{ path('app_logout') }}" method="post"><input type="hidden" name="_token" value="{{ csrf_token('logout') }}"><button class="border border-slate-700 px-3 py-2 text-xs font-semibold uppercase tracking-[.12em] text-slate-300 transition hover:border-orange-300 hover:text-orange-200" type="submit">Quitter</button></form>

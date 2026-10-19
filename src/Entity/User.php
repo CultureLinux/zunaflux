@@ -38,6 +38,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(name: 'disabled_at', nullable: true)]
     private ?\DateTimeImmutable $disabledAt = null;
 
+    #[ORM\Column(name: 'subscription_limit', nullable: true)]
+    private ?int $subscriptionLimit = null;
+
     public function __construct(string $email)
     {
         $this->id = Uuid::v7();
@@ -81,4 +84,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             $this->roles[] = $role;
         }
     }
+
+    public function isActive(): bool { return 'active' === $this->status; }
+    public function disable(): void { $this->status = 'disabled'; $this->disabledAt = new \DateTimeImmutable(); }
+    public function enable(): void { $this->status = 'active'; $this->disabledAt = null; }
+    public function isAdmin(): bool { return in_array('ROLE_ADMIN', $this->roles, true); }
+    public function removeAdminRole(): void { $this->roles = array_values(array_filter($this->roles, static fn (string $role): bool => 'ROLE_ADMIN' !== $role)); }
+    public function setSubscriptionLimit(?int $limit): void { if (null !== $limit && $limit < 1) throw new \InvalidArgumentException('La limite doit être positive.'); $this->subscriptionLimit = $limit; }
+    public function getSubscriptionLimit(): ?int { return $this->subscriptionLimit; }
 }

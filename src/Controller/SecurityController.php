@@ -31,7 +31,11 @@ final class SecurityController extends AbstractController
         UserRepository $users,
         EntityManagerInterface $entityManager,
         UserPasswordHasherInterface $passwordHasher,
+        bool $publicRegistration,
     ): Response {
+        if (!$publicRegistration) {
+            throw $this->createNotFoundException();
+        }
         if ($request->isMethod('GET')) {
             return $this->render('security/register.html.twig');
         }

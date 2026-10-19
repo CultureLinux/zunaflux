@@ -42,6 +42,9 @@ final class Feed
 
     #[ORM\Column(name: 'created_at')]
     private \DateTimeImmutable $createdAt;
+    #[ORM\Column(name: 'last_success_at', nullable: true)] private ?\DateTimeImmutable $lastSuccessAt = null;
+    #[ORM\Column(name: 'failure_count')] private int $failureCount = 0;
+    #[ORM\Column(name: 'last_error', length: 255, nullable: true)] private ?string $lastError = null;
 
     public function __construct(string $url)
     {
@@ -92,6 +95,10 @@ final class Feed
     {
         return $this->lastModified;
     }
+    public function recordSuccess(): void { $this->lastSuccessAt = new \DateTimeImmutable(); $this->failureCount = 0; $this->lastError = null; }
+    public function recordFailure(\Throwable $error): void { ++$this->failureCount; $this->lastError = mb_substr($error->getMessage(), 0, 255); }
+    public function getFailureCount(): int { return $this->failureCount; }
+    public function getLastError(): ?string { return $this->lastError; }
 
     private static function canonicalizeUrl(string $url): string
     {

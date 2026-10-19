@@ -2,12 +2,15 @@ parameters:
     app.timezone: '%env(APP_TIMEZONE)%'
     app.page_size: '%env(int:ZUNAFLUX_PAGE_SIZE)%'
     app.max_subscriptions: '%env(int:ZUNAFLUX_MAX_SUBSCRIPTIONS)%'
+    app.public_registration: '%env(bool:ZUNAFLUX_PUBLIC_REGISTRATION)%'
     app.media_storage: '%env(resolve:ZUNAFLUX_MEDIA_STORAGE)%'
 
 services:
     _defaults:
         autowire: true
         autoconfigure: true
+        bind:
+            $publicRegistration: '%app.public_registration%'
 
     App\:
         resource: '../src/'

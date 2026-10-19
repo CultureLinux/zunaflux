@@ -1,0 +1,5 @@
+<?php
+declare(strict_types=1);
+namespace DoctrineMigrations;
+use Doctrine\DBAL\Schema\Schema; use Doctrine\Migrations\AbstractMigration;
+final class Version20261019062000 extends AbstractMigration { public function getDescription(): string{return 'Adds grouped feed collection incidents.';} public function up(Schema $schema):void{$this->addSql('CREATE TABLE feed_incident (id BINARY(16) NOT NULL COMMENT \'(DC2Type:uuid)\', feed_id BINARY(16) NOT NULL COMMENT \'(DC2Type:uuid)\', message VARCHAR(255) NOT NULL, occurrences INT NOT NULL, first_occurred_at DATETIME NOT NULL, last_occurred_at DATETIME NOT NULL, acknowledged_at DATETIME DEFAULT NULL, UNIQUE INDEX uniq_feed_incident_open (feed_id), PRIMARY KEY(id)) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB'); $this->addSql('ALTER TABLE feed_incident ADD CONSTRAINT fk_feed_incident_feed FOREIGN KEY (feed_id) REFERENCES feed (id) ON DELETE CASCADE');} public function down(Schema $schema):void{$this->addSql('DROP TABLE feed_incident');} }

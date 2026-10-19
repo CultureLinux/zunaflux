@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Controller;
 
 use App\Repository\UserRepository;
+use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
@@ -47,5 +48,17 @@ final class SecurityControllerTest extends WebTestCase
         } finally {
             $entityManager->getConnection()->executeStatement('DELETE FROM app_user WHERE email_normalized = ?', [$email]);
         }
+    }
+
+    public function testAdministrationRequiresTheAdministratorRole(): void
+    {
+        $client = static::createClient();
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $user = new User('admin-boundary-'.bin2hex(random_bytes(8)).'@example.test');
+        $entityManager->persist($user); $entityManager->flush();
+        try {
+            $client->loginUser($user); $client->request('GET', '/admin');
+            self::assertResponseStatusCodeSame(403);
+        } finally { $entityManager->getConnection()->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]); }
     }
 }

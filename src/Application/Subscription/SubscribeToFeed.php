@@ -33,6 +33,10 @@ final readonly class SubscribeToFeed
         ]);
 
         if (!$subscription instanceof Subscription) {
+            $limit = $user->getSubscriptionLimit();
+            if (null !== $limit && $this->entityManager->getRepository(Subscription::class)->count(['user' => $user]) >= $limit) {
+                throw new \InvalidArgumentException('La limite d’abonnements de ce compte est atteinte.');
+            }
             $subscription = new Subscription($user, $feed);
             $this->entityManager->persist($subscription);
         }
