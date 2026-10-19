@@ -6,6 +6,7 @@
         </testsuite>
     </testsuites>
     <php>
+        <server name="KERNEL_CLASS" value="App\Kernel"/>
         <server name="APP_ENV" value="test" force="true"/>
         <server name="SHELL_VERBOSITY" value="-1"/>
     </php>

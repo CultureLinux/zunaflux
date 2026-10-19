@@ -15,8 +15,9 @@ cp .env .env.local
 php bin/console doctrine:migrations:migrate --no-interaction
 php bin/console app:user:create admin@zunaflux.clinux.fr 'change-this-password' --admin
 php bin/console tailwind:build --minify
-symfony server:start
 ```
+
+L'application est servie par Nginx et PHP-FPM ; le binaire Symfony CLI n'est pas requis.
 
 La commande de création de compte doit être exécutée dans un terminal non journalisé ou avec un mot de passe fourni de manière sûre : elle est une solution de bootstrap temporaire et sera remplacée par le parcours d’administration du lot 6.
 
