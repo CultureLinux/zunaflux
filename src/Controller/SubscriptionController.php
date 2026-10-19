@@ -93,7 +93,12 @@ final class SubscriptionController extends AbstractController
     {
         $subscription = $this->ownedSubscription($id, $entityManager);
         if (!$this->isCsrfTokenValid('delete-subscription-'.$id, $request->request->getString('_token'))) throw $this->createAccessDeniedException('Invalid CSRF token.');
-        $entityManager->remove($subscription); $entityManager->flush(); $this->addFlash('success', 'Abonnement supprimé.');
+        $entityManager->wrapInTransaction(function () use ($entityManager, $subscription): void {
+            $entityManager->getConnection()->executeStatement('DELETE article_state FROM article_state INNER JOIN article ON article.id = article_state.article_id WHERE article_state.user_id = ? AND article.feed_id = ?', [$subscription->getUser()->getId()->toBinary(), $subscription->getFeed()->getId()->toBinary()], [\Doctrine\DBAL\ParameterType::BINARY, \Doctrine\DBAL\ParameterType::BINARY]);
+            $entityManager->remove($subscription);
+            $entityManager->flush();
+        });
+        $this->addFlash('success', 'Abonnement et états de lecture associés supprimés.');
         return $this->redirectToRoute('app_subscriptions', status: Response::HTTP_SEE_OTHER);
     }
 

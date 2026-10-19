@@ -4,6 +4,8 @@ parameters:
     app.max_subscriptions: '%env(int:ZUNAFLUX_MAX_SUBSCRIPTIONS)%'
     app.public_registration: '%env(bool:ZUNAFLUX_PUBLIC_REGISTRATION)%'
     app.media_storage: '%env(resolve:ZUNAFLUX_MEDIA_STORAGE)%'
+    app.retention_months_default: 12
+    app.retention_months: '%env(default:app.retention_months_default:int:ZUNAFLUX_RETENTION_MONTHS)%'
 
 services:
     _defaults:
@@ -11,6 +13,7 @@ services:
         autoconfigure: true
         bind:
             $publicRegistration: '%app.public_registration%'
+            $retentionMonths: '%app.retention_months%'
 
     App\:
         resource: '../src/'

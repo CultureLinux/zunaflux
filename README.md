@@ -28,3 +28,5 @@ php bin/console app:user:create admin@zunaflux.clinux.fr 'change-this-password' 
 ## Validation
 
 Les commandes de validation et les opérations modifiant la base sont documentées dans les comptes-rendus de lots. Ne versionnez jamais `.env.local` ni aucun secret SMTP ou MariaDB.
+
+`ZUNAFLUX_RETENTION_MONTHS` règle la conservation des articles ; sa valeur par défaut est `12`.

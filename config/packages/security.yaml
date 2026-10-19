@@ -28,5 +28,7 @@ security:
         - { path: ^/login$, roles: PUBLIC_ACCESS }
         - { path: ^/register$, roles: PUBLIC_ACCESS }
         - { path: ^/(articles|api/articles), roles: ROLE_USER }
+        - { path: ^/api/statistics, roles: ROLE_USER }
         - { path: ^/subscriptions, roles: ROLE_USER }
+        - { path: ^/exports, roles: ROLE_USER }
         - { path: ^/admin, roles: ROLE_ADMIN }

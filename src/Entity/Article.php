@@ -52,4 +52,5 @@ final class Article
     public function getContent(): ?string { return $this->content; }
     public function getPublishedAt(): ?\DateTimeImmutable { return $this->publishedAt; }
     public function getCollectedAt(): \DateTimeImmutable { return $this->collectedAt; }
+    public function getIdentityHash(): string { return $this->identityHash; }
 }

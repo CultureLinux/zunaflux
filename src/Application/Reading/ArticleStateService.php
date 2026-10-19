@@ -39,6 +39,7 @@ final readonly class ArticleStateService
             $this->entityManager->persist($state);
         }
 
+        $wasRead = $state->isRead();
         if (array_key_exists('isRead', $changes)) {
             $changes['isRead'] ? $state->markRead() : $state->markUnread();
         }
@@ -49,8 +50,35 @@ final readonly class ArticleStateService
             $state->setSaved($changes['isSaved']);
         }
 
-        $this->entityManager->flush();
+        $this->entityManager->wrapInTransaction(function () use ($state, $wasRead, $subscription, $user, $article): void {
+            $this->entityManager->flush();
+
+            if (!$wasRead && $state->isRead()) {
+                $this->recordFirstRead($user, $article, $subscription);
+            }
+        });
 
         return $state;
+    }
+
+    private function recordFirstRead(User $user, Article $article, Subscription $subscription): void
+    {
+        $connection = $this->entityManager->getConnection();
+        $now = new \DateTimeImmutable();
+        $inserted = $connection->executeStatement(
+            'INSERT IGNORE INTO first_read_event (id, user_id, feed_id, article_identity_hash, first_read_at) VALUES (?, ?, ?, ?, ?)',
+            [\Symfony\Component\Uid\Uuid::v7()->toBinary(), $user->getId()->toBinary(), $article->getFeed()->getId()->toBinary(), $article->getIdentityHash(), $now],
+            [\Doctrine\DBAL\ParameterType::BINARY, \Doctrine\DBAL\ParameterType::BINARY, \Doctrine\DBAL\ParameterType::BINARY, \Doctrine\DBAL\ParameterType::BINARY, \Doctrine\DBAL\Types\Types::DATETIME_IMMUTABLE],
+        );
+        if (0 === $inserted) {
+            return;
+        }
+
+        $category = $subscription->getCategory()?->getName() ?? '';
+        $connection->executeStatement(
+            'INSERT INTO reading_daily_stat (id, user_id, stat_date, category_snapshot, first_reads) VALUES (?, ?, ?, ?, 1) ON DUPLICATE KEY UPDATE first_reads = first_reads + 1',
+            [\Symfony\Component\Uid\Uuid::v7()->toBinary(), $user->getId()->toBinary(), $now->format('Y-m-d'), $category],
+            [\Doctrine\DBAL\ParameterType::BINARY, \Doctrine\DBAL\ParameterType::BINARY, \Doctrine\DBAL\ParameterType::STRING, \Doctrine\DBAL\ParameterType::STRING],
+        );
     }
 }
