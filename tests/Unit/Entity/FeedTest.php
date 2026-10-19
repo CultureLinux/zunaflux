@@ -22,4 +22,14 @@ final class FeedTest extends TestCase
 
         new Feed('file:///etc/passwd');
     }
+
+    public function testItRemembersValidatorsReturnedByACollection(): void
+    {
+        $feed = new Feed('https://example.test/feed.xml');
+
+        $feed->recordFetchValidators('"version-42"', 'Sun, 19 Oct 2026 08:00:00 GMT');
+
+        self::assertSame('"version-42"', $feed->getEtag());
+        self::assertSame('Sun, 19 Oct 2026 08:00:00 GMT', $feed->getLastModified());
+    }
 }

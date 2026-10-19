@@ -55,6 +55,48 @@ final class Subscription
         return $this->category;
     }
 
+    public function getId(): Uuid
+    {
+        return $this->id;
+    }
+
+    public function getUser(): User
+    {
+        return $this->user;
+    }
+
+    public function isEnabled(): bool
+    {
+        return $this->enabled;
+    }
+
+    public function disable(): void
+    {
+        $this->enabled = false;
+    }
+
+    public function enable(): void
+    {
+        $this->enabled = true;
+    }
+
+    public function rename(?string $title): void
+    {
+        $title = null === $title ? null : trim($title);
+        if (null !== $title && '' === $title) {
+            $title = null;
+        }
+        if (null !== $title && mb_strlen($title) > 255) {
+            throw new \InvalidArgumentException('A subscription title cannot exceed 255 characters.');
+        }
+        $this->customTitle = $title;
+    }
+
+    public function getDisplayTitle(): string
+    {
+        return $this->customTitle ?? $this->feed->getTitle() ?? $this->feed->getCanonicalUrl();
+    }
+
     public function assignCategory(?Category $category): void
     {
         if (null !== $category && !$category->getUser()->getId()->equals($this->user->getId())) {

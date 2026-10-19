@@ -23,4 +23,16 @@ final class SubscriptionTest extends TestCase
 
         $subscription->assignCategory($category);
     }
+
+    public function testItCanBeDisabledAndRenamedByItsOwner(): void
+    {
+        $user = new User('reader@example.test');
+        $subscription = new Subscription($user, new Feed('https://example.test/feed.xml'));
+
+        $subscription->rename('  Journal personnel  ');
+        $subscription->disable();
+
+        self::assertSame('Journal personnel', $subscription->getDisplayTitle());
+        self::assertFalse($subscription->isEnabled());
+    }
 }

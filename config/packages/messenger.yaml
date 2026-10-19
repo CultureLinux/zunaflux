@@ -2,4 +2,5 @@ framework:
     messenger:
         transports:
             async: '%env(MESSENGER_TRANSPORT_DSN)%'
-        routing: { }
+        routing:
+            'App\Message\CollectFeedMessage': async

@@ -15,6 +15,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Uid\Uuid;
 
 final class SubscriptionController extends AbstractController
 {
@@ -54,5 +55,50 @@ final class SubscriptionController extends AbstractController
             'subscriptions' => $entityManager->getRepository(Subscription::class)->findBy(['user' => $user], ['createdAt' => 'DESC']),
             'categories' => $entityManager->getRepository(Category::class)->findBy(['user' => $user], ['position' => 'ASC', 'name' => 'ASC']),
         ]);
+    }
+
+    #[Route('/subscriptions/{id}/update', name: 'app_subscription_update', methods: ['POST'])]
+    public function update(string $id, Request $request, EntityManagerInterface $entityManager): RedirectResponse
+    {
+        $subscription = $this->ownedSubscription($id, $entityManager);
+        if (!$this->isCsrfTokenValid('subscription-'.$id, $request->request->getString('_token'))) throw $this->createAccessDeniedException('Invalid CSRF token.');
+        $categoryId = $request->request->getString('category_id');
+        $category = '' === $categoryId ? null : $entityManager->getRepository(Category::class)->find(Uuid::fromString($categoryId));
+        if (null !== $category && $category->getUser()->getId()->equals($subscription->getUser()->getId()) === false) throw $this->createAccessDeniedException();
+        $subscription->assignCategory($category); $subscription->rename($request->request->get('custom_title'));
+        '1' === $request->request->getString('enabled') ? $subscription->enable() : $subscription->disable(); $entityManager->flush();
+        $this->addFlash('success', 'Abonnement mis à jour.'); return $this->redirectToRoute('app_subscriptions', status: Response::HTTP_SEE_OTHER);
+    }
+
+    #[Route('/subscriptions/{id}/delete', name: 'app_subscription_delete', methods: ['POST'])]
+    public function delete(string $id, Request $request, EntityManagerInterface $entityManager): RedirectResponse
+    {
+        $subscription = $this->ownedSubscription($id, $entityManager);
+        if (!$this->isCsrfTokenValid('delete-subscription-'.$id, $request->request->getString('_token'))) throw $this->createAccessDeniedException('Invalid CSRF token.');
+        $entityManager->remove($subscription); $entityManager->flush(); $this->addFlash('success', 'Abonnement supprimé.');
+        return $this->redirectToRoute('app_subscriptions', status: Response::HTTP_SEE_OTHER);
+    }
+
+    #[Route('/categories/{id}/delete', name: 'app_category_delete', methods: ['POST'])]
+    public function deleteCategory(string $id, Request $request, EntityManagerInterface $entityManager): RedirectResponse
+    {
+        $user = $this->currentUser(); $category = $entityManager->getRepository(Category::class)->find(Uuid::fromString($id));
+        if (!$category instanceof Category || !$category->getUser()->getId()->equals($user->getId())) throw $this->createAccessDeniedException();
+        if (!$this->isCsrfTokenValid('delete-category-'.$id, $request->request->getString('_token'))) throw $this->createAccessDeniedException('Invalid CSRF token.');
+        foreach ($entityManager->getRepository(Subscription::class)->findBy(['user' => $user, 'category' => $category]) as $subscription) $subscription->assignCategory(null);
+        $entityManager->remove($category); $entityManager->flush(); $this->addFlash('success', 'Catégorie supprimée ; les abonnements sont sans catégorie.');
+        return $this->redirectToRoute('app_subscriptions', status: Response::HTTP_SEE_OTHER);
+    }
+
+    private function currentUser(): User
+    {
+        $user = $this->getUser(); if (!$user instanceof User) throw $this->createAccessDeniedException(); return $user;
+    }
+
+    private function ownedSubscription(string $id, EntityManagerInterface $entityManager): Subscription
+    {
+        try { $subscription = $entityManager->getRepository(Subscription::class)->find(Uuid::fromString($id)); } catch (\InvalidArgumentException) { $subscription = null; }
+        if (!$subscription instanceof Subscription || !$subscription->getUser()->getId()->equals($this->currentUser()->getId())) throw $this->createAccessDeniedException();
+        return $subscription;
     }
 }

@@ -31,6 +31,12 @@ final class Feed
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $description = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $etag = null;
+
+    #[ORM\Column(name: 'last_modified', length: 255, nullable: true)]
+    private ?string $lastModified = null;
+
     #[ORM\Column(length: 20)]
     private string $status = 'active';
 
@@ -58,6 +64,33 @@ final class Feed
     public function getCanonicalUrlHash(): string
     {
         return $this->canonicalUrlHash;
+    }
+
+    public function getTitle(): ?string
+    {
+        return $this->title;
+    }
+
+    public function refreshMetadata(?string $title, ?string $siteUrl): void
+    {
+        $this->title = null === $title ? null : mb_substr(trim($title), 0, 255);
+        $this->siteUrl = null === $siteUrl ? null : mb_substr(trim($siteUrl), 0, 2048);
+    }
+
+    public function recordFetchValidators(?string $etag, ?string $lastModified): void
+    {
+        $this->etag = null === $etag ? null : mb_substr($etag, 0, 255);
+        $this->lastModified = null === $lastModified ? null : mb_substr($lastModified, 0, 255);
+    }
+
+    public function getEtag(): ?string
+    {
+        return $this->etag;
+    }
+
+    public function getLastModified(): ?string
+    {
+        return $this->lastModified;
     }
 
     private static function canonicalizeUrl(string $url): string
