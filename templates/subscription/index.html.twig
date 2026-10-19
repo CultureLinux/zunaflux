@@ -24,6 +24,17 @@
             <button class="self-end border border-cyan-300 bg-cyan-300 px-5 py-3 font-semibold text-slate-950 hover:bg-cyan-200" type="submit">Ajouter le flux</button>
         </form>
 
+        <form class="mt-4 grid gap-4 border border-dashed border-slate-700 p-6 md:grid-cols-[1fr_auto]" action="{{ path('app_subscriptions') }}" method="post" enctype="multipart/form-data">
+            <div>
+                <label class="font-mono text-xs uppercase tracking-[.18em] text-slate-400" for="opml_file">Importer un fichier OPML</label>
+                <p class="mt-2 text-sm text-slate-400">Compatible FreshRSS. Les dossiers deviennent des catégories ; les abonnements déjà présents sont conservés.</p>
+                <input class="mt-3 block w-full text-sm text-slate-300 file:mr-4 file:border-0 file:bg-slate-800 file:px-4 file:py-2 file:text-slate-100 hover:file:bg-slate-700" id="opml_file" name="opml_file" type="file" accept=".opml,application/xml,text/xml" required>
+            </div>
+            <input type="hidden" name="_token" value="{{ csrf_token('import-opml') }}">
+            <input type="hidden" name="intent" value="import-opml">
+            <button class="self-end border border-slate-600 px-5 py-3 font-semibold text-slate-100 hover:border-cyan-300 hover:text-cyan-200" type="submit">Importer OPML</button>
+        </form>
+
         <section class="mt-10 grid gap-5 border border-slate-800 p-6 md:grid-cols-[1fr_auto]" aria-labelledby="categories-heading">
             <div>
                 <h2 class="font-serif text-2xl text-white" id="categories-heading">Catégories</h2>

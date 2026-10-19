@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Application\Subscription\SubscribeToFeed;
 use App\Application\Subscription\CreateCategory;
+use App\Application\Subscription\ImportOpml;
 use App\Entity\Category;
 use App\Entity\Subscription;
 use App\Entity\User;
@@ -20,7 +21,7 @@ use Symfony\Component\Uid\Uuid;
 final class SubscriptionController extends AbstractController
 {
     #[Route('/subscriptions', name: 'app_subscriptions', methods: ['GET', 'POST'])]
-    public function index(Request $request, SubscribeToFeed $subscribeToFeed, CreateCategory $createCategory, EntityManagerInterface $entityManager): Response
+    public function index(Request $request, SubscribeToFeed $subscribeToFeed, CreateCategory $createCategory, ImportOpml $importOpml, EntityManagerInterface $entityManager): Response
     {
         $user = $this->getUser();
         if (!$user instanceof User) {
@@ -36,6 +37,23 @@ final class SubscriptionController extends AbstractController
 
                     $createCategory->create($user, $request->request->getString('category_name'));
                     $this->addFlash('success', 'Catégorie créée.');
+                } elseif ('import-opml' === $request->request->getString('intent')) {
+                    if (!$this->isCsrfTokenValid('import-opml', $request->request->getString('_token'))) {
+                        throw $this->createAccessDeniedException('Invalid CSRF token.');
+                    }
+                    $file = $request->files->get('opml_file');
+                    if (!$file instanceof \Symfony\Component\HttpFoundation\File\UploadedFile || !$file->isValid()) {
+                        throw new \InvalidArgumentException('Veuillez sélectionner un fichier OPML valide.');
+                    }
+                    if (($file->getSize() ?? 0) > 2_000_000) {
+                        throw new \InvalidArgumentException('Le fichier OPML ne doit pas dépasser 2 Mo.');
+                    }
+                    $xml = file_get_contents($file->getPathname());
+                    if (false === $xml) {
+                        throw new \InvalidArgumentException('Le fichier OPML ne peut pas être lu.');
+                    }
+                    $count = $importOpml->import($user, $xml);
+                    $this->addFlash('success', sprintf('%d flux importé(s).', $count));
                 } else {
                     if (!$this->isCsrfTokenValid('subscribe-feed', $request->request->getString('_token'))) {
                         throw $this->createAccessDeniedException('Invalid CSRF token.');
