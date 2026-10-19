@@ -19,4 +19,6 @@
     a, button, input, select {
         -webkit-tap-highlight-color: transparent;
     }
+
+    .article-density-compact li { padding-top: .6rem; padding-bottom: .6rem; }
 }

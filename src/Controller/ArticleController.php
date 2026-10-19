@@ -9,6 +9,7 @@ use App\Entity\Article;
 use App\Entity\ArticleState;
 use App\Entity\Subscription;
 use App\Entity\User;
+use App\Entity\UserPreference;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -22,9 +23,16 @@ final class ArticleController extends AbstractController
     private const PAGE_SIZE = 30;
 
     #[Route('/articles', name: 'app_articles', methods: ['GET'])]
-    public function index(): Response
+    public function index(EntityManagerInterface $entityManager): Response
     {
-        return $this->render('article/index.html.twig');
+        $user = $this->currentUser();
+        $preference = $entityManager->getRepository(UserPreference::class)->findOneBy(['user' => $user]);
+        if (!$preference instanceof UserPreference) {
+            $preference = new UserPreference($user);
+            $entityManager->persist($preference);
+            $entityManager->flush();
+        }
+        return $this->render('article/index.html.twig', ['preference' => $preference]);
     }
 
     #[Route('/api/articles', name: 'app_api_articles', methods: ['GET'])]
@@ -49,6 +57,17 @@ final class ArticleController extends AbstractController
                 ->setParameter('cursorDate', new \DateTimeImmutable($cursor['collectedAt']))
                 ->setParameter('cursorId', Uuid::fromString($cursor['id']), 'uuid');
         }
+
+        $search = trim($request->query->getString('q'));
+        if ('' !== $search) {
+            $query->andWhere('LOWER(a.title) LIKE :search OR LOWER(a.summary) LIKE :search')
+                ->setParameter('search', '%'.mb_strtolower($search).'%');
+        }
+        if ('' !== $request->query->getString('subscription')) $query->andWhere('subscription.id = :subscription')->setParameter('subscription', Uuid::fromString($request->query->getString('subscription')), 'uuid');
+        if ('' !== $request->query->getString('category')) $query->andWhere('IDENTITY(subscription.category) = :category')->setParameter('category', Uuid::fromString($request->query->getString('category')), 'uuid');
+        foreach (['read' => 'isRead', 'favorite' => 'isFavorite', 'saved' => 'isSaved'] as $parameter => $field) { if (in_array($request->query->getString($parameter), ['0','1'], true)) $query->andWhere('COALESCE(s.'.$field.', false) = :'.$parameter)->setParameter($parameter, '1' === $request->query->getString($parameter)); }
+        if ('' !== $request->query->getString('from')) $query->andWhere('COALESCE(a.publishedAt, a.collectedAt) >= :from')->setParameter('from', new \DateTimeImmutable($request->query->getString('from')));
+        if ('' !== $request->query->getString('to')) $query->andWhere('COALESCE(a.publishedAt, a.collectedAt) <= :to')->setParameter('to', new \DateTimeImmutable($request->query->getString('to')));
 
         $items = $query->getQuery()->getArrayResult();
         $hasMore = count($items) > self::PAGE_SIZE;

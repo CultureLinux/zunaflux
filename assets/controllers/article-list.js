@@ -17,13 +17,16 @@ if (container) {
     const actions = document.querySelector('[data-article-actions]');
     const selectedIds = new Set();
     const readMode = actions?.querySelector('[data-read-mode]');
+    const searchForm = document.querySelector('[data-article-search]');
+    const searchInput = searchForm?.querySelector('[name="q"]');
+    const savedFilters = document.querySelector('[data-saved-filters]');
+    const savedFilterSelect = savedFilters?.querySelector('[data-saved-filter]');
     let nextCursor = null;
     let selectedArticle = null;
     const loadedItems = [];
     let loading = false;
     if (readMode) {
-        readMode.value = localStorage.getItem('zunaflux.read-mode') || 'on_preview';
-        readMode.addEventListener('change', () => localStorage.setItem('zunaflux.read-mode', readMode.value));
+        readMode.value = document.querySelector('[data-read-mode-default]')?.dataset.readModeDefault || 'on_preview';
     }
 
     const bulk = (changes) => fetch(`${endpoint}/bulk`, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': actions.dataset.csrfToken }, body: JSON.stringify({ ids: [...selectedIds], ...changes }) }).then((response) => {
@@ -118,6 +121,7 @@ if (container) {
         loading = true;
         const url = new URL(endpoint, window.location.origin);
         if (cursor) url.searchParams.set('cursor', cursor);
+        if (searchInput?.value.trim()) url.searchParams.set('q', searchInput.value.trim());
 
         return fetch(url, { headers: { Accept: 'application/json' } })
         .then((response) => {
@@ -190,6 +194,11 @@ if (container) {
         moreButton.disabled = true;
         loadPage(nextCursor, true).finally(() => { moreButton.disabled = false; });
     });
+    searchForm?.addEventListener('submit', (event) => { event.preventDefault(); loadPage(); });
+    const savedHeaders = { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': savedFilters?.dataset.csrfToken };
+    fetch('/api/saved-filters', { headers: { Accept: 'application/json' } }).then((r) => r.ok ? r.json() : []).then((filters) => filters.forEach((filter) => { const option = document.createElement('option'); option.value = JSON.stringify(filter.filters); option.textContent = filter.name; savedFilterSelect?.append(option); })).catch(() => {});
+    savedFilterSelect?.addEventListener('change', () => { if (!savedFilterSelect.value) return; const filters = JSON.parse(savedFilterSelect.value); if (typeof filters.q === 'string' && searchInput) searchInput.value = filters.q; loadPage(); history.replaceState(null, '', `${location.pathname}?${new URLSearchParams(filters)}`); });
+    savedFilters?.querySelector('[data-save-filter]')?.addEventListener('click', () => { const name = window.prompt('Nom du filtre'); if (!name) return; fetch('/api/saved-filters', { method: 'POST', headers: savedHeaders, body: JSON.stringify({ name, filters: { q: searchInput?.value.trim() || '' } }) }).then((r) => { if (!r.ok) throw new Error(); return r.json(); }).then(() => location.reload()).catch(() => window.alert('Impossible d’enregistrer ce filtre.')); });
 
     if (sentinel && 'IntersectionObserver' in window) {
         new IntersectionObserver(([entry]) => {

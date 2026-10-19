@@ -1,0 +1,9 @@
+<?php
+declare(strict_types=1);
+namespace App\Controller;
+use App\Entity\User; use App\Entity\UserPreference; use Doctrine\ORM\EntityManagerInterface; use Symfony\Bundle\FrameworkBundle\Controller\AbstractController; use Symfony\Component\HttpFoundation\Request; use Symfony\Component\HttpFoundation\Response; use Symfony\Component\Routing\Attribute\Route;
+final class PreferenceController extends AbstractController
+{
+    #[Route('/preferences', name: 'app_preferences', methods: ['GET','POST'])]
+    public function index(Request $request, EntityManagerInterface $em): Response { $user=$this->getUser(); if (!$user instanceof User) throw $this->createAccessDeniedException(); $preference=$em->getRepository(UserPreference::class)->findOneBy(['user'=>$user]); if (!$preference instanceof UserPreference) { $preference=new UserPreference($user); $em->persist($preference); } if ($request->isMethod('POST')) { if (!$this->isCsrfTokenValid('preferences',$request->request->getString('_token'))) throw $this->createAccessDeniedException(); $preference->update(['theme'=>$request->request->getString('theme'),'density'=>$request->request->getString('density'),'fontScale'=>$request->request->getString('font_scale'),'accent'=>$request->request->getString('accent'),'readMode'=>$request->request->getString('read_mode'),'sidebarCollapsed'=>'1'===$request->request->getString('sidebar_collapsed'),'timezone'=>$request->request->getString('timezone')]); $em->flush(); $this->addFlash('success','Préférences enregistrées.'); return $this->redirectToRoute('app_preferences'); } return $this->render('preference/index.html.twig',['preference'=>$preference]); }
+}

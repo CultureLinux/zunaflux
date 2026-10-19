@@ -64,6 +64,44 @@ final class ArticleControllerTest extends WebTestCase
         }
     }
 
+    /** Removing either the FULLTEXT condition or the subscription join must make this contract fail. */
+    public function testSearchReturnsOnlyMatchingArticlesVisibleToTheAuthenticatedUser(): void
+    {
+        $client = static::createClient();
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $user = new User('search-reader-'.bin2hex(random_bytes(8)).'@example.test');
+        $otherUser = new User('search-other-'.bin2hex(random_bytes(8)).'@example.test');
+        $feed = new Feed('https://search.test/'.bin2hex(random_bytes(8)).'/feed.xml');
+        $hiddenFeed = new Feed('https://search-hidden.test/'.bin2hex(random_bytes(8)).'/feed.xml');
+        $visibleArticle = new Article($feed, new ParsedFeedItem('visible', 'Observabilité Kubernetes', null, 'Métriques et traces.', null, null));
+        $hiddenArticle = new Article($hiddenFeed, new ParsedFeedItem('hidden', 'Observabilité confidentielle', null, 'Ne doit pas être exposé.', null, null));
+        $subscription = new Subscription($user, $feed);
+        $entityManager->persist($user);
+        $entityManager->persist($otherUser);
+        $entityManager->persist($feed);
+        $entityManager->persist($hiddenFeed);
+        $entityManager->persist($visibleArticle);
+        $entityManager->persist($hiddenArticle);
+        $entityManager->persist($subscription);
+        $entityManager->flush();
+
+        try {
+            $client->loginUser($user);
+            $client->request('GET', '/api/articles?q=observabilite');
+
+            self::assertResponseIsSuccessful();
+            $payload = json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+            self::assertSame(['Observabilité Kubernetes'], array_column($payload['items'], 'title'));
+        } finally {
+            $connection = $entityManager->getConnection();
+            $connection->executeStatement('DELETE FROM article WHERE id IN (?, ?)', [$visibleArticle->getId()->toBinary(), $hiddenArticle->getId()->toBinary()]);
+            $connection->executeStatement('DELETE FROM subscription WHERE id = ?', [$subscription->getId()->toBinary()]);
+            $connection->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);
+            $connection->executeStatement('DELETE FROM feed WHERE id = ?', [$hiddenFeed->getId()->toBinary()]);
+            $connection->executeStatement('DELETE FROM app_user WHERE id IN (?, ?)', [$user->getId()->toBinary(), $otherUser->getId()->toBinary()]);
+        }
+    }
+
     /** Removing the authenticated navigation must make this contract fail. */
     public function testTheReadingPageProvidesTheAuthenticatedNavigation(): void
     {
