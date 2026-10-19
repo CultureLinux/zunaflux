@@ -43,4 +43,13 @@ final class Article
         $this->url = $item->url ? mb_substr($item->url, 0, 2048) : null; $this->summary = $item->summary;
         $this->content = $item->content; $this->publishedAt = $item->publishedAt; $this->collectedAt = new \DateTimeImmutable();
     }
+
+    public function getId(): Uuid { return $this->id; }
+    public function getFeed(): Feed { return $this->feed; }
+    public function getTitle(): string { return $this->title; }
+    public function getUrl(): ?string { return $this->url; }
+    public function getSummary(): ?string { return $this->summary; }
+    public function getContent(): ?string { return $this->content; }
+    public function getPublishedAt(): ?\DateTimeImmutable { return $this->publishedAt; }
+    public function getCollectedAt(): \DateTimeImmutable { return $this->collectedAt; }
 }

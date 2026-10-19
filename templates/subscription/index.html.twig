@@ -4,8 +4,7 @@
 
 {% block body %}
     <main class="mx-auto min-h-screen max-w-5xl px-6 py-16">
-        <a class="font-mono text-xs uppercase tracking-[.25em] text-cyan-300 hover:text-cyan-100" href="{{ path('app_home') }}">Zunaflux</a>
-        <h1 class="mt-6 font-serif text-5xl text-white">Vos abonnements</h1>
+        <h1 class="font-serif text-5xl text-white">Vos abonnements</h1>
         <p class="mt-4 max-w-2xl text-slate-300">Ajoutez vos sources et organisez-les par catégories. Les réglages restent strictement personnels.</p>
 
         {% for message in app.flashes('success') %}

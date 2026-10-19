@@ -13,13 +13,17 @@ composer install
 cp .env .env.local
 # Renseigner APP_SECRET, DATABASE_URL et MAILER_DSN dans .env.local.
 php bin/console doctrine:migrations:migrate --no-interaction
-php bin/console app:user:create admin@zunaflux.clinux.fr 'change-this-password' --admin
 php bin/console tailwind:build --minify
+php bin/console asset-map:compile
 ```
 
 L'application est servie par Nginx et PHP-FPM ; le binaire Symfony CLI n'est pas requis.
 
-La commande de création de compte doit être exécutée dans un terminal non journalisé ou avec un mot de passe fourni de manière sûre : elle est une solution de bootstrap temporaire et sera remplacée par le parcours d’administration du lot 6.
+Les visiteurs peuvent créer un compte depuis `/register`. Pour créer le premier administrateur, utilisez la commande suivante dans un terminal non journalisé ou en fournissant le mot de passe de manière sûre :
+
+```bash
+php bin/console app:user:create admin@zunaflux.clinux.fr 'change-this-password' --admin
+```
 
 ## Validation
 

@@ -25,5 +25,7 @@ security:
                 interval: '15 minutes'
     access_control:
         - { path: ^/login$, roles: PUBLIC_ACCESS }
+        - { path: ^/register$, roles: PUBLIC_ACCESS }
+        - { path: ^/(articles|api/articles), roles: ROLE_USER }
         - { path: ^/subscriptions, roles: ROLE_USER }
         - { path: ^/admin, roles: ROLE_ADMIN }
