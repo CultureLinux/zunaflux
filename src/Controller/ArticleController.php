@@ -38,7 +38,7 @@ final class ArticleController extends AbstractController
             ->innerJoin('a.feed', 'f')
             ->innerJoin(Subscription::class, 'subscription', 'WITH', 'subscription.feed = f AND subscription.user = :user AND subscription.enabled = true')
             ->leftJoin(ArticleState::class, 's', 'WITH', 's.article = a AND s.user = :user')
-            ->setParameter('user', $user)
+            ->setParameter('user', $user->getId(), 'uuid')
             ->orderBy('a.collectedAt', 'DESC')
             ->addOrderBy('a.id', 'DESC')
             ->setMaxResults(self::PAGE_SIZE + 1);
@@ -47,7 +47,7 @@ final class ArticleController extends AbstractController
             $query
                 ->andWhere('a.collectedAt < :cursorDate OR (a.collectedAt = :cursorDate AND a.id < :cursorId)')
                 ->setParameter('cursorDate', new \DateTimeImmutable($cursor['collectedAt']))
-                ->setParameter('cursorId', Uuid::fromString($cursor['id']));
+                ->setParameter('cursorId', Uuid::fromString($cursor['id']), 'uuid');
         }
 
         $items = $query->getQuery()->getArrayResult();
@@ -136,7 +136,7 @@ final class ArticleController extends AbstractController
     {
         if (!$this->isCsrfTokenValid('article-bulk', $request->headers->get('X-CSRF-Token'))) { throw $this->createAccessDeniedException(); }
         try { $payload = json_decode($request->getContent(), true, 16, \JSON_THROW_ON_ERROR); $before = new \DateTimeImmutable((string) ($payload['before'] ?? '')); } catch (\Exception) { return $this->json(['error' => 'Date invalide.'], 422); }
-        $articles = $entityManager->createQueryBuilder()->select('a')->from(Article::class, 'a')->innerJoin(Subscription::class, 'subscription', 'WITH', 'subscription.feed = a.feed AND subscription.user = :user AND subscription.enabled = true')->where('COALESCE(a.publishedAt, a.collectedAt) < :before')->setParameter('user', $this->currentUser())->setParameter('before', $before)->setMaxResults(500)->getQuery()->getResult();
+        $articles = $entityManager->createQueryBuilder()->select('a')->from(Article::class, 'a')->innerJoin(Subscription::class, 'subscription', 'WITH', 'subscription.feed = a.feed AND subscription.user = :user AND subscription.enabled = true')->where('COALESCE(a.publishedAt, a.collectedAt) < :before')->setParameter('user', $this->currentUser()->getId(), 'uuid')->setParameter('before', $before)->setMaxResults(500)->getQuery()->getResult();
         foreach ($articles as $article) { $articleStateService->update($this->currentUser(), $article, ['isRead' => true]); }
 
         return $this->json(['matched' => count($articles), 'changed' => count($articles), 'skipped' => 0]);
@@ -150,8 +150,8 @@ final class ArticleController extends AbstractController
             ->from(Article::class, 'a')
             ->innerJoin(Subscription::class, 'subscription', 'WITH', 'subscription.feed = a.feed AND subscription.user = :user AND subscription.enabled = true')
             ->where('a.id = :id')
-            ->setParameter('user', $this->currentUser())
-            ->setParameter('id', $articleId)
+            ->setParameter('user', $this->currentUser()->getId(), 'uuid')
+            ->setParameter('id', $articleId, 'uuid')
             ->getQuery()->getOneOrNullResult();
         if (!$article instanceof Article) { throw $this->createNotFoundException(); }
 
