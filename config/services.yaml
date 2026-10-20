@@ -6,6 +6,10 @@ parameters:
     app.media_storage: '%env(resolve:ZUNAFLUX_MEDIA_STORAGE)%'
     app.retention_months_default: 12
     app.retention_months: '%env(default:app.retention_months_default:int:ZUNAFLUX_RETENTION_MONTHS)%'
+    app.push_empty: ''
+    app.push_public_file: '%env(default:app.push_empty:ZUNAFLUX_VAPID_PUBLIC_FILE)%'
+    app.push_private_file: '%env(default:app.push_empty:ZUNAFLUX_VAPID_PRIVATE_FILE)%'
+    app.push_subject: '%env(default:app.push_empty:ZUNAFLUX_VAPID_SUBJECT)%'
 
 services:
     _defaults:
@@ -14,6 +18,9 @@ services:
         bind:
             $publicRegistration: '%app.public_registration%'
             $retentionMonths: '%app.retention_months%'
+            $pushPublicFile: '%app.push_public_file%'
+            $pushPrivateFile: '%app.push_private_file%'
+            $pushSubject: '%app.push_subject%'
 
     App\:
         resource: '../src/'

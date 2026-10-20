@@ -1,0 +1,11 @@
+<section class="mt-10 border border-line bg-surface p-6" data-push-notifications data-public-key="{{ push_public_key|default('') }}" data-csrf="{{ csrf_token('push-subscription') }}" data-url="{{ path('app_push_subscription') }}" data-status-url="{{ path('app_push_subscription_status') }}">
+    <h2 class="font-serif text-2xl text-foreground">Notifications</h2>
+    <p class="mt-2 text-sm text-muted">Recevez les nouveautés et les erreurs de collecte sur cet appareil.</p>
+    <div class="mt-4 flex flex-wrap gap-3">
+        <button class="border border-accent px-4 py-3 text-accent" type="button" data-push-enable disabled>Activer sur cet appareil</button>
+        <button class="border border-line px-4 py-3 text-accent" type="button" data-push-disable disabled>Désactiver sur cet appareil</button>
+        {% if is_granted('ROLE_ADMIN') %}<button class="border border-line px-4 py-3 text-accent" type="button" data-push-test data-url="{{ path('app_admin_push_test') }}" disabled>Tester la notification</button>{% endif %}
+    </div>
+    <p class="mt-3 text-sm text-muted" role="status">Notifications indisponibles pour le moment.</p>
+</section>
+<script src="{{ asset('push.js') }}" defer></script>

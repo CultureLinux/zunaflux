@@ -13,6 +13,147 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 final class SubscriptionControllerTest extends WebTestCase
 {
+    public function testUnsubscribeRemovesOnlyOwnersStatesAndLeavesSharedData(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $owner = new User('unsubscribe-owner-'.bin2hex(random_bytes(8)).'@example.test');
+        $other = new User('unsubscribe-other-'.bin2hex(random_bytes(8)).'@example.test');
+        $feed = new Feed('https://example.test/'.bin2hex(random_bytes(8)).'/shared');
+        $article = new \App\Entity\Article($feed, new \App\Domain\Feed\ParsedFeedItem('shared', 'Article', null, null, null, null));
+        $ownerState = new \App\Entity\ArticleState($owner, $article);
+        $otherState = new \App\Entity\ArticleState($other, $article);
+        $ownerState->setFavorite(true);
+        $otherState->setFavorite(true);
+        $subscription = new Subscription($owner, $feed);
+        $otherSubscription = new Subscription($other, $feed);
+        foreach ([$owner, $other, $feed, $article, $ownerState, $otherState, $subscription, $otherSubscription] as $entity) $em->persist($entity);
+        $em->flush();
+        try {
+            $client->loginUser($other);
+            $client->request('POST', '/subscriptions/'.$subscription->getId().'/delete', ['_token' => 'invalid']);
+            self::assertResponseStatusCodeSame(403);
+            $client->loginUser($owner);
+            $crawler = $client->request('GET', '/subscriptions');
+            $form = $crawler->filter('form[action="/subscriptions/'.$subscription->getId().'/delete"]')->form();
+            $client->submit($form);
+            self::assertResponseRedirects('/subscriptions');
+            $connection = $em->getConnection();
+            self::assertSame(0, (int) $connection->fetchOne('SELECT COUNT(*) FROM subscription WHERE id = ?', [$subscription->getId()->toBinary()]));
+            self::assertSame(0, (int) $connection->fetchOne('SELECT COUNT(*) FROM article_state WHERE user_id = ? AND article_id = ?', [$owner->getId()->toBinary(), $article->getId()->toBinary()]));
+            self::assertSame(1, (int) $connection->fetchOne('SELECT COUNT(*) FROM subscription WHERE id = ?', [$otherSubscription->getId()->toBinary()]));
+            self::assertSame(1, (int) $connection->fetchOne('SELECT COUNT(*) FROM article_state WHERE user_id = ? AND article_id = ?', [$other->getId()->toBinary(), $article->getId()->toBinary()]));
+            self::assertSame(1, (int) $connection->fetchOne('SELECT COUNT(*) FROM article WHERE id = ?', [$article->getId()->toBinary()]));
+        } finally {
+            $connection = $em->getConnection();
+            $connection->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);
+            $connection->executeStatement('DELETE FROM app_user WHERE id IN (?, ?)', [$owner->getId()->toBinary(), $other->getId()->toBinary()]);
+        }
+    }
+
+    public function testAdminCanSeeFeedsWithNoSubscriptions(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $admin = new User('unused-admin-'.bin2hex(random_bytes(8)).'@example.test');
+        $admin->addRole('ROLE_ADMIN');
+        $unused = new Feed('https://example.test/'.bin2hex(random_bytes(8)).'/unused');
+        $used = new Feed('https://example.test/'.bin2hex(random_bytes(8)).'/used');
+        $unused->refreshMetadata('Flux sans abonné', null);
+        $used->refreshMetadata('Flux encore suivi', null);
+        $subscription = new Subscription($admin, $used);
+        $subscription->disable();
+        foreach ([$admin, $unused, $used, $subscription] as $entity) $em->persist($entity);
+        $em->flush();
+        try {
+            $client->loginUser($admin);
+            $crawler = $client->request('GET', '/admin');
+            self::assertResponseIsSuccessful();
+            $section = $crawler->filter('[data-unused-feeds]');
+            self::assertStringContainsString('Flux sans abonné', $section->text());
+            self::assertStringNotContainsString('Flux encore suivi', $section->text());
+            self::assertSelectorExists('[data-unused-feeds] form[action="/admin/feeds/'.$unused->getId().'/delete"]');
+            self::assertSelectorNotExists('[data-unused-feeds] input[name="confirmation"]');
+            $form = $section->filter('form[action="/admin/feeds/'.$unused->getId().'/delete"]')->form();
+            $em->persist(new Subscription($admin, $unused));
+            $em->flush();
+            $client->submit($form);
+            self::assertResponseStatusCodeSame(409);
+        } finally {
+            $connection = $em->getConnection();
+            $connection->executeStatement('DELETE FROM app_user WHERE id = ?', [$admin->getId()->toBinary()]);
+            $connection->executeStatement('DELETE FROM feed WHERE id IN (?, ?)', [$unused->getId()->toBinary(), $used->getId()->toBinary()]);
+        }
+    }
+
+    public function testOnlyAdminCanDeleteASharedFeedAndItsArticlesForEveryone(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $admin = new User('delete-admin-'.bin2hex(random_bytes(8)).'@example.test');
+        $admin->addRole('ROLE_ADMIN');
+        $other = new User('delete-user-'.bin2hex(random_bytes(8)).'@example.test');
+        $feed = new Feed('https://example.test/'.bin2hex(random_bytes(8)).'/shared');
+        $article = new \App\Entity\Article($feed, new \App\Domain\Feed\ParsedFeedItem('shared', 'Article', null, null, null, null));
+        $state = new \App\Entity\ArticleState($other, $article);
+        $state->setFavorite(true);
+        $subscription = new Subscription($other, $feed);
+        $incident = new \App\Entity\FeedIncident($feed, new \RuntimeException('Flux indisponible'));
+        foreach ([$admin, $other, $feed, $article, $state, $subscription, $incident] as $entity) $em->persist($entity);
+        $em->flush();
+        try {
+            $client->loginUser($other);
+            $client->request('POST', '/subscriptions/'.$subscription->getId().'/delete');
+            self::assertResponseStatusCodeSame(403);
+            $client->request('POST', '/admin/feeds/'.$feed->getId().'/delete');
+            self::assertResponseStatusCodeSame(403);
+            $client->loginUser($admin);
+            $crawler = $client->request('GET', '/admin');
+            self::assertSelectorExists('[data-open-incidents] form[action="/admin/feeds/'.$feed->getId().'/delete"]');
+            $form = $crawler->filter('form[action="/admin/feeds/'.$feed->getId().'/delete"]')->form();
+            $client->submit($form);
+            self::assertResponseRedirects('/admin');
+            $connection = $em->getConnection();
+            self::assertSame(0, (int) $connection->fetchOne('SELECT COUNT(*) FROM feed WHERE id = ?', [$feed->getId()->toBinary()]));
+            self::assertSame(0, (int) $connection->fetchOne('SELECT COUNT(*) FROM subscription WHERE id = ?', [$subscription->getId()->toBinary()]));
+            self::assertSame(0, (int) $connection->fetchOne('SELECT COUNT(*) FROM article WHERE id = ?', [$article->getId()->toBinary()]));
+            self::assertSame(0, (int) $connection->fetchOne('SELECT COUNT(*) FROM article_state WHERE user_id = ?', [$other->getId()->toBinary()]));
+        } finally {
+            $connection = $em->getConnection();
+            $connection->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);
+            $connection->executeStatement('DELETE FROM app_user WHERE id IN (?, ?)', [$admin->getId()->toBinary(), $other->getId()->toBinary()]);
+        }
+    }
+
+    public function testAnOpenIncidentIsVisibleOnlyForTheUsersOwnSource(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $user = new User('incident-test-'.bin2hex(random_bytes(8)).'@example.test');
+        $other = new User('incident-other-'.bin2hex(random_bytes(8)).'@example.test');
+        $feed = new Feed('https://example.test/'.bin2hex(random_bytes(8)).'/incident');
+        $privateFeed = new Feed('https://example.test/'.bin2hex(random_bytes(8)).'/secret');
+        $feed->refreshMetadata('Source indisponible', null);
+        $privateFeed->refreshMetadata('Source privée', null);
+        $feed->recordFailure(new \RuntimeException('Erreur de test'));
+        $privateFeed->recordFailure(new \RuntimeException('Erreur privée'));
+        foreach ([$user, $other, $feed, $privateFeed, new Subscription($user, $feed), new Subscription($other, $privateFeed), new \App\Entity\FeedIncident($feed, new \RuntimeException('Erreur de test')), new \App\Entity\FeedIncident($privateFeed, new \RuntimeException('Erreur privée'))] as $entity) $em->persist($entity);
+        $em->flush();
+        try {
+            $client->loginUser($user);
+            $crawler = $client->request('GET', '/subscriptions');
+            self::assertResponseIsSuccessful();
+            self::assertStringContainsString('Erreur de test', $crawler->text());
+            self::assertStringNotContainsString('Erreur privée', $crawler->text());
+            self::assertSelectorExists('[data-feed-incident]');
+            self::assertSelectorExists('form[action$="/delete"][data-delete-subscription]');
+        } finally {
+            $connection = $em->getConnection();
+            $connection->executeStatement('DELETE FROM app_user WHERE id IN (?, ?)', [$user->getId()->toBinary(), $other->getId()->toBinary()]);
+            $connection->executeStatement('DELETE FROM feed WHERE id IN (?, ?)', [$feed->getId()->toBinary(), $privateFeed->getId()->toBinary()]);
+        }
+    }
+
     public function testTheSubscriptionManagementPageRequiresAuthentication(): void
     {
         $client = static::createClient();

@@ -11,6 +11,7 @@
                 <div class="mt-10 flex flex-wrap gap-4">{% if app.user %}<a class="bg-accent px-6 py-3 text-sm font-bold uppercase tracking-[.14em] text-accent-foreground transition hover:bg-accent" href="{{ path('app_articles') }}">Ouvrir la lecture</a>{% else %}<a class="bg-accent px-6 py-3 text-sm font-bold uppercase tracking-[.14em] text-accent-foreground transition hover:bg-accent" href="{{ path('app_register') }}">Créer un compte</a><a class="border border-line px-6 py-3 text-sm font-semibold text-foreground transition hover:border-accent hover:text-accent" href="{{ path('app_login') }}">Se connecter</a>{% endif %}</div>
             </div>
             <aside class="border-t border-line py-6" aria-label="Principes de Zunaflux">
+                <img class="mb-8 w-full" src="{{ asset('images/livre-rss.png') }}" alt="" width="1672" height="941">
                 <p class="font-mono text-xs uppercase tracking-[.2em] text-accent">À retenir</p>
                 <dl class="mt-7 space-y-6"><div><dt class="font-serif text-2xl text-foreground">Vos sources</dt><dd class="mt-1 text-sm leading-6 text-muted">RSS et Atom, choisis et organisés par vous.</dd></div><div><dt class="font-serif text-2xl text-foreground">Votre espace</dt><dd class="mt-1 text-sm leading-6 text-muted">Une veille personnelle, loin des fils imposés.</dd></div><div><dt class="font-serif text-2xl text-foreground">Votre attention</dt><dd class="mt-1 text-sm leading-6 text-muted">Une interface calme pour mieux lire.</dd></div></dl>
             </aside>

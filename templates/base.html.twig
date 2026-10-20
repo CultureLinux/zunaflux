@@ -4,6 +4,8 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="color-scheme" content="light dark">
+        <meta name="theme-color" content="#1F2937">
+        <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
         <title>{% block title %}Zunaflux{% endblock %}</title>
         {% block stylesheets %}
             <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
@@ -28,6 +30,12 @@
                 </div>
             </nav>
         {% endif %}
+        <aside class="mx-auto mt-4 max-w-6xl border border-line bg-surface p-4" data-pwa-install hidden aria-label="Installer Zunaflux">
+            <p class="font-semibold">Installer Zunaflux sur votre écran d’accueil</p>
+            <p class="mt-1 text-sm text-muted" data-pwa-install-help>Retrouvez votre lecteur parmi vos applications.</p>
+            <div class="mt-3 flex flex-wrap gap-3"><button class="min-h-11 border border-accent px-4 text-accent" type="button" data-pwa-install-action>Installer</button><button class="min-h-11 px-4 text-muted" type="button" data-pwa-install-dismiss>Plus tard</button></div>
+        </aside>
+        <script src="{{ asset('install-pwa.js') }}" defer></script>
         {% block body %}{% endblock %}
     </body>
 </html>
