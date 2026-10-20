@@ -1,72 +1,109 @@
 # Zunaflux
 
-![Une salle de lecture et un flux d’articles](public/images/lecture-editoriale.png)
+**Vos sources. Votre rythme.**
 
-Zunaflux est un lecteur RSS/Atom multi-utilisateur auto-hébergé, distribué sous licence AGPL-3.0-only.
+Zunaflux est un lecteur RSS et Atom auto-hébergé pour retrouver ses sources dans un espace de lecture personnel, sur ordinateur comme sur mobile.
 
-Le projet cible PHP 8.5, Symfony 8.1 et MariaDB 10.11. La documentation de référence est le cahier des charges livré à la racine du dépôt.
+![Illustration de la salle de lecture Zunaflux](public/images/lecture-editoriale.png)
 
-## Démarrage sur Linux
+## Votre veille, à votre façon
 
-Prérequis : PHP 8.5 avec les extensions `ctype`, `iconv`, `mbstring`, `pdo_mysql`, `xml`, `dom`, `curl`, `intl` et `openssl`; Composer 2; MariaDB 10.11.
+- **Suivez vos sources** : ajoutez des flux RSS et Atom, organisez-les par catégories et importez ou exportez vos abonnements au format OPML.
+- **Lisez à votre rythme** : retrouvez vos articles lus et non lus, marquez vos favoris et gardez des articles pour plus tard.
+- **Retrouvez l’essentiel** : recherchez dans vos articles et vos sources, enregistrez des filtres et appliquez des actions à plusieurs articles.
+- **Choisissez votre espace** : thème clair, sombre ou système, préférences de lecture et vue en colonnes sur ordinateur.
+- **Partagez une instance, pas votre lecture** : les flux et les articles sont mutualisés, tandis que les abonnements, favoris et états de lecture restent propres à chaque compte.
+- **Gardez la main** : exportez vos données et administrez les comptes, les sources et les incidents depuis votre instance.
+
+Zunaflux propose également une installation sur l’écran d’accueil depuis un navigateur compatible. Les notifications Web Push pour les nouveaux articles et les erreurs de collecte sont en cours de validation sur appareil. L’application nécessite une connexion réseau pour lire les articles.
+
+## Installer Zunaflux
+
+Zunaflux s’adresse aux personnes qui souhaitent héberger leur propre lecteur. L’installation ci-dessous vise un serveur Linux avec Nginx et PHP-FPM ; adaptez les chemins et les commandes PHP à votre environnement.
+
+### Prérequis
+
+- PHP 8.5 et ses extensions `ctype`, `iconv`, `mbstring`, `pdo_mysql`, `xml`, `dom`, `curl`, `intl` et `openssl` ;
+- Composer 2 et MariaDB 10.11 ;
+- un serveur web configuré pour servir le répertoire `public/` ;
+- HTTPS pour l’installation PWA et les notifications.
+
+### Configuration et installation
+
+Depuis la racine du projet, créez votre configuration locale à partir de l’exemple fourni :
 
 ```bash
-composer install
-cp .env .env.local
-# Renseigner APP_SECRET, DATABASE_URL et MAILER_DSN dans .env.local.
-php bin/console doctrine:migrations:migrate --no-interaction
-php bin/console tailwind:build --minify
-php bin/console asset-map:compile
+cp .env.example .env
 ```
 
-L'application est servie par Nginx et PHP-FPM ; le binaire Symfony CLI n'est pas requis.
+Modifiez ensuite `.env` : définissez notamment une valeur aléatoire pour `APP_SECRET`, les identifiants MariaDB dans `DATABASE_URL`, et un transport mail adapté si nécessaire. Les exemples de ce fichier ne sont pas des secrets utilisables en production. Le fichier `.env` est ignoré par Git et doit rester privé.
 
-Les visiteurs peuvent créer un compte depuis `/register`. Pour créer le premier administrateur, utilisez la commande suivante dans un terminal non journalisé ou en fournissant le mot de passe de manière sûre :
+Installez les dépendances puis construisez les ressources :
 
 ```bash
-php bin/console app:user:create admin@zunaflux.clinux.fr 'change-this-password' --admin
+composer install --no-dev --optimize-autoloader
+php bin/console tailwind:build --minify --env=prod
+php bin/console asset-map:compile --env=prod
 ```
 
-## Validation
+Appliquez ensuite les migrations à la base configurée. **Cette commande modifie la base de données** :
 
-Les commandes de validation et les opérations modifiant la base sont documentées dans les comptes-rendus de lots. Ne versionnez jamais `.env.local` ni aucun secret SMTP ou MariaDB.
-
-`ZUNAFLUX_RETENTION_MONTHS` règle la conservation des articles ; sa valeur par défaut est `12`.
-
-## PWA 
-
-# Depuis la racine du projet
+```bash
+php bin/console doctrine:migrations:migrate --env=prod
 ```
-# Aller dans le projet symfony
 
-# Le répertoire sera au même niveau que le projet.
-VAPID_DIR="$(dirname "$PWD")/zunaflux-secrets"
-printf 'Répertoire des clés : %s\n' "$VAPID_DIR"
+Les visiteurs peuvent créer un compte depuis `/register` lorsque l’inscription publique est activée. Pour créer le premier administrateur, la commande du projet demande une adresse et un mot de passe :
 
-# Empêche la lecture des nouveaux fichiers par d'autres utilisateurs.
-umask 077
-mkdir -p "$VAPID_DIR"
-chmod 700 "$VAPID_DIR"
-
-# Ne pas remplacer une clé existante : les appareils déjà abonnés
-# pourraient devoir être réinscrits.
-if [ -e "$VAPID_DIR/vapid-private.pem" ]; then
-    printf 'Clé existante : génération annulée.\n' >&2
-else
-    openssl ecparam -genkey -name prime256v1 \
-        -out "$VAPID_DIR/vapid-private.pem"
-    chmod 600 "$VAPID_DIR/vapid-private.pem"
-fi
-
-# Vérifie la clé privée sans afficher son contenu.
-openssl ec -in "$VAPID_DIR/vapid-private.pem" -check -noout
-
-# Extrait la clé publique au format attendu par le navigateur.
-openssl ec -in "$VAPID_DIR/vapid-private.pem" -pubout -outform DER \
-    | tail -c 65 \
-    | base64 \
-    | tr -d '=\n' \
-    | tr '/+' '_-' > "$VAPID_DIR/vapid-public.txt"
-
-chmod 600 "$VAPID_DIR/vapid-public.txt"
+```bash
+php bin/console app:user:create EMAIL MOT_DE_PASSE --admin --env=prod
 ```
+
+L’argument de mot de passe peut apparaître dans l’historique du terminal ou la liste des processus : utilisez un environnement adapté et protégez cet accès.
+
+### Collecte des flux
+
+La collecte est mise en file d’attente avec Symfony Messenger. Lancez régulièrement la commande de collecte, par exemple depuis un planificateur :
+
+```bash
+php bin/console app:feeds:collect --env=prod
+```
+
+Un worker doit être actif pour traiter les messages de collecte et de notification :
+
+```bash
+php bin/console messenger:consume async --env=prod
+```
+
+Configurez ce worker comme un service supervisé sur votre serveur. La durée de conservation des articles est réglable avec `ZUNAFLUX_RETENTION_MONTHS` ; sa valeur par défaut est de 12 mois.
+
+## PWA et notifications
+
+L’installation sur l’écran d’accueil dépend du navigateur. Les notifications demandent HTTPS, une configuration VAPID, un worker Messenger et une activation par utilisateur et par appareil. Leur fonctionnement réel reste à vérifier sur les navigateurs et appareils ciblés.
+
+Consultez [la documentation PWA et Web Push](docs/pwa-web-push.md) pour la configuration des clés, les limites actuelles et les points à valider.
+
+## Développement
+
+Le projet utilise Symfony 8.1, PHP 8.5, Doctrine, Twig, Tailwind CSS et MariaDB 10.11. Pour installer les dépendances de développement, utilisez `composer install` sans l’option `--no-dev`.
+
+```bash
+php bin/console lint:container
+php bin/console lint:twig templates/
+php vendor/bin/phpunit
+```
+
+Les tests fonctionnels écrivent dans la base de test : configurez `DATABASE_URL` pour une base dédiée avant de les lancer. Les tests JavaScript disponibles dans `tests/JavaScript/` peuvent être exécutés avec Node.js, par exemple :
+
+```bash
+node tests/JavaScript/reading-selection.test.cjs
+```
+
+## Documentation
+
+- [PWA et notifications Web Push](docs/pwa-web-push.md)
+- [Format d’export des données](docs/export-format-v1.md)
+- [Direction artistique](docs/direction-artistique.md)
+
+## Licence
+
+Zunaflux est distribué sous licence [GNU AGPL-3.0 uniquement](LICENSE).
