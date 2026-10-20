@@ -9,7 +9,7 @@
         <label class="sr-only" for="read-filter">État de lecture</label><select class="border border-line bg-background px-3 py-2" id="read-filter" data-read-filter><option value="0">Non lus</option><option value="">Tous les articles</option><option value="1">Lus</option></select>
         <form class="flex min-w-0 flex-1 flex-wrap gap-2" data-article-search>
             <label class="sr-only" for="article-search">Rechercher dans vos articles</label><input class="min-w-0 flex-1 border border-line bg-background px-4 py-3 text-foreground outline-none focus:border-accent" id="article-search" name="q" type="search" placeholder="Rechercher dans vos articles" value="{{ app.request.query.get('q') }}">
-            <button class="border border-accent px-4 py-3 text-accent hover:bg-accent hover:text-accent-foreground" type="submit">Rechercher</button>
+            <button class="reading-search-button border border-accent px-4 py-3 text-accent hover:bg-accent hover:text-accent-foreground" type="submit" aria-label="Rechercher"><svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><span>Rechercher</span></button>
         </form>
         </div>
         </header>
@@ -33,13 +33,13 @@
         </aside>
         {% endif %}
     <main class="mx-auto min-h-screen max-w-[96rem] px-4 py-12 sm:px-6 lg:px-8 {{ preference.density == 'compact' ? 'article-density-compact' : '' }} {{ preference.fontScale == 'large' ? 'text-lg' : preference.fontScale == 'small' ? 'text-sm' : '' }}" data-read-mode-default="{{ preference.readMode }}">
-        <section class="reading-intro pb-12"><p class="font-mono text-xs uppercase tracking-[.25em] text-muted">Votre lecture</p><h1 class="mt-4 font-serif text-5xl text-foreground">Les derniers articles</h1><p class="mt-4 text-muted">Votre liste se charge ici à partir de vos abonnements actifs.</p></section>
+        <section class="reading-intro hidden pb-12 md:block"><p class="font-mono text-xs uppercase tracking-[.25em] text-muted">Votre lecture</p><h1 class="mt-4 font-serif text-5xl text-foreground">Les derniers articles</h1><p class="mt-4 text-muted">Votre liste se charge ici à partir de vos abonnements actifs.</p></section>
         <div class="mb-5 flex flex-wrap items-center gap-2">
 
 
-        <section class="flex flex-wrap gap-2" data-saved-filters data-csrf-token="{{ csrf_token('saved-filter') }}"><label class="sr-only" for="saved-filter">Filtres enregistrés</label><select class="border border-line bg-background px-3 py-2" id="saved-filter" data-saved-filter><option value="">Filtres enregistrés</option></select><button class="border border-accent bg-accent-soft px-3 py-2 text-sm text-accent hover:bg-accent hover:text-accent-foreground" data-save-filter type="button">Enregistrer cette recherche</button></section>
+        <section class="reading-saved-filters flex flex-wrap gap-2" data-saved-filters data-csrf-token="{{ csrf_token('saved-filter') }}"><label class="sr-only" for="saved-filter">Filtres enregistrés</label><select class="border border-line bg-background px-3 py-2" id="saved-filter" data-saved-filter><option value="">Filtres enregistrés</option></select><button class="reading-save-filter border border-accent bg-accent-soft px-3 py-2 text-sm text-accent hover:bg-accent hover:text-accent-foreground" data-save-filter type="button" aria-label="Enregistrer cette recherche" title="Enregistrer cette recherche"><svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 3h12l4 4v14H3V3h2Zm2 0v6h9V3M7 21v-8h10v8"/></svg><span>Enregistrer cette recherche</span></button></section>
         <section class="flex flex-wrap items-center gap-2" data-article-actions data-csrf-token="{{ csrf_token('article-bulk') }}" aria-label="Actions groupées">
-            <button class="border border-line px-3 py-2 text-sm text-accent hover:border-accent hover:bg-accent-soft" data-select-all type="button" aria-pressed="false">Sélectionner les articles chargés</button>
+            <button class="border border-line px-3 py-2 text-sm text-accent hover:border-accent hover:bg-accent-soft" data-select-all type="button" aria-pressed="false" hidden>Sélectionner les articles chargés</button>
             <span class="text-sm text-muted" data-selected-count aria-live="polite"></span>
             {% for action in [
                 {key: 'read', label: 'Marquer lus', icon: 'M4 12l5 5L20 6'},
@@ -49,7 +49,7 @@
                 {key: 'save', label: 'Lire plus tard', icon: 'M6 3h12v18l-6-4-6 4V3Z'},
                 {key: 'unsave', label: 'Retirer de la liste', icon: 'M6 3h12v18l-6-4-6 4V3ZM9 10h6'}
             ] %}
-                <button class="flex h-11 w-11 items-center justify-center border border-accent bg-accent-soft text-accent hover:bg-accent hover:text-accent-foreground" data-bulk-{{ action.key }} type="button" aria-label="{{ action.label }}" title="{{ action.label }}"><svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ action.icon }}"/></svg></button>
+                <button class="flex h-11 w-11 items-center justify-center border border-accent bg-accent-soft text-accent hover:bg-accent hover:text-accent-foreground" data-bulk-{{ action.key }} type="button" aria-label="{{ action.label }}" title="{{ action.label }}" disabled><svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ action.icon }}"/></svg></button>
             {% endfor %}
         </section>
         </div>

@@ -15,6 +15,26 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class ArticleControllerTest extends WebTestCase
 {
+    public function testHomeRedirectsAuthenticatedUsersToReading(): void
+    {
+        $client = static::createClient();
+        $client->request('GET', '/');
+        self::assertResponseIsSuccessful();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $user = new User('home-'.bin2hex(random_bytes(8)).'@example.test');
+        $em->persist($user);
+        $em->flush();
+        try {
+            $client->loginUser($user);
+            $client->request('GET', '/');
+            self::assertResponseRedirects('/articles');
+            $crawler = $client->request('GET', '/articles');
+            self::assertSame('/articles', $crawler->filter('nav[aria-label="Navigation principale"] a')->first()->attr('href'));
+        } finally {
+            $em->getConnection()->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
+        }
+    }
+
     public function testSavedThemeIsAppliedAcrossAuthenticatedPages(): void
     {
         $client = static::createClient();

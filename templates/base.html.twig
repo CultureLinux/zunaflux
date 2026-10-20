@@ -16,7 +16,7 @@
             {% set current_route = app.request.attributes.get('_route')|default('') %}
             <nav class="relative z-50 border-b border-line bg-background px-4 py-3 md:px-12" aria-label="Navigation principale">
                 <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
-                    <a class="font-serif text-2xl text-foreground hover:text-accent" href="{{ path('app_home') }}">Zunaflux</a>
+                    <a class="font-serif text-2xl text-foreground hover:text-accent" href="{{ path('app_articles') }}">Zunaflux</a>
                     <div class="hidden flex-1 items-center gap-1 text-sm md:flex">{% include '_navigation_links.html.twig' %}</div>
                     <div class="hidden items-center gap-3 md:flex"><p class="max-w-48 truncate text-xs text-muted" title="{{ app.user.userIdentifier }}">{{ app.user.userIdentifier }}</p><form action="{{ path('app_logout') }}" method="post"><input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}"><button class="border border-line px-3 py-2 text-xs font-semibold uppercase tracking-[.12em] text-foreground hover:border-warning hover:text-warning" type="submit">Quitter</button></form></div>
                     <details class="relative md:hidden">

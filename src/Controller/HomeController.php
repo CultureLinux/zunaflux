@@ -13,6 +13,10 @@ final class HomeController extends AbstractController
     #[Route('/', name: 'app_home', methods: ['GET'])]
     public function __invoke(): Response
     {
+        if ($this->getUser()) {
+            return $this->redirectToRoute('app_articles');
+        }
+
         return $this->render('home/index.html.twig');
     }
 }

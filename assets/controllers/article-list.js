@@ -32,6 +32,8 @@ if (container) {
     };
     updateSourceFilter();
     const updateSelection = () => {
+        actions.querySelectorAll('[data-bulk-read], [data-bulk-unread], [data-bulk-favorite], [data-bulk-unfavorite], [data-bulk-save], [data-bulk-unsave]').forEach((button) => { button.disabled = selectedIds.size === 0; });
+        selectAllButton.hidden = selectedIds.size === 0;
         const boxes = [...container.querySelectorAll('[data-article-select]')];
         const allSelected = boxes.length > 0 && boxes.every((box) => box.checked);
         selectAllButton.setAttribute('aria-pressed', String(allSelected));

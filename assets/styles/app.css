@@ -207,3 +207,21 @@ dialog [data-article-saved][aria-pressed="true"] svg { color: var(--accent); fil
         overscroll-behavior: auto;
     }
 }
+
+[data-article-actions][hidden] { display: none; }
+.reading-search-button, .reading-save-filter { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; }
+.reading-search-button svg, .reading-save-filter svg { display: none; }
+@media (max-width: 767px) {
+    .reading-intro { display: none; }
+    main[data-read-mode-default] { padding-top: 1rem; padding-bottom: 2rem; }
+    .reading-search-header { margin-block: .75rem; }
+    .reading-search-controls { flex-wrap: nowrap; }
+    .reading-search-controls [data-article-search] { flex-basis: auto; flex-wrap: nowrap; }
+    .reading-search-controls [data-read-filter] { width: 7.5rem; flex: none; }
+    .reading-search-controls [data-article-search] input { width: 0; }
+    .reading-search-button, .reading-save-filter { width: 2.75rem; height: 2.75rem; padding: 0; flex: none; }
+    .reading-search-button svg, .reading-save-filter svg { display: block; }
+    .reading-search-button span, .reading-save-filter span { display: none; }
+    .reading-saved-filters { align-items: center; }
+    .reading-saved-filters select { max-width: min(14rem, calc(100vw - 7rem)); }
+}
