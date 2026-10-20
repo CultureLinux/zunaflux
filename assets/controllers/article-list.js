@@ -44,7 +44,7 @@ if (container) {
         boxes.forEach((box) => { box.checked = select; if (select) selectedIds.add(box.dataset.articleSelect); else selectedIds.delete(box.dataset.articleSelect); });
         updateSelection();
     });
-    const readMode = actions?.querySelector('[data-read-mode]');
+    const readMode = document.querySelector('[data-read-mode-default]')?.dataset.readModeDefault || 'on_preview';
     const searchForm = document.querySelector('[data-article-search]');
     const searchInput = searchForm?.querySelector('[name="q"]');
     const readFilter = document.querySelector('[data-read-filter]');
@@ -57,9 +57,6 @@ if (container) {
     const loadedItems = [];
     let loading = false;
     let pageRequest = null;
-    if (readMode) {
-        readMode.value = document.querySelector('[data-read-mode-default]')?.dataset.readModeDefault || 'on_preview';
-    }
 
     const bulk = async (changes) => {
         const ids = [...selectedIds];
@@ -166,7 +163,7 @@ if (container) {
                     // A malformed or unsupported feed link is intentionally not exposed.
                 }
                 if (!dialog.open) dialog.showModal();
-                if (readMode?.value === 'on_preview' && !article.isRead) {
+                if (readMode === 'on_preview' && !article.isRead) {
                     setActionDisabled(true);
                     updateState({ isRead: true }).catch(() => {
                         dialogError.textContent = 'Impossible de marquer cet article comme lu.';
