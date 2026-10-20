@@ -1,0 +1,39 @@
+<ul class="divide-y divide-line border-b border-line">
+    {% for subscription in items %}
+        <li class="min-w-0 py-2">
+            <details class="group">
+                <summary class="flex min-h-11 cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
+                    <span class="min-w-0 flex-1 break-words font-serif text-foreground">{{ subscription.displayTitle }}{% if not subscription.enabled %} <span class="font-sans text-xs text-muted">(inactif)</span>{% endif %}</span>
+                    <span class="flex h-11 w-11 shrink-0 items-center justify-center text-muted group-open:text-accent" title="Modifier les paramètres">
+                        <svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>
+                        <span class="sr-only">Modifier {{ subscription.displayTitle }}</span>
+                    </span>
+                </summary>
+                <div class="pb-4 pt-2">
+                    <a class="block break-all text-xs text-accent hover:underline" href="{{ subscription.feed.canonicalUrl }}" rel="noreferrer" target="_blank">{{ subscription.feed.canonicalUrl }}</a>
+                    <form class="mt-4 grid gap-3" action="{{ path('app_subscription_update', {id: subscription.id}) }}" method="post">
+                        <label class="grid gap-1 text-sm" for="title-{{ subscription.id }}">Titre personnalisé
+                            <input class="w-full min-w-0 border border-line bg-background px-3 py-2" id="title-{{ subscription.id }}" name="custom_title" value="{{ subscription.displayTitle }}" maxlength="255">
+                        </label>
+                        <label class="grid gap-1 text-sm" for="category-{{ subscription.id }}">Catégorie
+                            <select class="w-full min-w-0 border border-line bg-background px-3 py-2" id="category-{{ subscription.id }}" name="category_id"><option value="">Sans catégorie</option>{% for category in categories %}<option value="{{ category.id }}" {{ subscription.category and subscription.category.id == category.id ? 'selected' }}>{{ category.name }}</option>{% endfor %}</select>
+                        </label>
+                        <div class="flex items-center justify-between gap-3">
+                            <label class="flex min-h-11 items-center gap-2 text-sm"><input name="enabled" type="checkbox" value="1" {{ subscription.enabled ? 'checked' }}> Actif</label>
+                            <input type="hidden" name="_token" value="{{ csrf_token('subscription-' ~ subscription.id) }}">
+                            <button class="flex h-11 w-11 items-center justify-center border border-line text-foreground hover:border-accent hover:text-accent" type="submit" aria-label="Enregistrer les modifications de {{ subscription.displayTitle }}" title="Enregistrer">
+                                <svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h12l4 4v14H3V3h2Zm2 0v6h9V3M7 21v-8h10v8"/></svg>
+                            </button>
+                        </div>
+                    </form>
+                    <form class="mt-2 flex justify-end border-t border-line pt-2" action="{{ path('app_subscription_delete', {id: subscription.id}) }}" method="post">
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete-subscription-' ~ subscription.id) }}">
+                        <button class="flex h-11 w-11 items-center justify-center border border-danger text-danger" type="submit" aria-label="Retirer {{ subscription.displayTitle }}" title="Retirer la source">
+                            <svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>
+                        </button>
+                    </form>
+                </div>
+            </details>
+        </li>
+    {% endfor %}
+</ul>

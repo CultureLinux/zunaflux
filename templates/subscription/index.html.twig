@@ -3,75 +3,78 @@
 {% block title %}Abonnements · Zunaflux{% endblock %}
 
 {% block body %}
-    <main class="mx-auto min-h-screen max-w-5xl px-6 py-16">
-        <h1 class="font-serif text-5xl text-white">Vos abonnements</h1>
-        <p class="mt-4 max-w-2xl text-slate-300">Ajoutez vos sources et organisez-les par catégories. Les réglages restent strictement personnels.</p>
+    <main class="mx-auto min-h-screen max-w-[96rem] px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
+        <h1 class="font-serif text-5xl text-foreground">Vos abonnements</h1>
 
         {% for message in app.flashes('success') %}
-            <p class="mt-8 border border-emerald-400/40 bg-emerald-400/10 px-4 py-3 text-emerald-200" role="status">{{ message }}</p>
+            <p class="mt-8 border border-success bg-surface-muted px-4 py-3 text-success" role="status">{{ message }}</p>
         {% endfor %}
         {% for message in app.flashes('error') %}
-            <p class="mt-8 border border-rose-400/40 bg-rose-400/10 px-4 py-3 text-rose-200" role="alert">{{ message }}</p>
+            <p class="mt-8 border border-danger bg-surface-muted px-4 py-3 text-danger" role="alert">{{ message }}</p>
         {% endfor %}
 
-        <form class="mt-10 grid gap-4 border border-slate-700 bg-slate-900/60 p-6 md:grid-cols-[1fr_auto]" action="{{ path('app_subscriptions') }}" method="post">
+        <div class="mt-10 grid gap-4 lg:grid-cols-2">
+        <form class="grid min-w-0 gap-4 border border-line bg-surface p-6 xl:grid-cols-[minmax(0,1fr)_auto]" action="{{ path('app_subscriptions') }}" method="post">
             <div>
-                <label class="font-mono text-xs uppercase tracking-[.18em] text-slate-400" for="feed_url">Adresse du flux RSS ou Atom</label>
-                <input class="mt-2 w-full border border-slate-600 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-300" id="feed_url" name="feed_url" type="url" required placeholder="https://example.test/feed.xml">
+                <label class="font-mono text-xs uppercase tracking-[.18em] text-muted" for="feed_url">Adresse du flux RSS ou Atom</label>
+                <input class="mt-2 w-full border border-line bg-background px-4 py-3 text-foreground outline-none focus:border-accent" id="feed_url" name="feed_url" type="url" required placeholder="https://example.test/feed.xml">
             </div>
             <input type="hidden" name="_token" value="{{ csrf_token('subscribe-feed') }}">
             <input type="hidden" name="intent" value="subscribe-feed">
-            <button class="self-end border border-cyan-300 bg-cyan-300 px-5 py-3 font-semibold text-slate-950 hover:bg-cyan-200" type="submit">Ajouter le flux</button>
+            <button class="self-end border border-accent bg-accent px-5 py-3 font-semibold text-accent-foreground hover:bg-accent" type="submit">Ajouter le flux</button>
         </form>
 
-        <form class="mt-4 grid gap-4 border border-dashed border-slate-700 p-6 md:grid-cols-[1fr_auto]" action="{{ path('app_subscriptions') }}" method="post" enctype="multipart/form-data">
+        <form class="grid min-w-0 gap-4 border border-dashed border-line p-6 xl:grid-cols-[minmax(0,1fr)_auto]" action="{{ path('app_subscriptions') }}" method="post" enctype="multipart/form-data">
             <div>
-                <label class="font-mono text-xs uppercase tracking-[.18em] text-slate-400" for="opml_file">Importer un fichier OPML</label>
-                <p class="mt-2 text-sm text-slate-400">Compatible FreshRSS. Les dossiers deviennent des catégories ; les abonnements déjà présents sont conservés.</p>
-                <input class="mt-3 block w-full text-sm text-slate-300 file:mr-4 file:border-0 file:bg-slate-800 file:px-4 file:py-2 file:text-slate-100 hover:file:bg-slate-700" id="opml_file" name="opml_file" type="file" accept=".opml,application/xml,text/xml" required>
+                <label class="font-mono text-xs uppercase tracking-[.18em] text-muted" for="opml_file">Importer un fichier OPML</label>
+                <p class="mt-2 text-sm text-muted">Compatible FreshRSS. Les dossiers deviennent des catégories ; les abonnements déjà présents sont conservés.</p>
+                <input class="mt-3 block w-full text-sm text-foreground file:mr-4 file:border-0 file:bg-surface-muted file:px-4 file:py-2 file:text-foreground hover:file:bg-surface-muted" id="opml_file" name="opml_file" type="file" accept=".opml,application/xml,text/xml" required>
             </div>
             <input type="hidden" name="_token" value="{{ csrf_token('import-opml') }}">
             <input type="hidden" name="intent" value="import-opml">
-            <button class="self-end border border-slate-600 px-5 py-3 font-semibold text-slate-100 hover:border-cyan-300 hover:text-cyan-200" type="submit">Importer OPML</button>
+            <button class="self-end border border-line px-5 py-3 font-semibold text-foreground hover:border-accent hover:text-accent" type="submit">Importer OPML</button>
         </form>
+        </div>
 
-        <section class="mt-10 grid gap-5 border border-slate-800 p-6 md:grid-cols-[1fr_auto]" aria-labelledby="categories-heading">
+        <section class="mt-10 grid gap-5 border border-line p-6 md:grid-cols-[1fr_auto]" aria-labelledby="categories-heading">
             <div>
-                <h2 class="font-serif text-2xl text-white" id="categories-heading">Catégories</h2>
-                <p class="mt-2 text-sm text-slate-400">Des repères personnels, sans hiérarchie.</p>
-                {% if categories is empty %}<p class="mt-4 text-slate-400">Aucune catégorie.</p>{% else %}
-                    <ul class="mt-4 flex flex-wrap gap-2">{% for category in categories %}<li class="flex items-center gap-2 border border-slate-700 px-3 py-1 text-slate-200">{{ category.name }} <form action="{{ path('app_category_delete', {id: category.id}) }}" method="post"><input type="hidden" name="_token" value="{{ csrf_token('delete-category-' ~ category.id) }}"><button class="text-xs text-rose-300 hover:text-rose-100" type="submit">Supprimer</button></form></li>{% endfor %}</ul>
+                <h2 class="font-serif text-2xl text-foreground" id="categories-heading">Catégories</h2>
+                {% if categories is empty %}<p class="mt-4 text-muted">Aucune catégorie.</p>{% else %}
+                    <ul class="mt-4 flex flex-wrap gap-2">{% for category in categories %}<li class="flex items-center gap-2 border border-line px-3 py-1 text-foreground">{{ category.name }} <form action="{{ path('app_category_delete', {id: category.id}) }}" method="post"><input type="hidden" name="_token" value="{{ csrf_token('delete-category-' ~ category.id) }}"><button class="flex h-11 w-11 items-center justify-center text-danger" type="submit" aria-label="Supprimer la catégorie {{ category.name }}" title="Supprimer la catégorie"><svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></form></li>{% endfor %}</ul>
                 {% endif %}
             </div>
             <form class="grid gap-3 self-end" action="{{ path('app_subscriptions') }}" method="post">
-                <label class="font-mono text-xs uppercase tracking-[.18em] text-slate-400" for="category_name">Nouvelle catégorie</label>
-                <input class="border border-slate-600 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-300" id="category_name" name="category_name" required maxlength="100">
+                <label class="font-mono text-xs uppercase tracking-[.18em] text-muted" for="category_name">Nouvelle catégorie</label>
+                <input class="border border-line bg-background px-4 py-3 text-foreground outline-none focus:border-accent" id="category_name" name="category_name" required maxlength="100">
                 <input type="hidden" name="_token" value="{{ csrf_token('create-category') }}">
                 <input type="hidden" name="intent" value="create-category">
-                <button class="border border-slate-600 px-4 py-3 text-slate-100 hover:border-cyan-300 hover:text-cyan-200" type="submit">Créer la catégorie</button>
+                <button class="border border-line px-4 py-3 text-foreground hover:border-accent hover:text-accent" type="submit">Créer la catégorie</button>
             </form>
         </section>
 
         <section class="mt-12" aria-labelledby="subscriptions-heading">
-            <h2 class="font-serif text-2xl text-white" id="subscriptions-heading">Sources suivies</h2>
+            <h2 class="font-serif text-2xl text-foreground" id="subscriptions-heading">Sources suivies</h2>
             {% if subscriptions is empty %}
-                <p class="mt-4 text-slate-400">Aucune source pour le moment.</p>
+                <p class="mt-4 text-muted">Aucune source pour le moment.</p>
             {% else %}
-                <ul class="mt-5 divide-y divide-slate-800 border-y border-slate-800">
-                    {% for subscription in subscriptions %}
-                        <li class="grid gap-4 py-5 lg:grid-cols-[1fr_auto] lg:items-center">
-                            <div><a class="text-cyan-200 hover:text-cyan-100" href="{{ subscription.feed.canonicalUrl }}" rel="noreferrer" target="_blank">{{ subscription.displayTitle }}</a><p class="mt-1 text-xs text-slate-500">{{ subscription.feed.canonicalUrl }}</p></div>
-                            <div class="flex flex-wrap gap-2">
-                                <form class="flex flex-wrap items-center gap-2" action="{{ path('app_subscription_update', {id: subscription.id}) }}" method="post">
-                                    <label class="sr-only" for="title-{{ subscription.id }}">Titre personnalisé</label><input class="w-36 border border-slate-700 bg-slate-950 px-2 py-1 text-sm" id="title-{{ subscription.id }}" name="custom_title" value="{{ subscription.displayTitle }}" maxlength="255">
-                                    <select class="border border-slate-700 bg-slate-950 px-2 py-1 text-sm" name="category_id"><option value="">Sans catégorie</option>{% for category in categories %}<option value="{{ category.id }}" {{ subscription.category and subscription.category.id == category.id ? 'selected' }}>{{ category.name }}</option>{% endfor %}</select>
-                                    <label class="flex items-center gap-1 text-sm text-slate-300"><input name="enabled" type="checkbox" value="1" {{ subscription.enabled ? 'checked' }}> Actif</label><input type="hidden" name="_token" value="{{ csrf_token('subscription-' ~ subscription.id) }}"><button class="border border-slate-600 px-2 py-1 text-sm hover:border-cyan-300" type="submit">Enregistrer</button>
-                                </form>
-                                <form action="{{ path('app_subscription_delete', {id: subscription.id}) }}" method="post"><input type="hidden" name="_token" value="{{ csrf_token('delete-subscription-' ~ subscription.id) }}"><button class="border border-rose-900 px-2 py-1 text-sm text-rose-200 hover:border-rose-400" type="submit">Retirer</button></form>
-                            </div>
-                        </li>
-                    {% endfor %}
-                </ul>
+                <div class="mt-6 grid grid-cols-1 items-start gap-x-8 gap-y-8 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                {% for category in categories %}
+                    {% set categorySubscriptions = subscriptions|filter(subscription => subscription.category and subscription.category.id == category.id) %}
+                    {% if categorySubscriptions is not empty %}
+                        <section class="min-w-0" aria-labelledby="source-category-{{ category.id }}">
+                            <h3 class="border-b border-line pb-3 font-serif text-xl text-foreground" id="source-category-{{ category.id }}">{{ category.name }} <span class="ml-2 font-mono text-xs text-muted">{{ categorySubscriptions|length }}</span></h3>
+                            {% include 'subscription/_source_list.html.twig' with {items: categorySubscriptions} %}
+                        </section>
+                    {% endif %}
+                {% endfor %}
+                {% set uncategorizedSubscriptions = subscriptions|filter(subscription => subscription.category is null) %}
+                {% if uncategorizedSubscriptions is not empty %}
+                    <section class="min-w-0" aria-labelledby="source-uncategorized">
+                        <h3 class="border-b border-line pb-3 font-serif text-xl text-foreground" id="source-uncategorized">Sans catégorie <span class="ml-2 font-mono text-xs text-muted">{{ uncategorizedSubscriptions|length }}</span></h3>
+                        {% include 'subscription/_source_list.html.twig' with {items: uncategorizedSubscriptions} %}
+                    </section>
+                {% endif %}
+                </div>
             {% endif %}
         </section>
     </main>

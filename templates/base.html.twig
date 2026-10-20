@@ -3,28 +3,28 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="color-scheme" content="dark light">
+        <meta name="color-scheme" content="light dark">
         <title>{% block title %}Zunaflux{% endblock %}</title>
         {% block stylesheets %}
             <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
         {% endblock %}
     </head>
-    <body class="bg-slate-950 text-slate-100 antialiased">
+    <body class="bg-background text-foreground antialiased">
         {% if app.user %}
             {% set current_route = app.request.attributes.get('_route')|default('') %}
-            <nav class="border-b border-slate-800 bg-slate-950/90 px-6 py-4 backdrop-blur md:px-12" aria-label="Navigation principale">
+            <nav class="border-b border-line bg-background px-6 py-4 md:px-12" aria-label="Navigation principale">
                 <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3">
-                    <a class="font-mono text-xs uppercase tracking-[.3em] text-cyan-300 hover:text-cyan-100" href="{{ path('app_home') }}">Zunaflux</a>
+                    <a class="font-serif text-2xl text-foreground hover:text-accent" href="{{ path('app_home') }}">Zunaflux</a>
                     <div class="flex flex-1 flex-wrap items-center gap-1 text-sm">
-                        <a class="px-3 py-2 transition {{ current_route starts with 'app_articles' ? 'bg-cyan-300 text-slate-950' : 'text-slate-300 hover:text-cyan-200' }}" href="{{ path('app_articles') }}">Lecture</a>
-                        <a class="px-3 py-2 transition {{ current_route starts with 'app_subscriptions' ? 'bg-cyan-300 text-slate-950' : 'text-slate-300 hover:text-cyan-200' }}" href="{{ path('app_subscriptions') }}">Sources</a>
-                        <a class="px-3 py-2 transition text-slate-300 hover:text-cyan-200" href="{{ path('app_preferences') }}">Préférences</a>
+                        <a class="px-3 py-2 transition {{ current_route starts with 'app_articles' ? 'bg-accent-soft text-foreground border-l-2 border-accent' : 'text-foreground hover:text-accent' }}" href="{{ path('app_articles') }}">Lecture</a>
+                        <a class="px-3 py-2 transition {{ current_route starts with 'app_subscriptions' ? 'bg-accent-soft text-foreground border-l-2 border-accent' : 'text-foreground hover:text-accent' }}" href="{{ path('app_subscriptions') }}">Sources</a>
+                        <a class="px-3 py-2 transition {{ current_route starts with 'app_preferences' ? 'bg-accent-soft text-foreground border-l-2 border-accent' : 'text-foreground hover:text-accent' }}" href="{{ path('app_preferences') }}">Préférences</a>
                         {% if is_granted('ROLE_ADMIN') %}
-                            <a class="px-3 py-2 transition {{ current_route starts with 'app_admin' ? 'bg-orange-300 text-slate-950' : 'text-slate-300 hover:text-orange-200' }}" href="{{ path('app_admin') }}">Administration</a>
+                            <a class="px-3 py-2 transition {{ current_route starts with 'app_admin' ? 'bg-accent-soft text-foreground border-l-2 border-accent' : 'text-foreground hover:text-accent' }}" href="{{ path('app_admin') }}">Administration</a>
                         {% endif %}
                     </div>
-                    <p class="max-w-48 truncate text-xs text-slate-500" title="{{ app.user.userIdentifier }}">{{ app.user.userIdentifier }}</p>
-                    <form action="{{ path('app_logout') }}" method="post"><input type="hidden" name="_token" value="{{ csrf_token('logout') }}"><button class="border border-slate-700 px-3 py-2 text-xs font-semibold uppercase tracking-[.12em] text-slate-300 transition hover:border-orange-300 hover:text-orange-200" type="submit">Quitter</button></form>
+                    <p class="max-w-48 truncate text-xs text-muted" title="{{ app.user.userIdentifier }}">{{ app.user.userIdentifier }}</p>
+                    <form action="{{ path('app_logout') }}" method="post"><input type="hidden" name="_token" value="{{ csrf_token('logout') }}"><button class="border border-line px-3 py-2 text-xs font-semibold uppercase tracking-[.12em] text-foreground transition hover:border-warning hover:text-warning" type="submit">Quitter</button></form>
                 </div>
             </nav>
         {% endif %}

@@ -93,7 +93,7 @@ if (container) {
             })
             .catch((error) => {
                 const message = document.createElement('p');
-                message.className = 'border-l-2 border-orange-400 bg-orange-300/10 p-4 text-orange-100';
+                message.className = 'border-l-2 border-danger bg-surface-muted p-4 text-danger';
                 message.setAttribute('role', 'alert');
                 message.textContent = error.message;
                 container.prepend(message);
@@ -137,7 +137,7 @@ if (container) {
 
             if (items.length === 0) {
                 const empty = document.createElement('p');
-                empty.className = 'border border-slate-800 bg-slate-900/60 p-6 text-slate-400';
+                empty.className = 'border border-line bg-surface p-6 text-muted';
                 empty.textContent = 'Aucun article dans vos abonnements actifs pour le moment.';
                 container.append(empty);
 
@@ -145,7 +145,7 @@ if (container) {
             }
 
             const list = append ? container.querySelector('ol') : document.createElement('ol');
-            if (!append) list.className = 'divide-y divide-slate-800 border-y border-slate-800';
+            if (!append) list.className = 'divide-y divide-line border-y border-line';
 
             items.forEach((item) => {
                 const row = document.createElement('li');
@@ -160,16 +160,16 @@ if (container) {
                 openButton.className = 'block w-full text-left';
                 openButton.addEventListener('click', () => openArticle(item.id));
                 const source = document.createElement('p');
-                source.className = 'font-mono text-xs uppercase tracking-[.16em] text-cyan-300';
+                source.className = 'font-mono text-xs uppercase tracking-[.16em] text-accent';
                 source.textContent = item.source || 'Source sans titre';
                 const title = document.createElement('h2');
-                title.className = `mt-2 font-serif text-2xl ${item.isRead ? 'text-slate-400' : 'text-white'}`;
+                title.className = `mt-2 font-serif text-2xl ${item.isRead ? 'text-muted' : 'text-foreground'}`;
                 title.textContent = item.title;
                 openButton.append(source, title);
 
                 if (item.summary) {
                     const summary = document.createElement('p');
-                    summary.className = 'mt-2 line-clamp-2 text-sm leading-6 text-slate-400';
+                    summary.className = 'mt-2 line-clamp-2 text-sm leading-6 text-muted';
                     summary.textContent = item.summary;
                     openButton.append(summary);
                 }
@@ -183,7 +183,7 @@ if (container) {
         })
         .catch((error) => {
             const message = document.createElement('p');
-            message.className = 'border-l-2 border-orange-400 bg-orange-300/10 p-4 text-orange-100';
+            message.className = 'border-l-2 border-danger bg-surface-muted p-4 text-danger';
             message.setAttribute('role', 'alert');
             message.textContent = error.message;
             container.replaceChildren(message);

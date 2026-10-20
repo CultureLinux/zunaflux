@@ -2,18 +2,17 @@
 
 {% block body %}
     <main class="relative isolate min-h-screen overflow-hidden px-6 py-8 md:px-12">
-        <div class="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_12%_85%,rgba(34,211,238,.15),transparent_32rem),radial-gradient(circle_at_90%_18%,rgba(249,115,22,.13),transparent_25rem)]"></div>
-        {% if not app.user %}<header class="mx-auto flex max-w-6xl items-center justify-between border-b border-slate-800 pb-6"><p class="font-mono text-xs uppercase tracking-[.35em] text-cyan-300">Zunaflux</p><a class="text-sm font-semibold text-slate-300 transition hover:text-cyan-200" href="{{ path('app_login') }}">Se connecter</a></header>{% endif %}
+        {% if not app.user %}<header class="mx-auto flex max-w-6xl items-center justify-between border-b border-line pb-6"><p class="font-serif text-2xl text-foreground">Zunaflux</p><a class="text-sm font-semibold text-foreground transition hover:text-accent" href="{{ path('app_login') }}">Se connecter</a></header>{% endif %}
         <section class="mx-auto grid max-w-6xl gap-12 py-24 lg:grid-cols-[1.2fr_.8fr] lg:items-end lg:py-36">
             <div>
-                <p class="font-mono text-xs uppercase tracking-[.26em] text-orange-300">La salle de lecture, retrouvée</p>
-                <h1 class="mt-6 max-w-3xl font-serif text-5xl leading-[.92] text-white sm:text-7xl">Vos sources.<br>Votre rythme.</h1>
-                <p class="mt-7 max-w-xl text-lg leading-8 text-slate-300">Un lecteur RSS auto-hébergé pour retrouver l’essentiel, organiser votre veille et lire sans le vacarme.</p>
-                <div class="mt-10 flex flex-wrap gap-4">{% if app.user %}<a class="bg-cyan-300 px-6 py-3 text-sm font-bold uppercase tracking-[.14em] text-slate-950 transition hover:bg-cyan-200" href="{{ path('app_articles') }}">Ouvrir la lecture</a>{% else %}<a class="bg-cyan-300 px-6 py-3 text-sm font-bold uppercase tracking-[.14em] text-slate-950 transition hover:bg-cyan-200" href="{{ path('app_register') }}">Créer un compte</a><a class="border border-slate-600 px-6 py-3 text-sm font-semibold text-slate-200 transition hover:border-cyan-300 hover:text-cyan-200" href="{{ path('app_login') }}">Se connecter</a>{% endif %}</div>
+                <p class="font-mono text-xs uppercase tracking-[.26em] text-muted">La salle de lecture, retrouvée</p>
+                <h1 class="mt-6 max-w-3xl font-serif text-5xl leading-[.92] text-foreground sm:text-7xl">Vos sources.<br>Votre rythme.</h1>
+                <p class="mt-7 max-w-xl text-lg leading-8 text-foreground">Un lecteur RSS auto-hébergé pour retrouver l’essentiel, organiser votre veille et lire sans le vacarme.</p>
+                <div class="mt-10 flex flex-wrap gap-4">{% if app.user %}<a class="bg-accent px-6 py-3 text-sm font-bold uppercase tracking-[.14em] text-accent-foreground transition hover:bg-accent" href="{{ path('app_articles') }}">Ouvrir la lecture</a>{% else %}<a class="bg-accent px-6 py-3 text-sm font-bold uppercase tracking-[.14em] text-accent-foreground transition hover:bg-accent" href="{{ path('app_register') }}">Créer un compte</a><a class="border border-line px-6 py-3 text-sm font-semibold text-foreground transition hover:border-accent hover:text-accent" href="{{ path('app_login') }}">Se connecter</a>{% endif %}</div>
             </div>
-            <aside class="border border-slate-700 bg-slate-900/60 p-6 shadow-2xl shadow-slate-950/50 backdrop-blur" aria-label="Principes de Zunaflux">
-                <p class="font-mono text-xs uppercase tracking-[.2em] text-cyan-300">À retenir</p>
-                <dl class="mt-7 space-y-6"><div><dt class="font-serif text-2xl text-white">Vos sources</dt><dd class="mt-1 text-sm leading-6 text-slate-400">RSS et Atom, choisis et organisés par vous.</dd></div><div><dt class="font-serif text-2xl text-white">Votre espace</dt><dd class="mt-1 text-sm leading-6 text-slate-400">Une veille personnelle, loin des fils imposés.</dd></div><div><dt class="font-serif text-2xl text-white">Votre attention</dt><dd class="mt-1 text-sm leading-6 text-slate-400">Une interface calme pour mieux lire.</dd></div></dl>
+            <aside class="border-t border-line py-6" aria-label="Principes de Zunaflux">
+                <p class="font-mono text-xs uppercase tracking-[.2em] text-accent">À retenir</p>
+                <dl class="mt-7 space-y-6"><div><dt class="font-serif text-2xl text-foreground">Vos sources</dt><dd class="mt-1 text-sm leading-6 text-muted">RSS et Atom, choisis et organisés par vous.</dd></div><div><dt class="font-serif text-2xl text-foreground">Votre espace</dt><dd class="mt-1 text-sm leading-6 text-muted">Une veille personnelle, loin des fils imposés.</dd></div><div><dt class="font-serif text-2xl text-foreground">Votre attention</dt><dd class="mt-1 text-sm leading-6 text-muted">Une interface calme pour mieux lire.</dd></div></dl>
             </aside>
         </section>
     </main>
