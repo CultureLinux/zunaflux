@@ -3,14 +3,40 @@
 {% block title %}Lecture · Zunaflux{% endblock %}
 
 {% block body %}
-    <main class="mx-auto min-h-screen max-w-[96rem] px-4 py-12 sm:px-6 lg:px-8 {{ preference.density == 'compact' ? 'article-density-compact' : '' }} {{ preference.fontScale == 'large' ? 'text-lg' : preference.fontScale == 'small' ? 'text-sm' : '' }}" data-read-mode-default="{{ preference.readMode }}">
-        <section class="pb-12"><p class="font-mono text-xs uppercase tracking-[.25em] text-muted">Votre lecture</p><h1 class="mt-4 font-serif text-5xl text-foreground">Les derniers articles</h1><p class="mt-4 text-muted">Votre liste se charge ici à partir de vos abonnements actifs.</p></section>
-        <div class="mb-5 flex flex-wrap items-center gap-2">
+    <div class="{{ preference.sidebarCollapsed ? 'reading-workspace' : '' }}">
+        <header class="reading-search-header">
+        <div class="reading-search-controls">
+        <label class="sr-only" for="read-filter">État de lecture</label><select class="border border-line bg-background px-3 py-2" id="read-filter" data-read-filter><option value="0">Non lus</option><option value="">Tous les articles</option><option value="1">Lus</option></select>
         <form class="flex min-w-0 flex-1 flex-wrap gap-2" data-article-search>
             <label class="sr-only" for="article-search">Rechercher dans vos articles</label><input class="min-w-0 flex-1 border border-line bg-background px-4 py-3 text-foreground outline-none focus:border-accent" id="article-search" name="q" type="search" placeholder="Rechercher dans vos articles" value="{{ app.request.query.get('q') }}">
             <button class="border border-accent px-4 py-3 text-accent hover:bg-accent hover:text-accent-foreground" type="submit">Rechercher</button>
         </form>
-        <label class="sr-only" for="read-filter">État de lecture</label><select class="border border-line bg-background px-3 py-2" id="read-filter" data-read-filter><option value="0">Non lus</option><option value="">Tous les articles</option><option value="1">Lus</option></select>
+        </div>
+        </header>
+        {% if preference.sidebarCollapsed %}
+        <aside class="reading-sidebar" aria-label="Navigation de lecture">
+            <p class="reading-sidebar-title">Votre lecture</p>
+
+            <div class="reading-sidebar-heading"><p>Sources</p><a href="{{ path('app_subscriptions') }}" aria-label="Gérer les sources">+</a></div>
+            <nav class="reading-sidebar-nav" aria-label="Vos sources">
+                {% for subscription in readingSubscriptions %}
+                    {% set counts = readingCounts[subscription.id ~ '']|default({unread: 0, read: 0}) %}
+                    {% set currentRead = app.request.query.get('read', '0') %}
+                    <div class="reading-source-row" data-reading-source data-unread="{{ counts.unread }}" data-read="{{ counts.read }}" {% if (currentRead == '0' and counts.unread == 0) or (currentRead == '1' and counts.read == 0) or (currentRead == '' and counts.unread + counts.read == 0) %}hidden{% endif %}>
+                        <a data-source-link href="{{ path('app_articles', {subscription: subscription.id, read: currentRead}) }}" {% if app.request.query.get('subscription') == subscription.id ~ '' %}aria-current="page"{% endif %}><span>{{ subscription.displayTitle }} {% if subscription.feed.lastError %}<svg data-feed-warning class="inline h-4 w-4 text-warning" role="img" aria-label="Erreur de collecte" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 2 21h20L12 3Zm0 6v5m0 3v1"/></svg>{% endif %}</span><span class="reading-unread-count" data-unread-subscription="{{ subscription.id }}" aria-label="{{ counts.unread }} articles non lus">{{ counts.unread }}</span></a>
+                        <form method="post" action="{{ path('app_subscription_mark_read', {id: subscription.id}) }}"><input type="hidden" name="_token" value="{{ csrf_token('mark-feed-read-' ~ subscription.id) }}"><button type="submit" class="reading-mark-feed" title="Marquer tous les articles de {{ subscription.displayTitle }} comme lus" aria-label="Marquer tous les articles de {{ subscription.displayTitle }} comme lus">✓</button></form>
+                    </div>
+                {% else %}
+                    <p class="text-sm text-muted">Aucune source active.</p>
+                {% endfor %}
+            </nav>
+        </aside>
+        {% endif %}
+    <main class="mx-auto min-h-screen max-w-[96rem] px-4 py-12 sm:px-6 lg:px-8 {{ preference.density == 'compact' ? 'article-density-compact' : '' }} {{ preference.fontScale == 'large' ? 'text-lg' : preference.fontScale == 'small' ? 'text-sm' : '' }}" data-read-mode-default="{{ preference.readMode }}">
+        <section class="reading-intro pb-12"><p class="font-mono text-xs uppercase tracking-[.25em] text-muted">Votre lecture</p><h1 class="mt-4 font-serif text-5xl text-foreground">Les derniers articles</h1><p class="mt-4 text-muted">Votre liste se charge ici à partir de vos abonnements actifs.</p></section>
+        <div class="mb-5 flex flex-wrap items-center gap-2">
+
+
         <section class="flex flex-wrap gap-2" data-saved-filters data-csrf-token="{{ csrf_token('saved-filter') }}"><label class="sr-only" for="saved-filter">Filtres enregistrés</label><select class="border border-line bg-background px-3 py-2" id="saved-filter" data-saved-filter><option value="">Filtres enregistrés</option></select><button class="border border-accent bg-accent-soft px-3 py-2 text-sm text-accent hover:bg-accent hover:text-accent-foreground" data-save-filter type="button">Enregistrer cette recherche</button></section>
         <section class="flex flex-wrap items-center gap-2" data-article-actions data-csrf-token="{{ csrf_token('article-bulk') }}" aria-label="Actions groupées">
             <button class="border border-line px-3 py-2 text-sm text-accent hover:border-accent hover:bg-accent-soft" data-select-all type="button" aria-pressed="false">Sélectionner les articles chargés</button>
@@ -33,12 +59,16 @@
     </main>
     <dialog class="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-5xl overflow-y-auto border border-line bg-surface p-0 text-foreground backdrop:bg-background/80" data-article-dialog aria-labelledby="article-dialog-title">
         <article class="p-6 md:p-10">
-            <div class="flex items-start justify-between gap-6"><div><p class="font-mono text-xs uppercase tracking-[.2em] text-accent" data-article-source></p><h2 class="mt-3 font-serif text-3xl text-foreground" id="article-dialog-title" data-article-title></h2></div><form method="dialog"><button class="border border-line px-3 py-2 text-sm text-foreground hover:border-accent" type="submit">Fermer</button></form></div>
-            <div class="mt-6">{% include 'article/_actions.html.twig' %}</div>
+            <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+                {% include 'article/_actions.html.twig' %}
+                <form method="dialog"><button class="border border-line px-3 py-2 text-sm text-foreground hover:border-accent" type="submit"><span class="reading-back-label">Retour à la liste</span><span class="reading-close-label">Fermer</span></button></form>
+            </div>
+            <div><p class="font-mono text-xs uppercase tracking-[.2em] text-accent" data-article-source></p><h2 class="mt-3 font-serif text-3xl text-foreground" id="article-dialog-title" data-article-title></h2></div>
             <p class="mt-4 text-sm text-danger" data-article-error role="alert" hidden></p>
             <div class="article-prose mt-7 max-w-prose font-serif text-lg leading-relaxed text-foreground" data-article-summary></div>
-            <div class="mt-8">{% include 'article/_actions.html.twig' %}</div>
+            <div class="reading-actions-bottom mt-8">{% include 'article/_actions.html.twig' %}</div>
         </article>
     </dialog>
+    </div>
     <script type="module" src="{{ asset('controllers/article-list.js') }}"></script>
 {% endblock %}

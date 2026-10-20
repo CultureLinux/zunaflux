@@ -34,7 +34,35 @@ final class ArticleController extends AbstractController
             $entityManager->persist($preference);
             $entityManager->flush();
         }
-        return $this->render('article/index.html.twig', ['preference' => $preference]);
+        $subscriptions = $preference->isSidebarCollapsed()
+            ? $entityManager->getRepository(Subscription::class)->findBy(['user' => $user, 'enabled' => true])
+            : [];
+        $readingCounts = [];
+        if ($preference->isSidebarCollapsed()) {
+            $counts = $entityManager->getConnection()->fetchAllAssociative('SELECT s.id, COUNT(a.id) AS total, COALESCE(SUM(CASE WHEN a.id IS NOT NULL AND COALESCE(st.is_read, 0) = 0 THEN 1 ELSE 0 END), 0) AS unread FROM subscription s LEFT JOIN article a ON a.feed_id = s.feed_id LEFT JOIN article_state st ON st.article_id = a.id AND st.user_id = s.user_id WHERE s.user_id = ? AND s.enabled = 1 GROUP BY s.id', [$user->getId()->toBinary()], [\Doctrine\DBAL\ParameterType::BINARY]);
+            foreach ($counts as $count) $readingCounts[(string) Uuid::fromBinary($count['id'])] = ['unread' => (int) $count['unread'], 'read' => (int) $count['total'] - (int) $count['unread']];
+        }
+
+        return $this->render('article/index.html.twig', ['preference' => $preference, 'readingSubscriptions' => $subscriptions, 'readingCounts' => $readingCounts]);
+    }
+
+    #[Route('/subscriptions/{id}/mark-read', name: 'app_subscription_mark_read', methods: ['POST'])]
+    public function markSubscriptionRead(string $id, Request $request, EntityManagerInterface $entityManager, ArticleStateService $stateService): Response
+    {
+        try { $uuid = Uuid::fromString($id); } catch (\InvalidArgumentException) { throw $this->createNotFoundException(); }
+        $user = $this->currentUser();
+        $subscription = $entityManager->getRepository(Subscription::class)->findOneBy(['id' => $uuid, 'user' => $user, 'enabled' => true]);
+        if (!$subscription instanceof Subscription) throw $this->createNotFoundException();
+        if (!$this->isCsrfTokenValid('mark-feed-read-'.$id, $request->request->getString('_token'))) throw $this->createAccessDeniedException();
+        $cursor = null;
+        do {
+            $query = $entityManager->createQueryBuilder()->select('a')->from(Article::class, 'a')->leftJoin(ArticleState::class, 's', 'WITH', 's.article = a AND s.user = :user')->where('a.feed = :feed')->andWhere('s.id IS NULL OR s.isRead = false')->setParameter('user', $user->getId(), 'uuid')->setParameter('feed', $subscription->getFeed()->getId(), 'uuid')->orderBy('a.id', 'ASC')->setMaxResults(100);
+            if ($cursor !== null) $query->andWhere('a.id > :cursor')->setParameter('cursor', $cursor, 'uuid');
+            $articles = $query->getQuery()->getResult();
+            foreach ($articles as $article) { $stateService->update($user, $article, ['isRead' => true]); $cursor = $article->getId(); }
+        } while (count($articles) === 100);
+
+        return $this->redirectToRoute('app_articles', ['subscription' => $id, 'read' => '0']);
     }
 
     #[Route('/api/articles', name: 'app_api_articles', methods: ['GET'])]

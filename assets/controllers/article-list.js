@@ -2,6 +2,8 @@ const container = document.querySelector('[data-article-list]');
 
 if (container) {
     const endpoint = container.dataset.articleList;
+    const workspace = document.querySelector('.reading-workspace');
+    const desktopLayout = window.matchMedia('(min-width: 1024px)');
     const dialog = document.querySelector('[data-article-dialog]');
     const dialogTitle = dialog?.querySelector('[data-article-title]');
     const dialogSource = dialog?.querySelector('[data-article-source]');
@@ -50,6 +52,18 @@ if (container) {
     const readFilter = document.querySelector('[data-read-filter]');
     const initialRead = new URLSearchParams(location.search).get('read');
     if (initialRead === '0' || initialRead === '1' || initialRead === '') readFilter.value = initialRead;
+    const updateSources = () => {
+        document.querySelectorAll('[data-reading-source]').forEach((row) => {
+            const unread = Number(row.dataset.unread);
+            const read = Number(row.dataset.read);
+            row.hidden = (readFilter.value === '0' ? unread : readFilter.value === '1' ? read : unread + read) === 0;
+            const link = row.querySelector('[data-source-link]');
+            const url = new URL(link.href);
+            url.searchParams.set('read', readFilter.value);
+            link.href = url.href;
+        });
+    };
+    updateSources();
     const savedFilters = document.querySelector('[data-saved-filters]');
     const savedFilterSelect = savedFilters?.querySelector('[data-saved-filter]');
     let nextCursor = null;
@@ -57,6 +71,16 @@ if (container) {
     const loadedItems = [];
     let loading = false;
     let pageRequest = null;
+    const updateUnreadCount = (item, isRead) => {
+        if (!item || item.isRead === isRead) return;
+        const badge = document.querySelector(`[data-unread-subscription="${CSS.escape(String(item.subscriptionId))}"]`);
+        if (!badge) return;
+        const count = Math.max(0, Number(badge.textContent) + (isRead ? -1 : 1));
+        badge.textContent = String(count);
+        badge.setAttribute('aria-label', `${count} articles non lus`);
+        const row = badge.closest('[data-reading-source]');
+        if (row) { row.dataset.unread = String(count); row.dataset.read = String(Math.max(0, Number(row.dataset.read) + (isRead ? 1 : -1))); updateSources(); }
+    };
 
     const bulk = async (changes) => {
         const ids = [...selectedIds];
@@ -76,6 +100,11 @@ if (container) {
                 if (!response.ok) throw new Error();
                 const result = await response.json();
                 if (result.skipped) throw new Error();
+                if (typeof changes.isRead === 'boolean') batch.forEach((id) => {
+                    const item = loadedItems.find((entry) => String(entry.id) === String(id));
+                    updateUnreadCount(item, changes.isRead);
+                    if (item) item.isRead = changes.isRead;
+                });
                 processed += batch.length;
             }
             selectedIds.clear();
@@ -121,6 +150,7 @@ if (container) {
             return response.json();
         }).then((state) => {
             const item = loadedItems.find((entry) => entry.id === article.id);
+            updateUnreadCount(item, state.isRead);
             if (item) Object.assign(item, state);
             const row = container.querySelector(`[data-article-row-id="${CSS.escape(String(article.id))}"]`);
             if (row) {
@@ -162,7 +192,7 @@ if (container) {
                 } catch (_) {
                     // A malformed or unsupported feed link is intentionally not exposed.
                 }
-                if (!dialog.open) dialog.showModal();
+                if (!dialog.open) { if (workspace && desktopLayout.matches) { dialog.show(); dialog.scrollIntoView({ block: 'start' }); } else dialog.showModal(); }
                 if (readMode === 'on_preview' && !article.isRead) {
                     setActionDisabled(true);
                     updateState({ isRead: true }).catch(() => {
@@ -185,7 +215,7 @@ if (container) {
         const articleId = selectedArticle.id;
         setActionDisabled(true);
         dialogError.hidden = true;
-        updateState(changes).then(() => { if (dialog.open && selectedArticle?.id === articleId) dialog.close(); }).catch(() => {
+        updateState(changes).then(() => { if (dialog.open && selectedArticle?.id === articleId && !(workspace && desktopLayout.matches)) dialog.close(); }).catch(() => {
             dialogError.textContent = 'Impossible d’enregistrer cette action. Veuillez réessayer.';
             dialogError.hidden = false;
         }).finally(() => { setActionDisabled(false); });
@@ -207,6 +237,8 @@ if (container) {
         if (event.key === 'ArrowRight') moveArticle(1);
     });
 
+    desktopLayout.addEventListener('change', () => { if (dialog.open) dialog.close(); });
+
     const loadPage = (cursor = null, append = false) => {
         if (loading && append) return Promise.resolve();
         if (pageRequest) pageRequest.abort();
@@ -217,6 +249,7 @@ if (container) {
         if (cursor) url.searchParams.set('cursor', cursor);
         if (searchInput?.value.trim()) url.searchParams.set('q', searchInput.value.trim());
         if (readFilter.value !== '') url.searchParams.set('read', readFilter.value);
+        for (const filter of ['favorite', 'saved']) { if (new URLSearchParams(location.search).get(filter) === '1') url.searchParams.set(filter, '1'); }
         if (subscriptionFilter) url.searchParams.set('subscription', subscriptionFilter);
         if (!append) { selectedIds.clear(); updateSelection(); }
 
@@ -333,10 +366,10 @@ if (container) {
     });
     searchForm?.addEventListener('submit', (event) => { event.preventDefault(); clearTimeout(searchTimer); loadPage(); });
     document.querySelector('[data-clear-source]').addEventListener('click', () => { subscriptionFilter = ''; sourceName = ''; const current = new URL(location.href); current.searchParams.delete('subscription'); history.replaceState(null, '', current); updateSourceFilter(); loadPage(); });
-    readFilter.addEventListener('change', () => { const url = new URL(location.href); url.searchParams.set('read', readFilter.value); history.replaceState(null, '', url); loadPage(); });
+    readFilter.addEventListener('change', () => { const url = new URL(location.href); url.searchParams.set('read', readFilter.value); history.replaceState(null, '', url); updateSources(); loadPage(); });
     const savedHeaders = { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': savedFilters?.dataset.csrfToken };
     fetch('/api/saved-filters', { headers: { Accept: 'application/json' } }).then((r) => r.ok ? r.json() : []).then((filters) => filters.forEach((filter) => { const option = document.createElement('option'); option.value = JSON.stringify(filter.filters); option.textContent = filter.name; savedFilterSelect?.append(option); })).catch(() => {});
-    savedFilterSelect?.addEventListener('change', () => { if (!savedFilterSelect.value) return; const filters = JSON.parse(savedFilterSelect.value); if (typeof filters.q === 'string' && searchInput) searchInput.value = filters.q; readFilter.value = ['0', '1', ''].includes(String(filters.read ?? '0')) ? String(filters.read ?? '0') : '0'; subscriptionFilter = typeof filters.subscription === 'string' ? filters.subscription : ''; sourceName = ''; updateSourceFilter(); loadPage(); history.replaceState(null, '', `${location.pathname}?${new URLSearchParams(filters)}`); });
+    savedFilterSelect?.addEventListener('change', () => { if (!savedFilterSelect.value) return; const filters = JSON.parse(savedFilterSelect.value); if (typeof filters.q === 'string' && searchInput) searchInput.value = filters.q; readFilter.value = ['0', '1', ''].includes(String(filters.read ?? '0')) ? String(filters.read ?? '0') : '0'; updateSources(); subscriptionFilter = typeof filters.subscription === 'string' ? filters.subscription : ''; sourceName = ''; updateSourceFilter(); loadPage(); history.replaceState(null, '', `${location.pathname}?${new URLSearchParams(filters)}`); });
     savedFilters?.querySelector('[data-save-filter]')?.addEventListener('click', () => { const name = window.prompt('Nom du filtre'); if (!name) return; fetch('/api/saved-filters', { method: 'POST', headers: savedHeaders, body: JSON.stringify({ name, filters: { q: searchInput?.value.trim() || '', read: readFilter.value, subscription: subscriptionFilter } }) }).then((r) => { if (!r.ok) throw new Error(); return r.json(); }).then(() => location.reload()).catch(() => window.alert('Impossible d’enregistrer ce filtre.')); });
 
     if (sentinel && 'IntersectionObserver' in window) {

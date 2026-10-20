@@ -9,11 +9,117 @@ use App\Entity\Article;
 use App\Entity\Feed;
 use App\Entity\Subscription;
 use App\Entity\User;
+use App\Entity\UserPreference;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class ArticleControllerTest extends WebTestCase
 {
+    public function testSavedThemeIsAppliedAcrossAuthenticatedPages(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $user = new User('theme-'.bin2hex(random_bytes(8)).'@example.test');
+        $preference = new UserPreference($user);
+        $em->persist($user);
+        $em->persist($preference);
+        $em->flush();
+        try {
+            $client->loginUser($user);
+            $crawler = $client->request('GET', '/preferences');
+            self::assertSelectorExists('html[data-theme="system"]');
+            $form = $crawler->filter('main form')->first()->form();
+            $form['theme'] = 'light';
+            $client->submit($form);
+            $client->followRedirect();
+            self::assertSelectorExists('html[data-theme="light"]');
+            $client->request('GET', '/subscriptions');
+            self::assertSelectorExists('html[data-theme="light"]');
+            $crawler = $client->request('GET', '/preferences');
+            $form = $crawler->filter('main form')->first()->form();
+            $form['theme'] = 'dark';
+            $client->submit($form);
+            $client->followRedirect();
+            self::assertSelectorExists('html[data-theme="dark"]');
+        } finally {
+            $em->getConnection()->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
+        }
+    }
+
+    public function testMarkFeedReadOnlyChangesTheOwnersArticlesAndRequiresCsrf(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $owner = new User('mark-feed-'.bin2hex(random_bytes(8)).'@example.test');
+        $other = new User('mark-other-'.bin2hex(random_bytes(8)).'@example.test');
+        $feed = new Feed('https://example.test/'.bin2hex(random_bytes(8)).'/mark-feed');
+        $feed->recordFailure(new \RuntimeException('Collecte indisponible'));
+        $article = new Article($feed, new ParsedFeedItem('one', 'Article', null, null, null, null));
+        $subscription = new Subscription($owner, $feed);
+        $otherSubscription = new Subscription($other, $feed);
+        $preference = new UserPreference($owner);
+        $preference->update(['sidebarCollapsed' => true]);
+        foreach ([$owner, $other, $feed, $article, $subscription, $otherSubscription, $preference] as $entity) $em->persist($entity);
+        $em->flush();
+        try {
+            $client->loginUser($owner);
+            $client->request('POST', '/subscriptions/'.$subscription->getId().'/mark-read', ['_token' => 'invalid']);
+            self::assertResponseStatusCodeSame(403);
+            $crawler = $client->request('GET', '/articles');
+            self::assertSelectorExists('[data-reading-source][data-unread="1"][data-read="0"]');
+            self::assertSelectorExists('[data-reading-source] [data-feed-warning]');
+            self::assertSame('1', trim($crawler->filter('[data-unread-subscription="'.$subscription->getId().'"]')->text()));
+            $form = $crawler->filter('form[action="/subscriptions/'.$subscription->getId().'/mark-read"]')->form();
+            $client->submit($form);
+            self::assertResponseRedirects();
+            self::assertStringContainsString('/articles?', (string) $client->getResponse()->headers->get('Location'));
+            $connection = $em->getConnection();
+            self::assertSame(1, (int) $connection->fetchOne('SELECT is_read FROM article_state WHERE user_id = ? AND article_id = ?', [$owner->getId()->toBinary(), $article->getId()->toBinary()], [\Doctrine\DBAL\ParameterType::BINARY, \Doctrine\DBAL\ParameterType::BINARY]));
+            self::assertSame(0, (int) $connection->fetchOne('SELECT COUNT(*) FROM article_state WHERE user_id = ? AND article_id = ?', [$other->getId()->toBinary(), $article->getId()->toBinary()]));
+            $crawler = $client->followRedirect();
+            self::assertSame('0', trim($crawler->filter('[data-unread-subscription="'.$subscription->getId().'"]')->text()));
+            self::assertSelectorExists('[data-reading-source][data-unread="0"][data-read="1"]');
+            $client->request('POST', '/subscriptions/'.$otherSubscription->getId().'/mark-read', ['_token' => 'invalid']);
+            self::assertResponseStatusCodeSame(404);
+        } finally {
+            $connection = $em->getConnection();
+            $connection->executeStatement('DELETE FROM app_user WHERE id IN (?, ?)', [$owner->getId()->toBinary(), $other->getId()->toBinary()]);
+            $connection->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);
+        }
+    }
+
+    public function testDesktopLayoutUsesPreferenceAndShowsOnlyOwnActiveSources(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $user = new User('layout-'.bin2hex(random_bytes(8)).'@example.test');
+        $other = new User('layout-other-'.bin2hex(random_bytes(8)).'@example.test');
+        $feed = new Feed('https://example.test/'.bin2hex(random_bytes(8)).'/layout');
+        $otherFeed = new Feed('https://example.test/'.bin2hex(random_bytes(8)).'/private');
+        $feed->refreshMetadata('Ma source de lecture', null);
+        $otherFeed->refreshMetadata('Source privée extérieure', null);
+        $preference = new UserPreference($user);
+        foreach ([$user, $other, $feed, $otherFeed, $preference, new Subscription($user, $feed), new Subscription($other, $otherFeed)] as $entity) $em->persist($entity);
+        $em->flush();
+        try {
+            $client->loginUser($user);
+            $client->request('GET', '/articles');
+            self::assertResponseIsSuccessful();
+            self::assertSelectorNotExists('.reading-workspace');
+            $preference->update(['sidebarCollapsed' => true]);
+            $em->flush();
+            $client->request('GET', '/articles');
+            self::assertResponseIsSuccessful();
+            self::assertSelectorExists('.reading-workspace .reading-sidebar');
+            self::assertStringContainsString('Ma source de lecture', $client->getResponse()->getContent());
+            self::assertStringNotContainsString('Source privée extérieure', $client->getResponse()->getContent());
+        } finally {
+            $connection = $em->getConnection();
+            $connection->executeStatement('DELETE FROM app_user WHERE id IN (?, ?)', [$user->getId()->toBinary(), $other->getId()->toBinary()]);
+            $connection->executeStatement('DELETE FROM feed WHERE id IN (?, ?)', [$feed->getId()->toBinary(), $otherFeed->getId()->toBinary()]);
+        }
+    }
+
     /** Removing the reading access control must make this contract fail. */
     public function testTheReadingPageRequiresAuthentication(): void
     {
