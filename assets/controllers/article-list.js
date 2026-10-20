@@ -6,34 +6,91 @@ if (container) {
     const dialogTitle = dialog?.querySelector('[data-article-title]');
     const dialogSource = dialog?.querySelector('[data-article-source]');
     const dialogSummary = dialog?.querySelector('[data-article-summary]');
-    const dialogLink = dialog?.querySelector('[data-article-link]');
-    const readButton = dialog?.querySelector('[data-article-read]');
-    const favoriteButton = dialog?.querySelector('[data-article-favorite]');
-    const savedButton = dialog?.querySelector('[data-article-saved]');
-    const previousButton = dialog?.querySelector('[data-article-previous]');
-    const nextButton = dialog?.querySelector('[data-article-next]');
+    const dialogLinks = [...dialog.querySelectorAll('[data-article-link]')];
+    const readButtons = [...dialog.querySelectorAll('[data-article-read]')];
+    const favoriteButtons = [...dialog.querySelectorAll('[data-article-favorite]')];
+    const savedButtons = [...dialog.querySelectorAll('[data-article-saved]')];
+    const previousButtons = [...dialog.querySelectorAll('[data-article-previous]')];
+    const nextButtons = [...dialog.querySelectorAll('[data-article-next]')];
+    const dialogError = dialog.querySelector('[data-article-error]');
     const moreButton = document.querySelector('[data-article-more]');
     const sentinel = document.querySelector('[data-article-sentinel]');
     const actions = document.querySelector('[data-article-actions]');
     const selectedIds = new Set();
+    const selectAllButton = actions.querySelector('[data-select-all]');
+    const selectedCount = actions.querySelector('[data-selected-count]');
+    const bulkError = document.querySelector('[data-bulk-error]');
+    const sourceFilter = document.querySelector('[data-source-filter]');
+    const sourceFilterLabel = document.querySelector('[data-source-filter-label]');
+    let subscriptionFilter = new URLSearchParams(location.search).get('subscription') || '';
+    let sourceName = '';
+    const updateSourceFilter = () => {
+        sourceFilter.hidden = !subscriptionFilter;
+        sourceFilterLabel.textContent = sourceName ? `Flux : ${sourceName}` : 'Filtre sur un flux actif';
+    };
+    updateSourceFilter();
+    const updateSelection = () => {
+        const boxes = [...container.querySelectorAll('[data-article-select]')];
+        const allSelected = boxes.length > 0 && boxes.every((box) => box.checked);
+        selectAllButton.setAttribute('aria-pressed', String(allSelected));
+        selectAllButton.textContent = allSelected ? 'Désélectionner les articles chargés' : 'Sélectionner les articles chargés';
+        selectedCount.textContent = selectedIds.size ? `${selectedIds.size} sélectionné(s)` : '';
+        selectAllButton.disabled = boxes.length === 0;
+    };
+    updateSelection();
+    selectAllButton.addEventListener('click', () => {
+        const boxes = [...container.querySelectorAll('[data-article-select]')];
+        const select = boxes.some((box) => !box.checked);
+        boxes.forEach((box) => { box.checked = select; if (select) selectedIds.add(box.dataset.articleSelect); else selectedIds.delete(box.dataset.articleSelect); });
+        updateSelection();
+    });
     const readMode = actions?.querySelector('[data-read-mode]');
     const searchForm = document.querySelector('[data-article-search]');
     const searchInput = searchForm?.querySelector('[name="q"]');
+    const readFilter = document.querySelector('[data-read-filter]');
+    const initialRead = new URLSearchParams(location.search).get('read');
+    if (initialRead === '0' || initialRead === '1' || initialRead === '') readFilter.value = initialRead;
     const savedFilters = document.querySelector('[data-saved-filters]');
     const savedFilterSelect = savedFilters?.querySelector('[data-saved-filter]');
     let nextCursor = null;
     let selectedArticle = null;
     const loadedItems = [];
     let loading = false;
+    let pageRequest = null;
     if (readMode) {
         readMode.value = document.querySelector('[data-read-mode-default]')?.dataset.readModeDefault || 'on_preview';
     }
 
-    const bulk = (changes) => fetch(`${endpoint}/bulk`, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': actions.dataset.csrfToken }, body: JSON.stringify({ ids: [...selectedIds], ...changes }) }).then((response) => {
-        if (!response.ok) throw new Error('L’action groupée a échoué.');
-        selectedIds.clear();
-        return loadPage();
-    });
+    const bulk = async (changes) => {
+        const ids = [...selectedIds];
+        if (!ids.length) {
+            bulkError.textContent = 'Sélectionnez au moins un article.';
+            bulkError.hidden = false;
+            return;
+        }
+        const buttons = [...actions.querySelectorAll('button')];
+        buttons.forEach((button) => { button.disabled = true; });
+        bulkError.hidden = true;
+        let processed = 0;
+        try {
+            for (let i = 0; i < ids.length; i += 100) {
+                const batch = ids.slice(i, i + 100);
+                const response = await fetch(`${endpoint}/bulk`, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': actions.dataset.csrfToken }, body: JSON.stringify({ ids: batch, ...changes }) });
+                if (!response.ok) throw new Error();
+                const result = await response.json();
+                if (result.skipped) throw new Error();
+                processed += batch.length;
+            }
+            selectedIds.clear();
+            await loadPage();
+        } catch (_) {
+            bulkError.textContent = `L’action a échoué après ${processed} article(s). Actualisez la liste avant de réessayer.`;
+            bulkError.hidden = false;
+        } finally {
+            buttons.forEach((button) => { button.disabled = false; });
+            updateSelection();
+        }
+    };
 
     actions?.querySelector('[data-bulk-read]').addEventListener('click', () => bulk({ isRead: true }));
     actions?.querySelector('[data-bulk-unread]').addEventListener('click', () => bulk({ isRead: false }));
@@ -41,27 +98,46 @@ if (container) {
     actions?.querySelector('[data-bulk-unfavorite]').addEventListener('click', () => bulk({ isFavorite: false }));
     actions?.querySelector('[data-bulk-save]').addEventListener('click', () => bulk({ isSaved: true }));
     actions?.querySelector('[data-bulk-unsave]').addEventListener('click', () => bulk({ isSaved: false }));
-    actions?.querySelector('[data-mark-before-submit]').addEventListener('click', () => {
-        const before = actions.querySelector('[data-mark-before]').value;
-        if (!before) return;
-        if (!window.confirm(`Marquer comme lus tous les articles antérieurs au ${before} ?`)) return;
-        fetch(`${endpoint}/mark-before`, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': actions.dataset.csrfToken }, body: JSON.stringify({ before }) }).then(() => loadPage());
-    });
-
-    const updateState = (changes) => fetch(`${endpoint}/${selectedArticle.id}/state`, {
-        method: 'PATCH',
-        headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': selectedArticle.csrfToken },
-        body: JSON.stringify(changes),
-    }).then((response) => {
-        if (!response.ok) throw new Error('La mise à jour de cet article a échoué.');
-
-        return response.json();
-    }).then((state) => {
-        selectedArticle = { ...selectedArticle, ...state };
-        readButton.textContent = state.isRead ? 'Marquer non lu' : 'Marquer lu';
-        favoriteButton.textContent = state.isFavorite ? 'Retirer le favori' : 'Ajouter aux favoris';
-        savedButton.textContent = state.isSaved ? 'Retirer de la liste' : 'Lire plus tard';
-    });
+    const setStateLabels = (article) => {
+        for (const [buttons, active, on, off] of [
+            [readButtons, article.isRead, 'Marquer non lu', 'Marquer lu'],
+            [favoriteButtons, article.isFavorite, 'Retirer le favori', 'Ajouter aux favoris'],
+            [savedButtons, article.isSaved, 'Retirer de la liste', 'Lire plus tard'],
+        ]) {
+            buttons.forEach((button) => {
+                const label = active ? on : off;
+                button.setAttribute('aria-label', label);
+                button.setAttribute('aria-pressed', String(active));
+                button.title = label;
+            });
+        }
+    };
+    const setActionDisabled = (disabled) => [...readButtons, ...favoriteButtons, ...savedButtons].forEach((button) => { button.disabled = disabled; });
+    const updateState = (changes) => {
+        const article = selectedArticle;
+        return fetch(`${endpoint}/${article.id}/state`, {
+            method: 'PATCH',
+            headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': article.csrfToken },
+            body: JSON.stringify(changes),
+        }).then((response) => {
+            if (!response.ok) throw new Error('La mise à jour de cet article a échoué.');
+            return response.json();
+        }).then((state) => {
+            const item = loadedItems.find((entry) => entry.id === article.id);
+            if (item) Object.assign(item, state);
+            const row = container.querySelector(`[data-article-row-id="${CSS.escape(String(article.id))}"]`);
+            if (row) {
+                row.querySelector('[data-reading-state]').textContent = state.isRead ? 'Lu' : 'Non lu';
+                row.querySelector('h2').classList.toggle('text-muted', state.isRead);
+                row.querySelector('h2').classList.toggle('text-foreground', !state.isRead);
+                row.classList.toggle('article-is-read', state.isRead);
+            }
+            if (selectedArticle?.id === article.id) {
+                selectedArticle = { ...selectedArticle, ...state };
+                setStateLabels(selectedArticle);
+            }
+        });
+    };
 
     const openArticle = (id) => {
         fetch(`${endpoint}/${id}`, { headers: { Accept: 'application/json' } })
@@ -73,23 +149,31 @@ if (container) {
             .then((article) => {
                 selectedArticle = article;
                 const position = loadedItems.findIndex((item) => item.id === id);
-                previousButton.disabled = position <= 0;
-                nextButton.disabled = position < 0 || position >= loadedItems.length - 1;
+                previousButtons.forEach((button) => { button.disabled = position <= 0; });
+                nextButtons.forEach((button) => { button.disabled = position < 0 || position >= loadedItems.length - 1; });
+                dialogError.hidden = true;
+                setStateLabels(article);
                 dialogTitle.textContent = article.title;
                 dialogSource.textContent = article.source || 'Source sans titre';
-                dialogSummary.textContent = article.summary || article.content || 'Aucun résumé disponible.';
-                dialogLink.hidden = true;
+                dialogSummary.innerHTML = article.safeHtml;
+                dialogLinks.forEach((link) => { link.hidden = true; });
                 try {
                     const url = new URL(article.url);
                     if (['http:', 'https:'].includes(url.protocol)) {
-                        dialogLink.href = url.href;
-                        dialogLink.hidden = false;
+                        dialogLinks.forEach((link) => { link.href = url.href; link.hidden = false; });
                     }
                 } catch (_) {
                     // A malformed or unsupported feed link is intentionally not exposed.
                 }
-                if (readMode?.value === 'on_preview') updateState({ isRead: true }).catch(() => {});
-                dialog.showModal();
+                if (!dialog.open) dialog.showModal();
+                if (readMode?.value === 'on_preview' && !article.isRead) {
+                    setActionDisabled(true);
+                    updateState({ isRead: true }).catch(() => {
+                        dialogError.textContent = 'Impossible de marquer cet article comme lu.';
+                        dialogError.hidden = false;
+                    }).finally(() => { setActionDisabled(false); });
+                }
+
             })
             .catch((error) => {
                 const message = document.createElement('p');
@@ -100,16 +184,26 @@ if (container) {
             });
     };
 
-    readButton?.addEventListener('click', () => updateState({ isRead: !selectedArticle.isRead }));
-    favoriteButton?.addEventListener('click', () => updateState({ isFavorite: !selectedArticle.isFavorite }));
-    savedButton?.addEventListener('click', () => updateState({ isSaved: !selectedArticle.isSaved }));
+    const performAction = (changes) => {
+        const articleId = selectedArticle.id;
+        setActionDisabled(true);
+        dialogError.hidden = true;
+        updateState(changes).then(() => { if (dialog.open && selectedArticle?.id === articleId) dialog.close(); }).catch(() => {
+            dialogError.textContent = 'Impossible d’enregistrer cette action. Veuillez réessayer.';
+            dialogError.hidden = false;
+        }).finally(() => { setActionDisabled(false); });
+    };
+    readButtons.forEach((button) => button.addEventListener('click', () => performAction({ isRead: !selectedArticle.isRead })));
+    favoriteButtons.forEach((button) => button.addEventListener('click', () => performAction({ isFavorite: !selectedArticle.isFavorite })));
+    savedButtons.forEach((button) => button.addEventListener('click', () => performAction({ isSaved: !selectedArticle.isSaved })));
+    dialogLinks.forEach((link) => link.addEventListener('click', () => dialog.close()));
     const moveArticle = (offset) => {
         const index = loadedItems.findIndex((item) => item.id === selectedArticle?.id);
         const target = loadedItems[index + offset];
         if (target) openArticle(target.id);
     };
-    previousButton?.addEventListener('click', () => moveArticle(-1));
-    nextButton?.addEventListener('click', () => moveArticle(1));
+    previousButtons.forEach((button) => button.addEventListener('click', () => moveArticle(-1)));
+    nextButtons.forEach((button) => button.addEventListener('click', () => moveArticle(1)));
     document.addEventListener('keydown', (event) => {
         if (!dialog?.open || ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) return;
         if (event.key === 'ArrowLeft') moveArticle(-1);
@@ -117,13 +211,19 @@ if (container) {
     });
 
     const loadPage = (cursor = null, append = false) => {
-        if (loading) return Promise.resolve();
+        if (loading && append) return Promise.resolve();
+        if (pageRequest) pageRequest.abort();
+        const request = new AbortController();
+        pageRequest = request;
         loading = true;
         const url = new URL(endpoint, window.location.origin);
         if (cursor) url.searchParams.set('cursor', cursor);
         if (searchInput?.value.trim()) url.searchParams.set('q', searchInput.value.trim());
+        if (readFilter.value !== '') url.searchParams.set('read', readFilter.value);
+        if (subscriptionFilter) url.searchParams.set('subscription', subscriptionFilter);
+        if (!append) { selectedIds.clear(); updateSelection(); }
 
-        return fetch(url, { headers: { Accept: 'application/json' } })
+        return fetch(url, { headers: { Accept: 'application/json' }, signal: request.signal })
         .then((response) => {
             if (!response.ok) throw new Error('La liste des articles est indisponible.');
 
@@ -138,34 +238,64 @@ if (container) {
             if (items.length === 0) {
                 const empty = document.createElement('p');
                 empty.className = 'border border-line bg-surface p-6 text-muted';
-                empty.textContent = 'Aucun article dans vos abonnements actifs pour le moment.';
+                empty.textContent = readFilter.value === '0' ? 'Aucun article non lu pour le moment.' : 'Aucun article ne correspond à vos critères.';
+                moreButton.hidden = true;
                 container.append(empty);
+                updateSelection();
 
                 return;
             }
 
             const list = append ? container.querySelector('ol') : document.createElement('ol');
-            if (!append) list.className = 'divide-y divide-line border-y border-line';
+            if (!append) list.className = 'grid grid-cols-1 gap-x-8 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4';
 
             items.forEach((item) => {
                 const row = document.createElement('li');
-                row.className = 'py-5';
+                row.className = 'min-w-0 border-t border-line py-5';
+                row.dataset.articleRowId = item.id;
+                row.classList.toggle('article-is-read', item.isRead);
                 const select = document.createElement('input');
                 select.type = 'checkbox';
-                select.className = 'mr-3';
+                select.dataset.articleSelect = item.id;
+                select.className = 'mt-2 shrink-0';
                 select.setAttribute('aria-label', `Sélectionner ${item.title}`);
-                select.addEventListener('change', () => { select.checked ? selectedIds.add(item.id) : selectedIds.delete(item.id); });
+                select.addEventListener('change', () => { select.checked ? selectedIds.add(item.id) : selectedIds.delete(item.id); updateSelection(); });
                 const openButton = document.createElement('button');
                 openButton.type = 'button';
                 openButton.className = 'block w-full text-left';
                 openButton.addEventListener('click', () => openArticle(item.id));
-                const source = document.createElement('p');
-                source.className = 'font-mono text-xs uppercase tracking-[.16em] text-accent';
+                const source = document.createElement('button');
+                source.type = 'button';
+                source.className = 'font-mono text-xs uppercase tracking-[.16em] text-accent hover:underline';
                 source.textContent = item.source || 'Source sans titre';
+                source.setAttribute('aria-label', `Filtrer sur ${source.textContent}`);
+                source.addEventListener('click', () => {
+                    subscriptionFilter = item.subscriptionId;
+                    sourceName = item.source || 'Source sans titre';
+                    const current = new URL(location.href);
+                    current.searchParams.set('subscription', subscriptionFilter);
+                    history.replaceState(null, '', current);
+                    updateSourceFilter();
+                    loadPage();
+                });
                 const title = document.createElement('h2');
                 title.className = `mt-2 font-serif text-2xl ${item.isRead ? 'text-muted' : 'text-foreground'}`;
                 title.textContent = item.title;
-                openButton.append(source, title);
+                const metadata = document.createElement('p');
+                metadata.className = 'mt-2 flex flex-wrap items-center gap-2 font-mono text-xs text-muted';
+                const timestamp = item.publishedAt || item.collectedAt;
+                const date = new Date(timestamp);
+                if (timestamp && !Number.isNaN(date.getTime())) {
+                    const time = document.createElement('time');
+                    time.dateTime = timestamp;
+                    time.textContent = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(date);
+                    metadata.append(time);
+                }
+                const status = document.createElement('span');
+                status.dataset.readingState = '';
+                status.textContent = item.isRead ? 'Lu' : 'Non lu';
+                metadata.append(status);
+                openButton.append(title);
 
                 if (item.summary) {
                     const summary = document.createElement('p');
@@ -174,31 +304,43 @@ if (container) {
                     openButton.append(summary);
                 }
 
-                row.append(select, openButton);
+                const titleLine = document.createElement('div');
+                titleLine.className = 'flex items-start gap-3';
+                titleLine.append(openButton, select);
+                row.append(source, metadata, titleLine);
                 list.append(row);
             });
 
             if (!append) container.append(list);
             moreButton.hidden = !hasMore;
+            updateSelection();
         })
         .catch((error) => {
+            if (error.name === 'AbortError') return;
             const message = document.createElement('p');
             message.className = 'border-l-2 border-danger bg-surface-muted p-4 text-danger';
             message.setAttribute('role', 'alert');
             message.textContent = error.message;
             container.replaceChildren(message);
-        }).finally(() => { loading = false; });
+        }).finally(() => { if (pageRequest === request) { loading = false; pageRequest = null; } });
     };
 
     moreButton?.addEventListener('click', () => {
         moreButton.disabled = true;
         loadPage(nextCursor, true).finally(() => { moreButton.disabled = false; });
     });
-    searchForm?.addEventListener('submit', (event) => { event.preventDefault(); loadPage(); });
+    let searchTimer;
+    searchInput?.addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => loadPage(), 300);
+    });
+    searchForm?.addEventListener('submit', (event) => { event.preventDefault(); clearTimeout(searchTimer); loadPage(); });
+    document.querySelector('[data-clear-source]').addEventListener('click', () => { subscriptionFilter = ''; sourceName = ''; const current = new URL(location.href); current.searchParams.delete('subscription'); history.replaceState(null, '', current); updateSourceFilter(); loadPage(); });
+    readFilter.addEventListener('change', () => { const url = new URL(location.href); url.searchParams.set('read', readFilter.value); history.replaceState(null, '', url); loadPage(); });
     const savedHeaders = { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': savedFilters?.dataset.csrfToken };
     fetch('/api/saved-filters', { headers: { Accept: 'application/json' } }).then((r) => r.ok ? r.json() : []).then((filters) => filters.forEach((filter) => { const option = document.createElement('option'); option.value = JSON.stringify(filter.filters); option.textContent = filter.name; savedFilterSelect?.append(option); })).catch(() => {});
-    savedFilterSelect?.addEventListener('change', () => { if (!savedFilterSelect.value) return; const filters = JSON.parse(savedFilterSelect.value); if (typeof filters.q === 'string' && searchInput) searchInput.value = filters.q; loadPage(); history.replaceState(null, '', `${location.pathname}?${new URLSearchParams(filters)}`); });
-    savedFilters?.querySelector('[data-save-filter]')?.addEventListener('click', () => { const name = window.prompt('Nom du filtre'); if (!name) return; fetch('/api/saved-filters', { method: 'POST', headers: savedHeaders, body: JSON.stringify({ name, filters: { q: searchInput?.value.trim() || '' } }) }).then((r) => { if (!r.ok) throw new Error(); return r.json(); }).then(() => location.reload()).catch(() => window.alert('Impossible d’enregistrer ce filtre.')); });
+    savedFilterSelect?.addEventListener('change', () => { if (!savedFilterSelect.value) return; const filters = JSON.parse(savedFilterSelect.value); if (typeof filters.q === 'string' && searchInput) searchInput.value = filters.q; readFilter.value = ['0', '1', ''].includes(String(filters.read ?? '0')) ? String(filters.read ?? '0') : '0'; subscriptionFilter = typeof filters.subscription === 'string' ? filters.subscription : ''; sourceName = ''; updateSourceFilter(); loadPage(); history.replaceState(null, '', `${location.pathname}?${new URLSearchParams(filters)}`); });
+    savedFilters?.querySelector('[data-save-filter]')?.addEventListener('click', () => { const name = window.prompt('Nom du filtre'); if (!name) return; fetch('/api/saved-filters', { method: 'POST', headers: savedHeaders, body: JSON.stringify({ name, filters: { q: searchInput?.value.trim() || '', read: readFilter.value, subscription: subscriptionFilter } }) }).then((r) => { if (!r.ok) throw new Error(); return r.json(); }).then(() => location.reload()).catch(() => window.alert('Impossible d’enregistrer ce filtre.')); });
 
     if (sentinel && 'IntersectionObserver' in window) {
         new IntersectionObserver(([entry]) => {

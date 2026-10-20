@@ -59,6 +59,8 @@
     button, a, input, select { -webkit-tap-highlight-color: transparent; }
     button, select, input:not([type="checkbox"]):not([type="hidden"]) { min-height: 44px; }
     input:not([type="checkbox"]):not([type="hidden"]), select { background-color: var(--surface); color: var(--foreground); border: 1px solid var(--line); }
+    button, a[class*="border"], a[class*="bg-accent"], input:not([type="checkbox"]):not([type="hidden"]), select { border-radius: .625rem; }
+    :is(form, section, aside, dialog, div)[class~="border"] { border-radius: .875rem; }
     button:disabled { opacity: .5; cursor: not-allowed; }
     button, a { transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease; }
     button:not(:disabled):hover, a:hover { text-decoration-thickness: 2px; }
@@ -67,11 +69,28 @@
     th, td { padding: .75rem; border-bottom: 1px solid var(--line); vertical-align: middle; }
     th { color: var(--muted); font-weight: 600; }
     dialog { overscroll-behavior: contain; }
+    dialog [hidden], [data-source-filter][hidden] { display: none; }
+    dialog button[aria-pressed="true"] { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); }
     [data-article-summary] { overflow-wrap: anywhere; }
     dialog::backdrop { background: rgb(15 20 25 / 75%); }
+    .article-is-read { background: var(--surface-muted); padding-inline: .75rem; border-inline-start: 3px solid var(--line); }
     .article-density-compact li { padding-block: .6rem; }
     .article-density-compact li p.line-clamp-2 { display: none; }
     @media (prefers-reduced-motion: reduce) {
         *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
     }
+}
+
+@layer components {
+    .article-prose { overflow-wrap: anywhere; }
+    .article-prose > * + * { margin-top: 1em; }
+    .article-prose img { display: block; max-width: 100%; height: auto; margin-block: 1em; }
+    .article-prose a { color: var(--accent); text-decoration: underline; }
+    .article-prose ul, .article-prose ol { padding-inline-start: 1.5em; }
+    .article-prose ul { list-style: disc; }
+    .article-prose ol { list-style: decimal; }
+    .article-prose blockquote { border-inline-start: 2px solid var(--line); padding-inline-start: 1em; color: var(--muted); }
+    .article-prose pre { overflow-x: auto; padding: 1em; background: var(--surface-muted); }
+    .article-prose code { font-family: var(--font-mono); font-size: .85em; }
+    .article-prose h2, .article-prose h3, .article-prose h4 { font-weight: 700; line-height: 1.2; }
 }

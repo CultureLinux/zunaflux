@@ -50,6 +50,29 @@ final class SecurityControllerTest extends WebTestCase
         }
     }
 
+    public function testLogoutRequiresAValidCsrfTokenAndEndsTheSession(): void
+    {
+        $client = static::createClient();
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $user = new User('logout-'.bin2hex(random_bytes(8)).'@example.test');
+        $entityManager->persist($user);
+        $entityManager->flush();
+
+        try {
+            $client->loginUser($user);
+            $client->request('POST', '/logout', ['_csrf_token' => 'invalid']);
+            self::assertResponseStatusCodeSame(403);
+            $crawler = $client->request('GET', '/');
+            self::assertSelectorExists('form[action="/logout"][method="post"] input[name="_csrf_token"]');
+            $client->submit($crawler->selectButton('Quitter')->form());
+            self::assertResponseRedirects('/');
+            $client->request('GET', '/articles');
+            self::assertResponseRedirects('/login');
+        } finally {
+            $entityManager->getConnection()->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
+        }
+    }
+
     public function testAdministrationRequiresTheAdministratorRole(): void
     {
         $client = static::createClient();

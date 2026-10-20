@@ -8,6 +8,7 @@ use App\Application\Subscription\SubscribeToFeed;
 use App\Application\Subscription\CreateCategory;
 use App\Application\Subscription\ImportOpml;
 use App\Entity\Category;
+use App\Entity\Feed;
 use App\Entity\Subscription;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
@@ -83,8 +84,29 @@ final class SubscriptionController extends AbstractController
         $categoryId = $request->request->getString('category_id');
         $category = '' === $categoryId ? null : $entityManager->getRepository(Category::class)->find(Uuid::fromString($categoryId));
         if (null !== $category && $category->getUser()->getId()->equals($subscription->getUser()->getId()) === false) throw $this->createAccessDeniedException();
-        $subscription->assignCategory($category); $subscription->rename($request->request->get('custom_title'));
-        '1' === $request->request->getString('enabled') ? $subscription->enable() : $subscription->disable(); $entityManager->flush();
+        try {
+            $url = trim($request->request->getString('feed_url', $subscription->getFeed()->getCanonicalUrl()));
+            $parts = parse_url($url);
+            if (strlen($url) > 2048 || !filter_var($url, FILTER_VALIDATE_URL) || !is_array($parts) || isset($parts['user']) || isset($parts['pass'])) {
+                throw new \InvalidArgumentException('Saisissez une adresse de flux HTTP ou HTTPS valide, sans identifiants.');
+            }
+            $candidate = new Feed($url);
+            $feed = $entityManager->getRepository(Feed::class)->findOneBy(['canonicalUrlHash' => $candidate->getCanonicalUrlHash()]);
+            if (!$feed instanceof Feed) $feed = $candidate;
+            $existing = $feed === $candidate ? null : $entityManager->getRepository(Subscription::class)->findOneBy(['user' => $subscription->getUser(), 'feed' => $feed]);
+            if ($existing instanceof Subscription && !$existing->getId()->equals($subscription->getId())) {
+                throw new \InvalidArgumentException('Vous êtes déjà abonné à ce flux.');
+            }
+            $subscription->assignCategory($category);
+            $subscription->rename($request->request->get('custom_title'));
+            if ($feed === $candidate) $entityManager->persist($feed);
+            $subscription->changeFeed($feed);
+            '1' === $request->request->getString('enabled') ? $subscription->enable() : $subscription->disable();
+            $entityManager->flush();
+        } catch (\InvalidArgumentException $exception) {
+            $this->addFlash('error', $exception->getMessage());
+            return $this->redirectToRoute('app_subscriptions', status: Response::HTTP_SEE_OTHER);
+        }
         $this->addFlash('success', 'Abonnement mis à jour.'); return $this->redirectToRoute('app_subscriptions', status: Response::HTTP_SEE_OTHER);
     }
 

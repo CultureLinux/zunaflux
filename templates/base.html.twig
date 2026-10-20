@@ -24,7 +24,7 @@
                         {% endif %}
                     </div>
                     <p class="max-w-48 truncate text-xs text-muted" title="{{ app.user.userIdentifier }}">{{ app.user.userIdentifier }}</p>
-                    <form action="{{ path('app_logout') }}" method="post"><input type="hidden" name="_token" value="{{ csrf_token('logout') }}"><button class="border border-line px-3 py-2 text-xs font-semibold uppercase tracking-[.12em] text-foreground transition hover:border-warning hover:text-warning" type="submit">Quitter</button></form>
+                    <form action="{{ path('app_logout') }}" method="post"><input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}"><button class="border border-line px-3 py-2 text-xs font-semibold uppercase tracking-[.12em] text-foreground transition hover:border-warning hover:text-warning" type="submit">Quitter</button></form>
                 </div>
             </nav>
         {% endif %}

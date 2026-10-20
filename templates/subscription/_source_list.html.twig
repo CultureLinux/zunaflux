@@ -12,6 +12,9 @@
                 <div class="pb-4 pt-2">
                     <a class="block break-all text-xs text-accent hover:underline" href="{{ subscription.feed.canonicalUrl }}" rel="noreferrer" target="_blank">{{ subscription.feed.canonicalUrl }}</a>
                     <form class="mt-4 grid gap-3" action="{{ path('app_subscription_update', {id: subscription.id}) }}" method="post">
+                        <label class="grid gap-1 text-sm" for="url-{{ subscription.id }}">Adresse du flux RSS ou Atom
+                            <input class="w-full min-w-0 border border-line bg-background px-3 py-2" id="url-{{ subscription.id }}" name="feed_url" type="url" value="{{ subscription.feed.canonicalUrl }}" maxlength="2048" required>
+                        </label>
                         <label class="grid gap-1 text-sm" for="title-{{ subscription.id }}">Titre personnalisé
                             <input class="w-full min-w-0 border border-line bg-background px-3 py-2" id="title-{{ subscription.id }}" name="custom_title" value="{{ subscription.displayTitle }}" maxlength="255">
                         </label>

@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Application\Reading\ArticleStateService;
+use App\Application\Reading\FeedHtmlSanitizer;
 use App\Entity\Article;
 use App\Entity\ArticleState;
 use App\Entity\Subscription;
 use App\Entity\User;
 use App\Entity\UserPreference;
+use App\Infrastructure\Reading\FeedImageFetcher;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -41,7 +43,7 @@ final class ArticleController extends AbstractController
         $user = $this->currentUser();
         $cursor = $this->decodeCursor($request->query->getString('cursor'));
         $query = $entityManager->createQueryBuilder()
-            ->select('a.id AS id, a.title AS title, a.url AS url, a.summary AS summary, a.publishedAt AS publishedAt, a.collectedAt AS collectedAt, f.title AS source, s.isRead AS isRead, s.isFavorite AS isFavorite, s.isSaved AS isSaved')
+            ->select('a.id AS id, a.title AS title, a.url AS url, a.summary AS summary, a.publishedAt AS publishedAt, a.collectedAt AS collectedAt, f.title AS source, subscription.id AS subscriptionId, subscription.customTitle AS subscriptionTitle, s.isRead AS isRead, s.isFavorite AS isFavorite, s.isSaved AS isSaved')
             ->from(Article::class, 'a')
             ->innerJoin('a.feed', 'f')
             ->innerJoin(Subscription::class, 'subscription', 'WITH', 'subscription.feed = f AND subscription.user = :user AND subscription.enabled = true')
@@ -60,7 +62,7 @@ final class ArticleController extends AbstractController
 
         $search = trim($request->query->getString('q'));
         if ('' !== $search) {
-            $query->andWhere('LOWER(a.title) LIKE :search OR LOWER(a.summary) LIKE :search')
+            $query->andWhere('LOWER(a.title) LIKE :search OR LOWER(a.summary) LIKE :search OR LOWER(f.title) LIKE :search OR LOWER(subscription.customTitle) LIKE :search')
                 ->setParameter('search', '%'.mb_strtolower($search).'%');
         }
         if ('' !== $request->query->getString('subscription')) $query->andWhere('subscription.id = :subscription')->setParameter('subscription', Uuid::fromString($request->query->getString('subscription')), 'uuid');
@@ -89,23 +91,43 @@ final class ArticleController extends AbstractController
     }
 
     #[Route('/api/articles/{id}', name: 'app_api_article_show', methods: ['GET'])]
-    public function show(string $id, EntityManagerInterface $entityManager): JsonResponse
+    public function show(string $id, EntityManagerInterface $entityManager, FeedHtmlSanitizer $sanitizer): JsonResponse
     {
         $article = $this->accessibleArticle($id, $entityManager);
         $state = $entityManager->getRepository(ArticleState::class)->findOneBy(['user' => $this->currentUser(), 'article' => $article]);
 
         return $this->json([
             'id' => (string) $article->getId(),
-            'title' => $article->getTitle(),
+            'title' => html_entity_decode($article->getTitle(), ENT_QUOTES | ENT_HTML5, 'UTF-8'),
             'url' => $article->getUrl(),
             'summary' => $article->getSummary(),
             'content' => $article->getContent(),
+            'safeHtml' => $sanitizer->sanitize($article->getContent() ?: $article->getSummary() ?: 'Aucun résumé disponible.', fn (int $index): string => $this->generateUrl('app_api_article_image', ['id' => $article->getId(), 'index' => $index])),
             'publishedAt' => $article->getPublishedAt()?->format(DATE_ATOM),
             'source' => $article->getFeed()->getTitle() ?? $article->getFeed()->getCanonicalUrl(),
             'isRead' => $state?->isRead() ?? false,
             'isFavorite' => $state?->isFavorite() ?? false,
             'isSaved' => $state?->isSaved() ?? false,
             'csrfToken' => $this->container->get('security.csrf.token_manager')->getToken('article-state-'.$article->getId())->getValue(),
+        ]);
+    }
+
+    #[Route('/api/articles/{id}/images/{index}', name: 'app_api_article_image', requirements: ['index' => '\d+'], methods: ['GET'])]
+    public function image(string $id, int $index, EntityManagerInterface $entityManager, FeedHtmlSanitizer $sanitizer, FeedImageFetcher $fetcher): Response
+    {
+        $article = $this->accessibleArticle($id, $entityManager);
+        $urls = $sanitizer->imageUrls($article->getContent() ?: $article->getSummary() ?: '');
+        if (!isset($urls[$index])) throw $this->createNotFoundException();
+        try {
+            $image = $fetcher->fetch($urls[$index]);
+        } catch (\InvalidArgumentException|\RuntimeException) {
+            throw $this->createNotFoundException();
+        }
+        return new Response($image['body'], Response::HTTP_OK, [
+            'Content-Type' => $image['type'],
+            'X-Content-Type-Options' => 'nosniff',
+            'Content-Security-Policy' => "default-src 'none'; sandbox",
+            'Cache-Control' => 'private, no-store',
         ]);
     }
 
@@ -198,7 +220,7 @@ final class ArticleController extends AbstractController
     /** @param array<string, mixed> $item @return array<string, mixed> */
     private function serializeListItem(array $item): array
     {
-        return ['id' => (string) $item['id'], 'title' => $item['title'], 'url' => $item['url'], 'summary' => $item['summary'], 'source' => $item['source'], 'publishedAt' => $item['publishedAt']?->format(DATE_ATOM), 'collectedAt' => $item['collectedAt']->format(DATE_ATOM), 'isRead' => (bool) ($item['isRead'] ?? false), 'isFavorite' => (bool) ($item['isFavorite'] ?? false), 'isSaved' => (bool) ($item['isSaved'] ?? false)];
+        return ['id' => (string) $item['id'], 'title' => html_entity_decode($item['title'], ENT_QUOTES | ENT_HTML5, 'UTF-8'), 'url' => $item['url'], 'summary' => null === $item['summary'] ? null : html_entity_decode(strip_tags($item['summary']), ENT_QUOTES | ENT_HTML5, 'UTF-8'), 'source' => $item['subscriptionTitle'] ?? $item['source'], 'subscriptionId' => (string) $item['subscriptionId'], 'publishedAt' => $item['publishedAt']?->format(DATE_ATOM), 'collectedAt' => $item['collectedAt']->format(DATE_ATOM), 'isRead' => (bool) ($item['isRead'] ?? false), 'isFavorite' => (bool) ($item['isFavorite'] ?? false), 'isSaved' => (bool) ($item['isSaved'] ?? false)];
     }
 
     private function currentUser(): User

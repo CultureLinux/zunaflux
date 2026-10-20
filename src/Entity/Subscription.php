@@ -50,6 +50,11 @@ final class Subscription
         return $this->feed;
     }
 
+    public function changeFeed(Feed $feed): void
+    {
+        $this->feed = $feed;
+    }
+
     public function getCategory(): ?Category
     {
         return $this->category;

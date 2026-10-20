@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Controller;
 
 use App\Entity\User;
+use App\Entity\Feed;
+use App\Entity\Subscription;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -44,6 +46,36 @@ final class SubscriptionControllerTest extends WebTestCase
         } finally {
             $entityManager->getConnection()->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
             $entityManager->getConnection()->executeStatement('DELETE FROM feed WHERE canonical_url = ?', [$feedUrl]);
+        }
+    }
+
+    public function testChangingFeedUrlDoesNotChangeAnotherUsersSubscription(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $user = new User('url-owner-'.bin2hex(random_bytes(8)).'@example.test');
+        $other = new User('url-other-'.bin2hex(random_bytes(8)).'@example.test');
+        $suffix = bin2hex(random_bytes(8));
+        $original = new Feed('https://example.test/'.$suffix.'/original');
+        $subscription = new Subscription($user, $original);
+        $otherSubscription = new Subscription($other, $original);
+        foreach ([$user, $other, $original, $subscription, $otherSubscription] as $entity) $em->persist($entity);
+        $em->flush();
+        $newUrl = 'https://example.test/'.$suffix.'/new';
+        try {
+            $client->loginUser($user);
+            $crawler = $client->request('GET', '/subscriptions');
+            $form = $crawler->filter('form[action="/subscriptions/'.$subscription->getId().'/update"]')->form();
+            $client->submit($form, ['feed_url' => $newUrl, 'custom_title' => 'Nouvelle source', 'category_id' => '', 'enabled' => '1']);
+            self::assertResponseRedirects('/subscriptions');
+            $em->clear();
+            $updated = $em->getRepository(Subscription::class)->find($subscription->getId());
+            $unchanged = $em->getRepository(Subscription::class)->find($otherSubscription->getId());
+            self::assertSame($newUrl, $updated->getFeed()->getCanonicalUrl());
+            self::assertSame($original->getCanonicalUrl(), $unchanged->getFeed()->getCanonicalUrl());
+        } finally {
+            $em->getConnection()->executeStatement('DELETE FROM app_user WHERE id IN (?, ?)', [$user->getId()->toBinary(), $other->getId()->toBinary()]);
+            $em->getConnection()->executeStatement('DELETE FROM feed WHERE canonical_url IN (?, ?)', [$original->getCanonicalUrl(), $newUrl]);
         }
     }
 
