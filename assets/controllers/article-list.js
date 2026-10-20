@@ -31,8 +31,14 @@ if (container) {
         sourceFilterLabel.textContent = sourceName ? `Flux : ${sourceName}` : 'Filtre sur un flux actif';
     };
     updateSourceFilter();
+    const loadedItems = [];
     const updateSelection = () => {
-        actions.querySelectorAll('[data-bulk-read], [data-bulk-unread], [data-bulk-favorite], [data-bulk-unfavorite], [data-bulk-save], [data-bulk-unsave]').forEach((button) => { button.disabled = selectedIds.size === 0; });
+        const selected = loadedItems.filter((item) => selectedIds.has(String(item.id)));
+        for (const [key, property, target] of [['read', 'isRead', true], ['unread', 'isRead', false], ['favorite', 'isFavorite', true], ['unfavorite', 'isFavorite', false], ['save', 'isSaved', true], ['unsave', 'isSaved', false]]) {
+            const button = actions.querySelector(`[data-bulk-${key}]`);
+            button.hidden = !selected.some((item) => Boolean(item[property]) !== target);
+            button.disabled = button.hidden;
+        }
         selectAllButton.hidden = selectedIds.size === 0;
         const boxes = [...container.querySelectorAll('[data-article-select]')];
         const allSelected = boxes.length > 0 && boxes.every((box) => box.checked);
@@ -70,7 +76,6 @@ if (container) {
     const savedFilterSelect = savedFilters?.querySelector('[data-saved-filter]');
     let nextCursor = null;
     let selectedArticle = null;
-    const loadedItems = [];
     let loading = false;
     let pageRequest = null;
     const updateUnreadCount = (item, isRead) => {
@@ -291,7 +296,7 @@ if (container) {
                 select.dataset.articleSelect = item.id;
                 select.className = 'mt-2 shrink-0';
                 select.setAttribute('aria-label', `Sélectionner ${item.title}`);
-                select.addEventListener('change', () => { select.checked ? selectedIds.add(item.id) : selectedIds.delete(item.id); updateSelection(); });
+                select.addEventListener('change', () => { select.checked ? selectedIds.add(String(item.id)) : selectedIds.delete(String(item.id)); updateSelection(); });
                 const openButton = document.createElement('button');
                 openButton.type = 'button';
                 openButton.className = 'block w-full text-left';

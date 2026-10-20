@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Application\Subscription\SubscribeToFeed;
 use App\Application\Subscription\CreateCategory;
 use App\Application\Subscription\ImportOpml;
+use App\Entity\Article;
 use App\Entity\Category;
 use App\Entity\Feed;
 use App\Entity\Subscription;
@@ -70,7 +71,24 @@ final class SubscriptionController extends AbstractController
             return new RedirectResponse($this->generateUrl('app_subscriptions'), Response::HTTP_SEE_OTHER);
         }
 
+        $latestArticles = $entityManager->createQueryBuilder()
+            ->select('IDENTITY(a.feed) AS feedId, MAX(a.publishedAt) AS latestPublication')
+            ->from(Article::class, 'a')
+            ->innerJoin(Subscription::class, 'subscription', 'WITH', 'subscription.feed = a.feed AND subscription.user = :user')
+            ->setParameter('user', $user)
+            ->groupBy('a.feed')
+            ->getQuery()->getResult();
+        $latestPublications = [];
+        foreach ($latestArticles as $row) {
+            $feedId = $row['feedId'];
+            if (is_string($feedId) && 16 === strlen($feedId)) {
+                $feedId = Uuid::fromBinary($feedId);
+            }
+            $latestPublications[(string) $feedId] = $row['latestPublication'];
+        }
+
         return $this->render('subscription/index.html.twig', [
+            'latestPublications' => $latestPublications,
             'subscriptions' => $entityManager->getRepository(Subscription::class)->findBy(['user' => $user], ['createdAt' => 'DESC']),
             'categories' => $entityManager->getRepository(Category::class)->findBy(['user' => $user], ['position' => 'ASC', 'name' => 'ASC']),
         ]);

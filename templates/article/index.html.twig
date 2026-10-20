@@ -49,7 +49,7 @@
                 {key: 'save', label: 'Lire plus tard', icon: 'M6 3h12v18l-6-4-6 4V3Z'},
                 {key: 'unsave', label: 'Retirer de la liste', icon: 'M6 3h12v18l-6-4-6 4V3ZM9 10h6'}
             ] %}
-                <button class="flex h-11 w-11 items-center justify-center border border-accent bg-accent-soft text-accent hover:bg-accent hover:text-accent-foreground" data-bulk-{{ action.key }} type="button" aria-label="{{ action.label }}" title="{{ action.label }}" disabled><svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ action.icon }}"/></svg></button>
+                <button class="flex h-11 w-11 items-center justify-center border border-accent bg-accent-soft text-accent hover:bg-accent hover:text-accent-foreground" data-bulk-{{ action.key }} type="button" aria-label="{{ action.label }}" title="{{ action.label }}" disabled hidden><svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ action.icon }}"/></svg></button>
             {% endfor %}
         </section>
         </div>

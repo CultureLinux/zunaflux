@@ -7,7 +7,7 @@
 /public/styles/
 /node_modules/
 /.phpunit.result.cache
-/.agents/*
+/.agents
 /AGENTS.md
 /mon-flux-rss-cahier-des-charges-v1.0 (1).md
 /RECAP_LOTS.md

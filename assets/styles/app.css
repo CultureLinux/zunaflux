@@ -225,3 +225,5 @@ dialog [data-article-saved][aria-pressed="true"] svg { color: var(--accent); fil
     .reading-saved-filters { align-items: center; }
     .reading-saved-filters select { max-width: min(14rem, calc(100vw - 7rem)); }
 }
+
+[data-article-actions] button[hidden], [data-category-item][hidden] { display: none; }

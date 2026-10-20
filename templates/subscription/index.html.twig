@@ -36,11 +36,12 @@
         </form>
         </div>
 
-        <section class="mt-10 grid gap-5 border border-line p-6 md:grid-cols-[1fr_auto]" aria-labelledby="categories-heading">
+        <div class="mt-10"><label class="block text-sm text-muted" for="category-search">Filtrer les catégories</label><input class="mt-2 w-full border border-line bg-background px-4 py-3 text-foreground" id="category-search" type="search" placeholder="Rechercher une catégorie" data-category-search></div>
+        <section class="mt-4 grid gap-5 border border-line p-6 md:grid-cols-[1fr_auto]" aria-labelledby="categories-heading">
             <div>
                 <h2 class="font-serif text-2xl text-foreground" id="categories-heading">Catégories</h2>
                 {% if categories is empty %}<p class="mt-4 text-muted">Aucune catégorie.</p>{% else %}
-                    <ul class="mt-4 flex flex-wrap gap-2">{% for category in categories %}<li class="flex items-center gap-2 border border-line px-3 py-1 text-foreground">{{ category.name }} <form action="{{ path('app_category_delete', {id: category.id}) }}" method="post"><input type="hidden" name="_token" value="{{ csrf_token('delete-category-' ~ category.id) }}"><button class="flex h-11 w-11 items-center justify-center text-danger" type="submit" aria-label="Supprimer la catégorie {{ category.name }}" title="Supprimer la catégorie"><svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></form></li>{% endfor %}</ul>
+                    <ul class="mt-4 flex flex-wrap gap-2">{% for category in categories %}<li data-category-item="{{ category.name }}" class="flex items-center gap-2 border border-line px-3 py-1 text-foreground">{{ category.name }} <form action="{{ path('app_category_delete', {id: category.id}) }}" method="post"><input type="hidden" name="_token" value="{{ csrf_token('delete-category-' ~ category.id) }}"><button class="flex h-11 w-11 items-center justify-center text-danger" type="submit" aria-label="Supprimer la catégorie {{ category.name }}" title="Supprimer la catégorie"><svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></form></li>{% endfor %}</ul>
                 {% endif %}
             </div>
             <form class="grid gap-3 self-end" action="{{ path('app_subscriptions') }}" method="post">
@@ -61,7 +62,7 @@
                 {% for category in categories %}
                     {% set categorySubscriptions = subscriptions|filter(subscription => subscription.category and subscription.category.id == category.id) %}
                     {% if categorySubscriptions is not empty %}
-                        <section class="min-w-0" aria-labelledby="source-category-{{ category.id }}">
+                        <section data-category-item="{{ category.name }}" class="min-w-0" aria-labelledby="source-category-{{ category.id }}">
                             <h3 class="border-b border-line pb-3 font-serif text-xl text-foreground" id="source-category-{{ category.id }}">{{ category.name }} <span class="ml-2 font-mono text-xs text-muted">{{ categorySubscriptions|length }}</span></h3>
                             {% include 'subscription/_source_list.html.twig' with {items: categorySubscriptions} %}
                         </section>
@@ -69,7 +70,7 @@
                 {% endfor %}
                 {% set uncategorizedSubscriptions = subscriptions|filter(subscription => subscription.category is null) %}
                 {% if uncategorizedSubscriptions is not empty %}
-                    <section class="min-w-0" aria-labelledby="source-uncategorized">
+                    <section data-category-item="Sans catégorie" class="min-w-0" aria-labelledby="source-uncategorized">
                         <h3 class="border-b border-line pb-3 font-serif text-xl text-foreground" id="source-uncategorized">Sans catégorie <span class="ml-2 font-mono text-xs text-muted">{{ uncategorizedSubscriptions|length }}</span></h3>
                         {% include 'subscription/_source_list.html.twig' with {items: uncategorizedSubscriptions} %}
                     </section>
@@ -78,4 +79,5 @@
             {% endif %}
         </section>
     </main>
+    <script type="module" src="{{ asset('controllers/subscription-page.js') }}"></script>
 {% endblock %}
