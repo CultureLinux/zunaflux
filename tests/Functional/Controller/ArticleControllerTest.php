@@ -15,6 +15,28 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class ArticleControllerTest extends WebTestCase
 {
+    public function testListExposesOnlyLocalImagePathsForArticlesWithImages(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $user = new User('list-image-'.bin2hex(random_bytes(8)).'@example.test');
+        $feed = new Feed('https://example.test/'.bin2hex(random_bytes(8)));
+        $withImage = new Article($feed, new ParsedFeedItem('image', 'Avec image', null, null, '<img src="https://example.test/image.jpg">', null));
+        $withoutImage = new Article($feed, new ParsedFeedItem('plain', 'Sans image', null, null, '<p>Texte</p>', null));
+        foreach ([$user, $feed, $withImage, $withoutImage, new Subscription($user, $feed)] as $entity) $em->persist($entity);
+        $em->flush();
+        try {
+            $client->loginUser($user);
+            $client->request('GET', '/api/articles');
+            self::assertResponseIsSuccessful();
+            $items = array_column(json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR)['items'], null, 'id');
+            self::assertSame('/api/articles/'.$withImage->getId().'/images/0', $items[(string) $withImage->getId()]['imageUrl']);
+            self::assertNull($items[(string) $withoutImage->getId()]['imageUrl']);
+        } finally {
+            $em->getConnection()->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
+            $em->getConnection()->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);
+        }
+    }
     public function testHomeRedirectsAuthenticatedUsersToReading(): void
     {
         $client = static::createClient();

@@ -66,12 +66,12 @@ final class ArticleController extends AbstractController
     }
 
     #[Route('/api/articles', name: 'app_api_articles', methods: ['GET'])]
-    public function list(Request $request, EntityManagerInterface $entityManager): JsonResponse
+    public function list(Request $request, EntityManagerInterface $entityManager, FeedHtmlSanitizer $sanitizer): JsonResponse
     {
         $user = $this->currentUser();
         $cursor = $this->decodeCursor($request->query->getString('cursor'));
         $query = $entityManager->createQueryBuilder()
-            ->select('a.id AS id, a.title AS title, a.url AS url, a.summary AS summary, a.publishedAt AS publishedAt, a.collectedAt AS collectedAt, f.title AS source, subscription.id AS subscriptionId, subscription.customTitle AS subscriptionTitle, s.isRead AS isRead, s.isFavorite AS isFavorite, s.isSaved AS isSaved')
+            ->select('a.id AS id, a.title AS title, a.url AS url, a.summary AS summary, a.content AS content, a.publishedAt AS publishedAt, a.collectedAt AS collectedAt, f.title AS source, subscription.id AS subscriptionId, subscription.customTitle AS subscriptionTitle, s.isRead AS isRead, s.isFavorite AS isFavorite, s.isSaved AS isSaved')
             ->from(Article::class, 'a')
             ->innerJoin('a.feed', 'f')
             ->innerJoin(Subscription::class, 'subscription', 'WITH', 'subscription.feed = f AND subscription.user = :user AND subscription.enabled = true')
@@ -112,7 +112,13 @@ final class ArticleController extends AbstractController
         }
 
         return $this->json([
-            'items' => array_map(fn (array $item): array => $this->serializeListItem($item), $items),
+            'items' => array_map(function (array $item) use ($sanitizer): array {
+                $serialized = $this->serializeListItem($item);
+                $serialized['imageUrl'] = [] !== $sanitizer->imageUrls($item['content'] ?: $item['summary'] ?: '')
+                    ? $this->generateUrl('app_api_article_image', ['id' => $item['id'], 'index' => 0])
+                    : null;
+                return $serialized;
+            }, $items),
             'nextCursor' => $nextCursor,
             'hasMore' => $hasMore,
         ]);

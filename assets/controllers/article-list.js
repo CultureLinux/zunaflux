@@ -368,14 +368,18 @@ if (container) {
                 status.dataset.readingState = '';
                 status.textContent = item.isRead ? 'Lu' : 'Non lu';
                 metadata.append(status);
-                openButton.append(title);
+                const articleText = document.createElement('div');
+                articleText.className = 'min-w-0 flex-1';
+                articleText.append(title);
 
                 if (item.summary) {
                     const summary = document.createElement('p');
                     summary.className = 'mt-2 line-clamp-2 text-sm leading-6 text-muted';
                     summary.textContent = item.summary;
-                    openButton.append(summary);
+                    articleText.append(summary);
                 }
+
+                openButton.append(articleText);
 
                 const markRead = document.createElement('button');
                 markRead.type = 'button';
@@ -395,7 +399,25 @@ if (container) {
                 controls.className = 'flex shrink-0 items-center';
                 controls.append(markRead, selectLabel);
                 header.append(source, controls);
-                row.append(header, metadata, openButton);
+                const body = document.createElement('div');
+                body.className = 'min-w-0';
+                body.append(header, metadata, openButton);
+                if (item.imageUrl) {
+                    const imageButton = document.createElement('button');
+                    imageButton.type = 'button';
+                    imageButton.className = 'article-list-image';
+                    imageButton.setAttribute('aria-label', `Ouvrir ${item.title}`);
+                    imageButton.addEventListener('click', () => openArticle(item.id));
+                    const image = document.createElement('img');
+                    image.src = item.imageUrl;
+                    image.alt = '';
+                    image.loading = 'lazy';
+                    image.addEventListener('error', () => { imageButton.remove(); row.classList.remove('article-row-with-image'); });
+                    imageButton.append(image);
+                    row.classList.add('article-row-with-image');
+                    row.append(imageButton);
+                }
+                row.append(body);
                 list.append(row);
             });
 

@@ -242,3 +242,11 @@ dialog [data-article-saved][aria-pressed="true"] svg { color: var(--accent); fil
 }
 
 [data-article-actions] button[hidden], [data-category-item][hidden] { display: none; }
+
+.article-row-with-image { display: grid; gap: 1rem; }
+.article-list-image { position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; }
+.article-list-image img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+@media (min-width: 768px) {
+    .article-row-with-image { grid-template-columns: minmax(8rem, 12rem) minmax(0, 1fr); }
+    .article-list-image { height: 100%; min-height: 0; aspect-ratio: auto; }
+}
