@@ -12,6 +12,66 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class SubscriptionControllerTest extends WebTestCase
 {
+    public function testFeedPublicationAgeBandsAndUnknownDates(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $suffix = bin2hex(random_bytes(8));
+        $user = new User('feed-bands-'.$suffix.'@example.test');
+        $em->persist($user);
+        $feeds = [];
+        foreach (['day' => '-1 hour', 'week' => '-2 days', 'month' => '-2 weeks', 'quarter' => '-2 months', 'year' => '-2 years', 'unknown' => null] as $band => $date) {
+            $feed = new Feed('https://example.test/'.$suffix.'/'.$band);
+            $feeds[] = $feed;
+            $em->persist($feed);
+            $em->persist(new Subscription($user, $feed));
+            if (null !== $date) $em->persist(new \App\Entity\Article($feed, new \App\Domain\Feed\ParsedFeedItem($band, $band, null, null, null, new \DateTimeImmutable($date))));
+        }
+        $em->flush();
+        try {
+            $client->loginUser($user);
+            $crawler = $client->request('GET', '/subscriptions');
+            self::assertResponseIsSuccessful();
+            foreach (['day', 'week', 'month', 'quarter', 'year'] as $band) self::assertCount(1, $crawler->filter('[data-feed-age="'.$band.'"]'));
+            self::assertStringContainsString('plus d’un an', $crawler->filter('[data-feed-age="year"]')->text());
+            self::assertStringContainsString('Date de publication inconnue', $crawler->text());
+        } finally {
+            $connection = $em->getConnection();
+            $connection->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
+            foreach ($feeds as $feed) $connection->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);
+        }
+    }
+
+    public function testFeedShowsItsMostRecentPublicationAndAge(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $suffix = bin2hex(random_bytes(8));
+        $user = new User('feed-date-'.$suffix.'@example.test');
+        $feed = new Feed('https://example.test/'.$suffix.'/feed');
+        $feed->refreshMetadata('Source datée', null);
+        $recent = new \DateTimeImmutable('-2 days');
+        $old = new \DateTimeImmutable('-2 years');
+        foreach ([$user, $feed, new Subscription($user, $feed),
+            new \App\Entity\Article($feed, new \App\Domain\Feed\ParsedFeedItem('old', 'Ancien', null, null, null, $old)),
+            new \App\Entity\Article($feed, new \App\Domain\Feed\ParsedFeedItem('new', 'Récent', null, null, null, $recent)),
+        ] as $entity) $em->persist($entity);
+        $em->flush();
+        try {
+            $client->loginUser($user);
+            $crawler = $client->request('GET', '/subscriptions');
+            self::assertResponseIsSuccessful();
+            $date = $crawler->filter('[data-feed-age="week"]');
+            self::assertCount(1, $date, $crawler->filter('main')->text());
+            self::assertStringContainsString($recent->format('d/m/Y'), $date->text());
+            self::assertStringContainsString('moins d’une semaine', $date->text());
+        } finally {
+            $connection = $em->getConnection();
+            $connection->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
+            $connection->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);
+        }
+    }
+
     public function testOpmlExportCanBeImportedWithCategoriesAndWithoutOtherAccountsFeeds(): void
     {
         $client = static::createClient();
@@ -210,7 +270,7 @@ final class SubscriptionControllerTest extends WebTestCase
         $state = new \App\Entity\ArticleState($other, $article);
         $state->setFavorite(true);
         $subscription = new Subscription($other, $feed);
-        $incident = new \App\Entity\FeedIncident($feed, new \RuntimeException('Flux indisponible'));
+        $incident = new \App\Entity\FeedIncident($feed, new \RuntimeException('Feed request returned HTTP 404.'));
         foreach ([$admin, $other, $feed, $article, $state, $subscription, $incident] as $entity) $em->persist($entity);
         $em->flush();
         try {
@@ -221,6 +281,9 @@ final class SubscriptionControllerTest extends WebTestCase
             self::assertResponseStatusCodeSame(403);
             $client->loginUser($admin);
             $crawler = $client->request('GET', '/admin');
+            self::assertCount(1, $crawler->filter('h2')->reduce(static fn ($node): bool => 'Comptes' === trim($node->text())));
+            self::assertStringContainsString('Le flux est introuvable sur le site (HTTP 404).', $crawler->filter('[data-open-incidents]')->text());
+            self::assertStringContainsString('Feed request returned HTTP 404.', $crawler->filter('[data-open-incidents]')->text());
             self::assertSelectorExists('[data-open-incidents] form[action="/admin/feeds/'.$feed->getId().'/delete"]');
             $form = $crawler->filter('form[action="/admin/feeds/'.$feed->getId().'/delete"]')->form();
             $client->submit($form);

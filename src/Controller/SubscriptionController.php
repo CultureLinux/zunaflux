@@ -72,19 +72,19 @@ final class SubscriptionController extends AbstractController
         }
 
         $latestArticles = $entityManager->createQueryBuilder()
-            ->select('IDENTITY(a.feed) AS feedId, MAX(a.publishedAt) AS latestPublication')
+            ->select('subscription.id AS subscriptionId, MAX(a.publishedAt) AS latestPublication')
             ->from(Article::class, 'a')
             ->innerJoin(Subscription::class, 'subscription', 'WITH', 'subscription.feed = a.feed AND subscription.user = :user')
-            ->setParameter('user', $user)
-            ->groupBy('a.feed')
+            ->setParameter('user', $user->getId(), 'uuid')
+            ->groupBy('subscription.id')
             ->getQuery()->getResult();
         $latestPublications = [];
         foreach ($latestArticles as $row) {
-            $feedId = $row['feedId'];
-            if (is_string($feedId) && 16 === strlen($feedId)) {
-                $feedId = Uuid::fromBinary($feedId);
+            $subscriptionId = $row['subscriptionId'];
+            if (is_string($subscriptionId) && 16 === strlen($subscriptionId)) {
+                $subscriptionId = Uuid::fromBinary($subscriptionId);
             }
-            $latestPublications[(string) $feedId] = $row['latestPublication'];
+            $latestPublications[(string) $subscriptionId] = $row['latestPublication'];
         }
 
         return $this->render('subscription/index.html.twig', [

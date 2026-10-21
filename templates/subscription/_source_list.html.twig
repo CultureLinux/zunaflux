@@ -4,8 +4,17 @@
             <details class="group">
                 <summary class="flex min-h-11 cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
                     <span class="min-w-0 flex-1 break-words font-serif text-foreground">{{ subscription.displayTitle }}{% if not subscription.enabled %} <span class="font-sans text-xs text-muted">(inactif)</span>{% endif %}
-                        {% set latest = latestPublications[subscription.feed.id ~ '']|default(null) %}
-                        <span class="block font-sans text-xs text-muted">{% if latest %}Dernière publication : <time datetime="{{ latest|date('c') }}">{{ latest|date('d/m/Y') }}</time>{% if latest|date('U') < date('-1 year')|date('U') %} <span class="inline-flex text-warning" title="Aucune publication depuis plus d’un an" aria-label="Aucune publication depuis plus d’un an"><svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3 2 21h20L12 3Zm0 6v5m0 3h.01"/></svg></span>{% endif %}{% else %}Date de publication inconnue{% endif %}</span>
+                        {% set latest = latestPublications[subscription.id ~ '']|default(null) %}
+                        {% if latest %}
+                            {% set timestamp = latest|date('U') %}
+                            {% if timestamp >= date('-1 day')|date('U') %}{% set age = 'day' %}{% set ageLabel = 'moins d’un jour' %}
+                            {% elseif timestamp >= date('-1 week')|date('U') %}{% set age = 'week' %}{% set ageLabel = 'moins d’une semaine' %}
+                            {% elseif timestamp >= date('-1 month')|date('U') %}{% set age = 'month' %}{% set ageLabel = 'moins d’un mois' %}
+                            {% elseif timestamp >= date('-3 months')|date('U') %}{% set age = 'quarter' %}{% set ageLabel = 'moins de trois mois' %}
+                            {% elseif timestamp >= date('-1 year')|date('U') %}{% set age = 'year' %}{% set ageLabel = 'plus de trois mois' %}
+                            {% else %}{% set age = 'year' %}{% set ageLabel = 'plus d’un an' %}{% endif %}
+                            <span class="feed-age block font-sans text-xs" data-feed-age="{{ age }}">Dernière publication : <time datetime="{{ latest|date('c') }}">{{ latest|date('d/m/Y') }}</time> · {{ ageLabel }}</span>
+                        {% else %}<span class="block font-sans text-xs text-muted">Date de publication inconnue</span>{% endif %}
                     </span>
                     {% if subscription.feed.failureCount > 0 %}
                         <span class="flex min-h-11 items-center gap-1 text-warning" data-feed-incident title="Source indisponible : {{ subscription.feed.lastError }}">
