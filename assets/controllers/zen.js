@@ -1,13 +1,13 @@
 const classifyZenGesture = (dx, dy) => {
-    if (Math.max(Math.abs(dx), Math.abs(dy)) < 60) return null;
-    if (Math.abs(dx) > Math.abs(dy)) return dx < 0 ? 'next' : 'previous';
-    return dy > 0 ? 'favorite' : 'save';
+    if (Math.abs(dx) < 60 || Math.abs(dx) <= Math.abs(dy)) return null;
+    return dx < 0 ? 'next' : 'previous';
 };
 
 const zen = document.querySelector('[data-zen-dialog]');
 if (zen) {
     const open = document.querySelector('[data-zen-open]');
     const count = document.querySelector('[data-zen-count]');
+    const remaining = zen.querySelector('[data-zen-remaining]');
     const content = zen.querySelector('[data-zen-content]');
     const title = zen.querySelector('[data-zen-title]');
     const source = zen.querySelector('[data-zen-source]');
@@ -19,7 +19,6 @@ if (zen) {
     const favorite = zen.querySelector('[data-zen-favorite]');
     const save = zen.querySelector('[data-zen-save]');
     const controls = [previous, next, favorite, save];
-    const gesture = zen.querySelector('[data-zen-gesture]');
     let items = [], cursor = null, hasMore = false, index = -1, article = null, busy = false, changed = false;
     const refreshCount = async () => {
         try {
@@ -27,8 +26,9 @@ if (zen) {
             if (!response.ok) throw new Error();
             const data = await response.json();
             count.textContent = String(data.all.unread_count);
+            remaining.textContent = `${count.textContent} restant${data.all.unread_count === 1 ? '' : 's'}`;
             open.setAttribute('aria-label', `Ouvrir le mode zen, ${count.textContent} articles non lus`);
-        } catch (_) { count.textContent = '–'; }
+        } catch (_) { count.textContent = '–'; remaining.textContent = 'Nombre indisponible'; }
     };
     const loadMore = async () => {
         const url = new URL('/api/articles', location.origin);
@@ -85,6 +85,7 @@ if (zen) {
     open.addEventListener('click', async () => {
         if (busy) return;
         zen.showModal();
+        refreshCount();
         guide.hidden = true;
         try { if (!localStorage.getItem('zunaflux-zen-guide')) guide.hidden = false; } catch (_) { guide.hidden = false; }
         items = []; cursor = null; hasMore = false; index = -1; article = null; changed = false;
@@ -103,9 +104,9 @@ if (zen) {
     favorite.addEventListener('click', () => act('favorite'));
     save.addEventListener('click', () => act('save'));
     let start = null;
-    gesture.addEventListener('touchstart', event => { if (event.touches.length === 1) start = [event.touches[0].clientX, event.touches[0].clientY]; }, { passive: true });
-    gesture.addEventListener('touchend', event => { if (!start || event.changedTouches.length !== 1) return; const touch = event.changedTouches[0]; const action = classifyZenGesture(touch.clientX - start[0], touch.clientY - start[1]); start = null; if (action) act(action); }, { passive: true });
-    gesture.addEventListener('touchcancel', () => { start = null; });
+    content.addEventListener('touchstart', event => { start = event.touches.length === 1 ? [event.touches[0].clientX, event.touches[0].clientY] : null; }, { passive: true });
+    content.addEventListener('touchend', event => { if (!start || event.changedTouches.length !== 1) { start = null; return; } const touch = event.changedTouches[0]; const action = classifyZenGesture(touch.clientX - start[0], touch.clientY - start[1]); start = null; if (action) act(action); }, { passive: true });
+    content.addEventListener('touchcancel', () => { start = null; });
     document.addEventListener('article-state-changed', refreshCount);
     refreshCount();
 }

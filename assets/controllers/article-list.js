@@ -1,3 +1,16 @@
+const viewFromParams = (params) => {
+    if (params.get('favorite') === '1') return 'favorite';
+    if (params.get('saved') === '1') return 'saved';
+    const read = params.get('read');
+    return read === '0' || read === '1' || read === '' ? read : '0';
+};
+
+const setViewParams = (params, view) => {
+    for (const key of ['read', 'favorite', 'saved']) params.delete(key);
+    if (view === 'favorite' || view === 'saved') params.set(view, '1');
+    else params.set('read', view);
+};
+
 const container = document.querySelector('[data-article-list]');
 
 if (container) {
@@ -58,8 +71,7 @@ if (container) {
     const searchForm = document.querySelector('[data-article-search]');
     const searchInput = searchForm?.querySelector('[name="q"]');
     const readFilter = document.querySelector('[data-read-filter]');
-    const initialRead = new URLSearchParams(location.search).get('read');
-    if (initialRead === '0' || initialRead === '1' || initialRead === '') readFilter.value = initialRead;
+    readFilter.value = viewFromParams(new URLSearchParams(location.search));
     const updateSources = () => {
         document.querySelectorAll('[data-reading-source]').forEach((row) => {
             const unread = Number(row.dataset.unread);
@@ -67,7 +79,7 @@ if (container) {
             row.hidden = (readFilter.value === '0' ? unread : readFilter.value === '1' ? read : unread + read) === 0;
             const link = row.querySelector('[data-source-link]');
             const url = new URL(link.href);
-            url.searchParams.set('read', readFilter.value);
+            setViewParams(url.searchParams, readFilter.value);
             link.href = url.href;
         });
     };
@@ -295,8 +307,7 @@ if (container) {
         const url = new URL(endpoint, window.location.origin);
         if (cursor) url.searchParams.set('cursor', cursor);
         if (searchInput?.value.trim()) url.searchParams.set('q', searchInput.value.trim());
-        if (readFilter.value !== '') url.searchParams.set('read', readFilter.value);
-        for (const filter of ['favorite', 'saved']) { if (new URLSearchParams(location.search).get(filter) === '1') url.searchParams.set(filter, '1'); }
+        setViewParams(url.searchParams, readFilter.value);
         if (subscriptionFilter) url.searchParams.set('subscription', subscriptionFilter);
         if (!append) { selectedIds.clear(); updateSelection(); }
 
@@ -450,11 +461,11 @@ if (container) {
     });
     searchForm?.addEventListener('submit', (event) => { event.preventDefault(); clearTimeout(searchTimer); loadPage(); });
     document.querySelector('[data-clear-source]').addEventListener('click', () => { subscriptionFilter = ''; sourceName = ''; const current = new URL(location.href); current.searchParams.delete('subscription'); history.replaceState(null, '', current); updateSourceFilter(); loadPage(); });
-    readFilter.addEventListener('change', () => { const url = new URL(location.href); url.searchParams.set('read', readFilter.value); history.replaceState(null, '', url); updateSources(); loadPage(); });
+    readFilter.addEventListener('change', () => { const url = new URL(location.href); setViewParams(url.searchParams, readFilter.value); history.replaceState(null, '', url); updateSources(); loadPage(); });
     const savedHeaders = { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': savedFilters?.dataset.csrfToken };
     fetch('/api/saved-filters', { headers: { Accept: 'application/json' } }).then((r) => r.ok ? r.json() : []).then((filters) => filters.forEach((filter) => { const option = document.createElement('option'); option.value = JSON.stringify(filter.filters); option.textContent = filter.name; savedFilterSelect?.append(option); })).catch(() => {});
-    savedFilterSelect?.addEventListener('change', () => { if (!savedFilterSelect.value) return; const filters = JSON.parse(savedFilterSelect.value); if (typeof filters.q === 'string' && searchInput) searchInput.value = filters.q; readFilter.value = ['0', '1', ''].includes(String(filters.read ?? '0')) ? String(filters.read ?? '0') : '0'; updateSources(); subscriptionFilter = typeof filters.subscription === 'string' ? filters.subscription : ''; sourceName = ''; updateSourceFilter(); loadPage(); history.replaceState(null, '', `${location.pathname}?${new URLSearchParams(filters)}`); });
-    savedFilters?.querySelector('[data-save-filter]')?.addEventListener('click', () => { const name = window.prompt('Nom du filtre'); if (!name) return; fetch('/api/saved-filters', { method: 'POST', headers: savedHeaders, body: JSON.stringify({ name, filters: { q: searchInput?.value.trim() || '', read: readFilter.value, subscription: subscriptionFilter } }) }).then((r) => { if (!r.ok) throw new Error(); return r.json(); }).then(() => location.reload()).catch(() => window.alert('Impossible d’enregistrer ce filtre.')); });
+    savedFilterSelect?.addEventListener('change', () => { if (!savedFilterSelect.value) return; const filters = JSON.parse(savedFilterSelect.value); if (typeof filters.q === 'string' && searchInput) searchInput.value = filters.q; const params = new URLSearchParams(filters); readFilter.value = viewFromParams(params); updateSources(); subscriptionFilter = typeof filters.subscription === 'string' ? filters.subscription : ''; sourceName = ''; updateSourceFilter(); history.replaceState(null, '', `${location.pathname}?${params}`); loadPage(); });
+    savedFilters?.querySelector('[data-save-filter]')?.addEventListener('click', () => { const name = window.prompt('Nom du filtre'); if (!name) return; const params = new URLSearchParams({ q: searchInput?.value.trim() || '', subscription: subscriptionFilter }); setViewParams(params, readFilter.value); fetch('/api/saved-filters', { method: 'POST', headers: savedHeaders, body: JSON.stringify({ name, filters: Object.fromEntries(params) }) }).then((r) => { if (!r.ok) throw new Error(); return r.json(); }).then(() => location.reload()).catch(() => window.alert('Impossible d’enregistrer ce filtre.')); });
 
     if (sentinel && 'IntersectionObserver' in window) {
         new IntersectionObserver(([entry]) => {

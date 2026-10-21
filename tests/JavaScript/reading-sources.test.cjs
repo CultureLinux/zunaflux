@@ -14,7 +14,7 @@ test('source visibility and links follow the selected reading state', () => {
     });
     const filter = { value: '0' };
     const context = { document: { querySelectorAll: () => rows }, readFilter: filter, URL };
-    vm.runInNewContext(source.slice(start, end) + '\nthis.refresh = updateSources;', context);
+    vm.runInNewContext(source.slice(0, source.indexOf('const container =')) + source.slice(start, end) + '\nthis.refresh = updateSources;', context);
     context.refresh();
     assert.deepEqual(rows.map(row => row.hidden), [false, true, true]);
     filter.value = '1';
