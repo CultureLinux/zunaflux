@@ -78,6 +78,7 @@ if (container) {
     let selectedArticle = null;
     let loading = false;
     let pageRequest = null;
+    const pendingStateUpdates = new Set();
     const updateUnreadCount = (item, isRead) => {
         if (!item || item.isRead === isRead) return;
         const badge = document.querySelector(`[data-unread-subscription="${CSS.escape(String(item.subscriptionId))}"]`);
@@ -87,6 +88,34 @@ if (container) {
         badge.setAttribute('aria-label', `${count} articles non lus`);
         const row = badge.closest('[data-reading-source]');
         if (row) { row.dataset.unread = String(count); row.dataset.read = String(Math.max(0, Number(row.dataset.read) + (isRead ? 1 : -1))); updateSources(); }
+    };
+
+    const markArticleRead = async (item, row, button) => {
+        button.disabled = true;
+        bulkError.hidden = true;
+        try {
+            const response = await fetch(`${endpoint}/bulk`, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': actions.dataset.csrfToken }, body: JSON.stringify({ ids: [item.id], isRead: true }) });
+            if (!response.ok || (await response.json()).skipped) throw new Error();
+            updateUnreadCount(item, true);
+            item.isRead = true;
+            if (readFilter.value === '0') {
+                row.remove();
+                const index = loadedItems.indexOf(item);
+                if (index !== -1) loadedItems.splice(index, 1);
+                selectedIds.delete(String(item.id));
+            } else {
+                row.querySelector('[data-reading-state]').textContent = 'Lu';
+                row.querySelector('h2').classList.replace('text-foreground', 'text-muted');
+                row.classList.add('article-is-read');
+                button.hidden = true;
+            }
+            updateSelection();
+        } catch (_) {
+            bulkError.textContent = 'Impossible de marquer cet article comme lu. Veuillez réessayer.';
+            bulkError.hidden = false;
+        } finally {
+            button.disabled = false;
+        }
     };
 
     const bulk = async (changes) => {
@@ -148,7 +177,7 @@ if (container) {
     const setActionDisabled = (disabled) => [...readButtons, ...favoriteButtons, ...savedButtons].forEach((button) => { button.disabled = disabled; });
     const updateState = (changes) => {
         const article = selectedArticle;
-        return fetch(`${endpoint}/${article.id}/state`, {
+        const update = fetch(`${endpoint}/${article.id}/state`, {
             method: 'PATCH',
             headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': article.csrfToken },
             body: JSON.stringify(changes),
@@ -165,12 +194,16 @@ if (container) {
                 row.querySelector('h2').classList.toggle('text-muted', state.isRead);
                 row.querySelector('h2').classList.toggle('text-foreground', !state.isRead);
                 row.classList.toggle('article-is-read', state.isRead);
+                const markRead = row.querySelector('[data-mark-article-read]');
+                if (markRead) markRead.hidden = state.isRead;
             }
             if (selectedArticle?.id === article.id) {
                 selectedArticle = { ...selectedArticle, ...state };
                 setStateLabels(selectedArticle);
             }
         });
+        pendingStateUpdates.add(update);
+        return update.finally(() => pendingStateUpdates.delete(update));
     };
 
     const openArticle = (id) => {
@@ -231,6 +264,9 @@ if (container) {
     favoriteButtons.forEach((button) => button.addEventListener('click', () => performAction({ isFavorite: !selectedArticle.isFavorite })));
     savedButtons.forEach((button) => button.addEventListener('click', () => performAction({ isSaved: !selectedArticle.isSaved })));
     dialogLinks.forEach((link) => link.addEventListener('click', () => dialog.close()));
+    dialog.addEventListener('close', () => {
+        if (readFilter.value !== '') Promise.allSettled([...pendingStateUpdates]).then(() => loadPage());
+    });
     const moveArticle = (offset) => {
         const index = loadedItems.findIndex((item) => item.id === selectedArticle?.id);
         const target = loadedItems[index + offset];
@@ -284,7 +320,7 @@ if (container) {
             }
 
             const list = append ? container.querySelector('ol') : document.createElement('ol');
-            if (!append) list.className = 'grid grid-cols-1 gap-x-8 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4';
+            if (!append) list.className = 'grid grid-cols-1 gap-x-8 md:grid-cols-2 lg:grid-cols-1';
 
             items.forEach((item) => {
                 const row = document.createElement('li');
@@ -294,7 +330,7 @@ if (container) {
                 const select = document.createElement('input');
                 select.type = 'checkbox';
                 select.dataset.articleSelect = item.id;
-                select.className = 'mt-2 shrink-0';
+                select.className = 'shrink-0';
                 select.setAttribute('aria-label', `Sélectionner ${item.title}`);
                 select.addEventListener('change', () => { select.checked ? selectedIds.add(String(item.id)) : selectedIds.delete(String(item.id)); updateSelection(); });
                 const openButton = document.createElement('button');
@@ -303,7 +339,7 @@ if (container) {
                 openButton.addEventListener('click', () => openArticle(item.id));
                 const source = document.createElement('button');
                 source.type = 'button';
-                source.className = 'font-mono text-xs uppercase tracking-[.16em] text-accent hover:underline';
+                source.className = 'min-w-0 break-words text-left font-mono text-xs uppercase tracking-[.16em] text-accent hover:underline';
                 source.textContent = item.source || 'Source sans titre';
                 source.setAttribute('aria-label', `Filtrer sur ${source.textContent}`);
                 source.addEventListener('click', () => {
@@ -341,10 +377,25 @@ if (container) {
                     openButton.append(summary);
                 }
 
-                const titleLine = document.createElement('div');
-                titleLine.className = 'flex items-start gap-3';
-                titleLine.append(openButton, select);
-                row.append(source, metadata, titleLine);
+                const markRead = document.createElement('button');
+                markRead.type = 'button';
+                markRead.dataset.markArticleRead = '';
+                markRead.className = 'flex h-11 w-11 items-center justify-center text-accent';
+                markRead.innerHTML = '<svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12s3-6 9-6 9 6 9 6-3 6-9 6-9-6-9-6Z"/><circle cx="12" cy="12" r="2.5"/></svg>';
+                markRead.title = 'Marquer comme lu';
+                markRead.setAttribute('aria-label', `Marquer comme lu : ${item.title}`);
+                markRead.hidden = item.isRead;
+                markRead.addEventListener('click', () => markArticleRead(item, row, markRead));
+                const selectLabel = document.createElement('label');
+                selectLabel.className = 'flex h-11 w-11 shrink-0 items-center justify-center';
+                selectLabel.append(select);
+                const header = document.createElement('div');
+                header.className = 'flex items-center justify-between gap-2';
+                const controls = document.createElement('div');
+                controls.className = 'flex shrink-0 items-center';
+                controls.append(markRead, selectLabel);
+                header.append(source, controls);
+                row.append(header, metadata, openButton);
                 list.append(row);
             });
 

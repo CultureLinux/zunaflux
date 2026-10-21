@@ -25,3 +25,12 @@ test('the search header contains the read filter before the search input', () =>
     assert.ok(header.indexOf('data-read-filter') < header.indexOf('data-article-search'));
     assert.equal((template.match(/data-read-filter/g) || []).length, 1);
 });
+
+test('the article list has one column on desktop while keeping the mobile layout', () => {
+    const script = fs.readFileSync('assets/controllers/article-list.js', 'utf8');
+    const classes = script.match(/list\.className = '([^']+)'/)?.[1].split(' ') || [];
+    assert.ok(classes.includes('grid-cols-1'));
+    assert.ok(classes.includes('md:grid-cols-2'));
+    assert.ok(classes.includes('lg:grid-cols-1'));
+    assert.ok(!classes.some(name => /^(xl|2xl):grid-cols-/.test(name)));
+});
