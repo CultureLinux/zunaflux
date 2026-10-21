@@ -30,6 +30,13 @@ final class PreferenceAccentTest extends WebTestCase
             self::assertSame('orange', $crawler->filter('html')->attr('data-accent'));
             $crawler = $client->request('GET', '/subscriptions');
             self::assertSame('orange', $crawler->filter('html')->attr('data-accent'));
+            $crawler = $client->request('GET', '/preferences');
+            self::assertCount(10, $crawler->filter('select[name="accent"] option'));
+            $form = $crawler->selectButton('Enregistrer')->form();
+            $form['accent'] = 'violet';
+            $client->submit($form);
+            self::assertResponseRedirects();
+            self::assertSame('violet', $client->followRedirect()->filter('html')->attr('data-accent'));
         } finally {
             $em->getConnection()->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
         }
