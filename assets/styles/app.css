@@ -56,6 +56,21 @@ dialog [data-article-saved][aria-pressed="true"] svg { color: var(--accent); fil
     }
 }
 
+/* Les accents sont adaptés aux fonds clairs et sombres, y compris au thème système. */
+:root[data-accent="cyan"] { --accent: #087083; --accent-soft: #DDF3F5; --accent-foreground: #FFFFFF; }
+:root[data-accent="orange"] { --accent: #A6440A; --accent-soft: #FFF0E3; --accent-foreground: #FFFFFF; }
+:root[data-accent="emerald"] { --accent: #08714E; --accent-soft: #E1F4EA; --accent-foreground: #FFFFFF; }
+
+:root[data-theme="dark"][data-accent="cyan"] { --accent: #56C5D5; --accent-soft: #173B42; --accent-foreground: #0F1419; }
+:root[data-theme="dark"][data-accent="orange"] { --accent: #FFAF73; --accent-soft: #493021; --accent-foreground: #0F1419; }
+:root[data-theme="dark"][data-accent="emerald"] { --accent: #55D6A0; --accent-soft: #193D30; --accent-foreground: #0F1419; }
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]):not([data-theme="dark"])[data-accent="cyan"] { --accent: #56C5D5; --accent-soft: #173B42; --accent-foreground: #0F1419; }
+    :root:not([data-theme="light"]):not([data-theme="dark"])[data-accent="orange"] { --accent: #FFAF73; --accent-soft: #493021; --accent-foreground: #0F1419; }
+    :root:not([data-theme="light"]):not([data-theme="dark"])[data-accent="emerald"] { --accent: #55D6A0; --accent-soft: #193D30; --accent-foreground: #0F1419; }
+}
+
 @theme inline {
     --color-background: var(--background);
     --color-surface: var(--surface);

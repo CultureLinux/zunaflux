@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\MessageHandler;
 
 use App\Application\Notification\PushEndpoint;
+use App\Application\Notification\NotificationDiagnostics;
 use App\Entity\Feed;
 use App\Entity\PushSubscription;
 use App\Entity\Subscription;
@@ -25,18 +26,28 @@ final readonly class NotifyFeedHandler
     public function __construct(
         private EntityManagerInterface $em,
         private LoggerInterface $logger,
+        private NotificationDiagnostics $diagnostics,
         private string $pushPrivateFile,
         private string $pushSubject,
     ) {}
 
     public function __invoke(NotifyFeedMessage $message): void
     {
-        if (!is_file($this->pushPrivateFile) || !is_readable($this->pushPrivateFile) || '' === $this->pushSubject) return;
+        $fileReadable = is_file($this->pushPrivateFile) && is_readable($this->pushPrivateFile);
+        if (!$fileReadable || '' === $this->pushSubject) {
+            $this->diagnostics->configuration('collecte', $fileReadable, '' !== $this->pushSubject);
+            return;
+        }
         $feed = $this->em->getRepository(Feed::class)->find(Uuid::fromString($message->feedId));
         if (!$feed instanceof Feed || !in_array($message->kind, ['articles', 'error'], true)) return;
         $factory = new Psr17Factory();
         $client = new Psr18Client(HttpClient::create(['max_redirects' => 0, 'timeout' => 10]), $factory, $factory);
-        $push = new WebPush(['VAPID' => ['subject' => $this->pushSubject, 'pemFile' => $this->pushPrivateFile]], [], $client, $factory, $factory, logger: $this->logger);
+        try {
+            $push = new WebPush(['VAPID' => ['subject' => $this->pushSubject, 'pemFile' => $this->pushPrivateFile]], [], $client, $factory, $factory, logger: $this->logger);
+        } catch (\Throwable $exception) {
+            $this->diagnostics->exception('collecte', 'initialisation', $exception);
+            throw $exception;
+        }
         $body = 'error' === $message->kind ? 'Une source rencontre une erreur de synchronisation.' : sprintf('%d nouvel(aux) article(s) dans vos sources.', $message->count);
         $payload = json_encode(['body' => $body, 'tag' => 'feed-'.$message->kind.'-'.$message->feedId], JSON_THROW_ON_ERROR);
 
@@ -46,10 +57,10 @@ final readonly class NotifyFeedHandler
                 try {
                     $recipient = WebPushSubscription::create(['endpoint' => $subscription->getEndpoint(), 'keys' => ['p256dh' => $subscription->getPublicKey(), 'auth' => $subscription->getAuthSecret()], 'contentEncoding' => 'aes128gcm']);
                     $report = $push->sendOneNotification($recipient, $payload);
+                    if (!$report->isSuccess()) $this->diagnostics->failure('collecte', $report);
                     if ($report->isSubscriptionExpired()) $this->em->remove($subscription);
-                    elseif (!$report->isSuccess()) $this->logger->warning('Échec de livraison d’une notification Web Push.');
-                } catch (\Throwable) {
-                    $this->logger->warning('Échec de livraison d’une notification Web Push.');
+                } catch (\Throwable $exception) {
+                    $this->diagnostics->exception('collecte', 'envoi', $exception);
                 }
             }
         }

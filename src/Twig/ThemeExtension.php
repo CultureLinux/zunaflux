@@ -16,7 +16,15 @@ final class ThemeExtension extends AbstractExtension
 
     public function getFunctions(): array
     {
-        return [new TwigFunction('user_theme', $this->theme(...))];
+        return [new TwigFunction('user_theme', $this->theme(...)), new TwigFunction('user_accent', $this->accent(...))];
+    }
+
+    public function accent(?User $user): string
+    {
+        if (!$user instanceof User) return 'cyan';
+        $preference = $this->entityManager->getRepository(UserPreference::class)->findOneBy(['user' => $user]);
+
+        return $preference instanceof UserPreference ? $preference->getAccent() : 'cyan';
     }
 
     public function theme(?User $user): string

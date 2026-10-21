@@ -28,3 +28,7 @@ services:
             - '../src/DependencyInjection/'
             - '../src/Entity/'
             - '../src/Kernel.php'
+
+    App\Application\Notification\NotificationDiagnostics:
+        arguments:
+            $logger: '@monolog.logger.notification'

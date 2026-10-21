@@ -3,7 +3,7 @@
 {% block body %}
     <main class="relative isolate min-h-screen overflow-hidden px-6 py-8 md:px-12">
         {% if not app.user %}<header class="mx-auto flex max-w-6xl items-center justify-between border-b border-line pb-6"><p class="font-serif text-2xl text-foreground">Zunaflux</p><a class="text-sm font-semibold text-foreground transition hover:text-accent" href="{{ path('app_login') }}">Se connecter</a></header>{% endif %}
-        <section class="mx-auto grid max-w-6xl gap-12 py-24 lg:grid-cols-[1.2fr_.8fr] lg:items-end lg:py-36">
+        <section class="mx-auto grid max-w-6xl gap-12 py-24 lg:grid-cols-[1.2fr_.8fr] lg:items-end lg:py-5">
             <div>
                 <p class="font-mono text-xs uppercase tracking-[.26em] text-muted">La salle de lecture, retrouvée</p>
                 <h1 class="mt-6 max-w-3xl font-serif text-5xl leading-[.92] text-foreground sm:text-7xl">Vos sources.<br>Votre rythme.</h1>

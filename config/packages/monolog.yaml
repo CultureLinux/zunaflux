@@ -1,0 +1,8 @@
+monolog:
+    channels: ['notification']
+    handlers:
+        notification:
+            type: stream
+            path: '%kernel.logs_dir%/notification_%kernel.environment%.log'
+            level: warning
+            channels: ['notification']
