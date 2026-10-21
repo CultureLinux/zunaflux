@@ -9,10 +9,122 @@ use App\Entity\Feed;
 use App\Entity\Subscription;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 final class SubscriptionControllerTest extends WebTestCase
 {
+    public function testOpmlExportCanBeImportedWithCategoriesAndWithoutOtherAccountsFeeds(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $suffix = bin2hex(random_bytes(8));
+        $source = new User('roundtrip-source-'.$suffix.'@example.test');
+        $target = new User('roundtrip-target-'.$suffix.'@example.test');
+        $other = new User('roundtrip-other-'.$suffix.'@example.test');
+        $category = new \App\Entity\Category($source, 'Culture & sciences');
+        $categorized = new Feed('https://example.test/'.$suffix.'/categorized');
+        $uncategorized = new Feed('https://example.test/'.$suffix.'/uncategorized');
+        $private = new Feed('https://example.test/'.$suffix.'/private');
+        $subscription = new Subscription($source, $categorized);
+        $subscription->assignCategory($category);
+        foreach ([$source, $target, $other, $category, $categorized, $uncategorized, $private, $subscription, new Subscription($source, $uncategorized), new Subscription($other, $private)] as $entity) $em->persist($entity);
+        $em->flush();
+        $path = tempnam(sys_get_temp_dir(), 'opml-roundtrip-');
+        self::assertNotFalse($path);
+        try {
+            $client->loginUser($source);
+            $crawler = $client->request('GET', '/preferences');
+            $client->submit($crawler->filter('form[action="/exports/opml"]')->form());
+            self::assertResponseIsSuccessful();
+            file_put_contents($path, $client->getResponse()->getContent());
+            $client->loginUser($target);
+            $crawler = $client->request('GET', '/subscriptions');
+            $form = $crawler->selectButton('Importer OPML')->form();
+            $form['opml_file']->upload($path);
+            $client->submit($form);
+            self::assertResponseRedirects('/subscriptions');
+            $em->clear();
+            $target = $em->getRepository(User::class)->find($target->getId());
+            $subscriptions = $em->getRepository(Subscription::class)->findBy(['user' => $target]);
+            self::assertCount(2, $subscriptions);
+            $categories = [];
+            foreach ($subscriptions as $item) $categories[$item->getFeed()->getCanonicalUrl()] = $item->getCategory()?->getName();
+            self::assertSame('Culture & sciences', $categories[$categorized->getCanonicalUrl()]);
+            self::assertArrayHasKey($uncategorized->getCanonicalUrl(), $categories);
+            self::assertNull($categories[$uncategorized->getCanonicalUrl()]);
+            self::assertArrayNotHasKey($private->getCanonicalUrl(), $categories);
+        } finally {
+            @unlink($path);
+            $connection = $em->getConnection();
+            $connection->executeStatement('DELETE FROM app_user WHERE id IN (?, ?, ?)', [$source->getId()->toBinary(), $target->getId()->toBinary(), $other->getId()->toBinary()]);
+            $connection->executeStatement('DELETE FROM feed WHERE id IN (?, ?, ?)', [$categorized->getId()->toBinary(), $uncategorized->getId()->toBinary(), $private->getId()->toBinary()]);
+        }
+    }
+
+    public function testDiscoveryResultCannotBeReadByAnotherAccount(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $suffix = bin2hex(random_bytes(8));
+        $owner = new User('discovery-owner-'.$suffix.'@example.test');
+        $other = new User('discovery-other-'.$suffix.'@example.test');
+        $em->persist($owner);
+        $em->persist($other);
+        $em->flush();
+        try {
+            $client->loginUser($owner);
+            $crawler = $client->request('GET', '/subscriptions');
+            $form = $crawler->selectButton('Chercher les flux')->form(['site_url' => 'https://example.com/']);
+            $client->submit($form);
+            self::assertResponseRedirects();
+            $location = $client->getResponse()->headers->get('Location');
+            $client->loginUser($other);
+            $client->request('GET', $location);
+            self::assertResponseStatusCodeSame(404);
+        } finally {
+            $em->getConnection()->executeStatement('DELETE FROM app_user WHERE id IN (?, ?)', [$owner->getId()->toBinary(), $other->getId()->toBinary()]);
+        }
+    }
+
+    public function testOpmlExportPreservesCategoriesAndExcludesOtherUsersSubscriptions(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $suffix = bin2hex(random_bytes(8));
+        $owner = new User('export-owner-'.$suffix.'@example.test');
+        $other = new User('export-other-'.$suffix.'@example.test');
+        $category = new \App\Entity\Category($owner, 'Veille & actualités');
+        $feed = new Feed('https://example.test/'.$suffix.'/feed');
+        $uncategorizedFeed = new Feed('https://example.test/'.$suffix.'/uncategorized');
+        $privateFeed = new Feed('https://example.test/'.$suffix.'/private');
+        $subscription = new Subscription($owner, $feed);
+        $subscription->assignCategory($category);
+        foreach ([$owner, $other, $category, $feed, $uncategorizedFeed, $privateFeed, $subscription, new Subscription($owner, $uncategorizedFeed), new Subscription($other, $privateFeed)] as $entity) {
+            $em->persist($entity);
+        }
+        $em->flush();
+
+        try {
+            $client->loginUser($owner);
+            $crawler = $client->request('GET', '/preferences');
+            $client->submit($crawler->filter('form[action="/exports/opml"]')->form());
+            self::assertResponseIsSuccessful();
+            $items = (new \App\Application\Subscription\OpmlSubscriptionParser())->parse($client->getResponse()->getContent());
+            $categoriesByUrl = [];
+            foreach ($items as $item) {
+                $categoriesByUrl[$item->url] = $item->categoryName;
+            }
+            self::assertCount(2, $categoriesByUrl);
+            self::assertSame('Veille & actualités', $categoriesByUrl[$feed->getCanonicalUrl()]);
+            self::assertArrayHasKey($uncategorizedFeed->getCanonicalUrl(), $categoriesByUrl);
+            self::assertNull($categoriesByUrl[$uncategorizedFeed->getCanonicalUrl()]);
+            self::assertArrayNotHasKey($privateFeed->getCanonicalUrl(), $categoriesByUrl);
+        } finally {
+            $connection = $em->getConnection();
+            $connection->executeStatement('DELETE FROM app_user WHERE id IN (?, ?)', [$owner->getId()->toBinary(), $other->getId()->toBinary()]);
+            $connection->executeStatement('DELETE FROM feed WHERE id IN (?, ?, ?)', [$feed->getId()->toBinary(), $uncategorizedFeed->getId()->toBinary(), $privateFeed->getId()->toBinary()]);
+        }
+    }
+
     public function testUnsubscribeRemovesOnlyOwnersStatesAndLeavesSharedData(): void
     {
         $client = static::createClient();
@@ -260,9 +372,9 @@ final class SubscriptionControllerTest extends WebTestCase
         try {
             $client->loginUser($user);
             $crawler = $client->request('GET', '/subscriptions');
-            $client->submit($crawler->selectButton('Importer OPML')->form(), [], [
-                'opml_file' => new UploadedFile($path, 'subscriptions.opml', 'text/xml', null, true),
-            ]);
+            $form = $crawler->selectButton('Importer OPML')->form();
+            $form['opml_file']->upload($path);
+            $client->submit($form);
 
             self::assertResponseRedirects('/subscriptions');
             self::assertSame(1, (int) $entityManager->getConnection()->fetchOne(
@@ -277,6 +389,35 @@ final class SubscriptionControllerTest extends WebTestCase
             @unlink($path);
             $entityManager->getConnection()->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
             $entityManager->getConnection()->executeStatement('DELETE FROM feed WHERE canonical_url = ?', [$feedUrl]);
+        }
+    }
+
+    public function testOpmlImportReportsDuplicatesAndInvalidEntries(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $suffix = bin2hex(random_bytes(8));
+        $user = new User('opml-report-'.$suffix.'@example.test');
+        $url = 'https://example.test/'.$suffix.'/feed';
+        $em->persist($user);
+        $em->flush();
+        $path = tempnam(sys_get_temp_dir(), 'opml-');
+        self::assertNotFalse($path);
+        file_put_contents($path, '<opml><body><outline xmlUrl="'.$url.'"/><outline xmlUrl="'.$url.'"/><outline xmlUrl="not-a-url"/></body></opml>');
+
+        try {
+            $client->loginUser($user);
+            $crawler = $client->request('GET', '/subscriptions');
+            $form = $crawler->selectButton('Importer OPML')->form();
+            $form['opml_file']->upload($path);
+            $client->submit($form);
+            $crawler = $client->followRedirect();
+            self::assertStringContainsString('1 flux importé(s), 1 déjà présent(s), 1 non importé(s)', $crawler->text());
+        } finally {
+            @unlink($path);
+            $connection = $em->getConnection();
+            $connection->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
+            $connection->executeStatement('DELETE FROM feed WHERE canonical_url = ?', [$url]);
         }
     }
 }

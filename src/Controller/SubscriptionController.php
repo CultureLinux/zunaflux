@@ -54,8 +54,8 @@ final class SubscriptionController extends AbstractController
                     if (false === $xml) {
                         throw new \InvalidArgumentException('Le fichier OPML ne peut pas être lu.');
                     }
-                    $count = $importOpml->import($user, $xml);
-                    $this->addFlash('success', sprintf('%d flux importé(s).', $count));
+                    $report = $importOpml->import($user, $xml);
+                    $this->addFlash('success', sprintf('%d flux importé(s), %d déjà présent(s), %d non importé(s).', $report['imported'], $report['duplicate'], $report['failed']));
                 } else {
                     if (!$this->isCsrfTokenValid('subscribe-feed', $request->request->getString('_token'))) {
                         throw $this->createAccessDeniedException('Invalid CSRF token.');

@@ -19,9 +19,12 @@ final readonly class ImportOpml
     ) {
     }
 
-    public function import(User $user, string $xml): int
+    /** @return array{imported: int, duplicate: int, failed: int} */
+    public function import(User $user, string $xml): array
     {
         $imported = 0;
+        $duplicate = 0;
+        $failed = 0;
         foreach ($this->parser->parse($xml) as $entry) {
             try {
                 $feed = new Feed($entry->url);
@@ -32,10 +35,12 @@ final readonly class ImportOpml
                     'user' => $user,
                     'feed' => $existingFeed,
                 ]) instanceof Subscription) {
+                    ++$duplicate;
                     continue;
                 }
                 $subscription = $this->subscribeToFeed->subscribe($user, $entry->url);
             } catch (\InvalidArgumentException) {
+                ++$failed;
                 continue;
             }
 
@@ -46,6 +51,6 @@ final readonly class ImportOpml
         }
         $this->entityManager->flush();
 
-        return $imported;
+        return ['imported' => $imported, 'duplicate' => $duplicate, 'failed' => $failed];
     }
 }

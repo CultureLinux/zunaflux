@@ -14,6 +14,11 @@
         {% endfor %}
 
         <div class="mt-10 grid gap-4 lg:grid-cols-2">
+        <form class="grid min-w-0 gap-4 border border-line bg-surface p-6 xl:grid-cols-[minmax(0,1fr)_auto]" action="{{ path('app_feed_discovery_start') }}" method="post">
+            <div><label class="font-mono text-xs uppercase tracking-[.18em] text-muted" for="site_url">Découvrir les flux d’un site</label><input class="mt-2 w-full border border-line bg-background px-4 py-3 text-foreground" id="site_url" name="site_url" type="url" required placeholder="https://example.com/"></div>
+            <input type="hidden" name="_token" value="{{ csrf_token('discover-feed') }}">
+            <button class="self-end border border-line px-5 py-3 font-semibold text-foreground" type="submit">Chercher les flux</button>
+        </form>
         <form class="grid min-w-0 gap-4 border border-line bg-surface p-6 xl:grid-cols-[minmax(0,1fr)_auto]" action="{{ path('app_subscriptions') }}" method="post">
             <div>
                 <label class="font-mono text-xs uppercase tracking-[.18em] text-muted" for="feed_url">Adresse du flux RSS ou Atom</label>

@@ -49,8 +49,23 @@ final readonly class UserExport
     public function createOpml(User $user): string
     {
         $outlines = '';
+        $categories = [];
         foreach ($this->entityManager->getRepository(Subscription::class)->findBy(['user' => $user]) as $subscription) {
-            $outlines .= sprintf("    <outline type=\"rss\" text=\"%s\" xmlUrl=\"%s\" />\n", htmlspecialchars($subscription->getDisplayTitle(), \ENT_XML1 | \ENT_QUOTES, 'UTF-8'), htmlspecialchars($subscription->getFeed()->getCanonicalUrl(), \ENT_XML1 | \ENT_QUOTES, 'UTF-8'));
+            $outline = sprintf("<outline type=\"rss\" text=\"%s\" xmlUrl=\"%s\" />", htmlspecialchars($subscription->getDisplayTitle(), \ENT_XML1 | \ENT_QUOTES, 'UTF-8'), htmlspecialchars($subscription->getFeed()->getCanonicalUrl(), \ENT_XML1 | \ENT_QUOTES, 'UTF-8'));
+            $category = $subscription->getCategory();
+            if (null === $category) {
+                $outlines .= '    '.$outline."\n";
+            } else {
+                $categories[$category->getName()][] = $outline;
+            }
+        }
+
+        foreach ($categories as $name => $feeds) {
+            $outlines .= sprintf("    <outline text=\"%s\">\n", htmlspecialchars($name, \ENT_XML1 | \ENT_QUOTES, 'UTF-8'));
+            foreach ($feeds as $feed) {
+                $outlines .= '      '.$feed."\n";
+            }
+            $outlines .= "    </outline>\n";
         }
 
         return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<opml version=\"2.0\"><head><title>Zunaflux</title></head><body>\n".$outlines."</body></opml>\n";

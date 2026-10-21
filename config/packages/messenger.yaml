@@ -4,4 +4,5 @@ framework:
             async: '%env(MESSENGER_TRANSPORT_DSN)%'
         routing:
             'App\Message\CollectFeedMessage': async
+            'App\Message\DiscoverFeedMessage': async
             'App\Message\NotifyFeedMessage': async
