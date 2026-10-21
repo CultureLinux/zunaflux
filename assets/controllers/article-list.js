@@ -1,3 +1,9 @@
+const readingMarkers = (item) => [
+    ...(!item.isRead ? ['Non lu'] : []),
+    ...(item.isFavorite ? ['Favori'] : []),
+    ...(item.isSaved ? ['À lire plus tard'] : []),
+];
+
 const viewFromParams = (params) => {
     if (params.get('favorite') === '1') return 'favorite';
     if (params.get('saved') === '1') return 'saved';
@@ -117,7 +123,7 @@ if (container) {
                 if (index !== -1) loadedItems.splice(index, 1);
                 selectedIds.delete(String(item.id));
             } else {
-                row.querySelector('[data-reading-state]').textContent = 'Lu';
+                row.querySelector('[data-reading-state]').textContent = '';
                 row.querySelector('h2').classList.replace('text-foreground', 'text-muted');
                 row.classList.add('article-is-read');
                 button.hidden = true;
@@ -204,7 +210,11 @@ if (container) {
             if (item) Object.assign(item, state);
             const row = container.querySelector(`[data-article-row-id="${CSS.escape(String(article.id))}"]`);
             if (row) {
-                row.querySelector('[data-reading-state]').textContent = state.isRead ? 'Lu' : 'Non lu';
+                row.querySelector('[data-reading-state]').textContent = state.isRead ? '' : 'Non lu';
+                for (const [key, label] of [['favorite', 'Favori'], ['saved', 'À lire plus tard']]) {
+                    const marker = row.querySelector(`[data-reading-${key}]`);
+                    if (marker) marker.hidden = !readingMarkers(state).includes(label);
+                }
                 row.querySelector('h2').classList.toggle('text-muted', state.isRead);
                 row.querySelector('h2').classList.toggle('text-foreground', !state.isRead);
                 row.classList.toggle('article-is-read', state.isRead);
@@ -376,13 +386,24 @@ if (container) {
                 if (timestamp && !Number.isNaN(date.getTime())) {
                     const time = document.createElement('time');
                     time.dateTime = timestamp;
-                    time.textContent = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(date);
+                    time.textContent = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
                     metadata.append(time);
                 }
                 const status = document.createElement('span');
                 status.dataset.readingState = '';
-                status.textContent = item.isRead ? 'Lu' : 'Non lu';
+                status.textContent = item.isRead ? '' : 'Non lu';
                 metadata.append(status);
+                for (const [key, label, path] of [['favorite', 'Favori', 'M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z'], ['saved', 'À lire plus tard', 'M6 3h12v18l-6-4-6 4V3Z']]) {
+                    const marker = document.createElement('span');
+                    marker.dataset[`reading${key === 'favorite' ? 'Favorite' : 'Saved'}`] = '';
+                    marker.className = 'inline-flex items-center text-accent';
+                    marker.hidden = !readingMarkers(item).includes(label);
+                    marker.setAttribute('role', 'img');
+                    marker.setAttribute('aria-label', label);
+                    marker.title = label;
+                    marker.innerHTML = `<svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${path}"/></svg>`;
+                    metadata.append(marker);
+                }
                 const articleText = document.createElement('div');
                 articleText.className = 'min-w-0 flex-1';
                 articleText.append(title);

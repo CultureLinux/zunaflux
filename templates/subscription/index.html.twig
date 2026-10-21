@@ -46,7 +46,7 @@
             <div>
                 <h2 class="font-serif text-2xl text-foreground" id="categories-heading">Catégories</h2>
                 {% if categories is empty %}<p class="mt-4 text-muted">Aucune catégorie.</p>{% else %}
-                    <ul class="mt-4 flex flex-wrap gap-2">{% for category in categories %}<li data-category-item="{{ category.name }}" class="flex items-center gap-2 border border-line px-3 py-1 text-foreground">{{ category.name }} <form action="{{ path('app_category_delete', {id: category.id}) }}" method="post"><input type="hidden" name="_token" value="{{ csrf_token('delete-category-' ~ category.id) }}"><button class="flex h-11 w-11 items-center justify-center text-danger" type="submit" aria-label="Supprimer la catégorie {{ category.name }}" title="Supprimer la catégorie"><svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></form></li>{% endfor %}</ul>
+                    <ul class="mt-4 flex flex-wrap gap-2">{% for category in categories %}<li data-category-item="{{ category.name }}" class="category-chip flex items-center gap-2 border border-line px-3 py-1 text-foreground">{{ category.name }} <form action="{{ path('app_category_delete', {id: category.id}) }}" method="post"><input type="hidden" name="_token" value="{{ csrf_token('delete-category-' ~ category.id) }}"><button class="flex h-11 w-11 items-center justify-center text-danger" type="submit" aria-label="Supprimer la catégorie {{ category.name }}" title="Supprimer la catégorie"><svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></form></li>{% endfor %}</ul>
                 {% endif %}
             </div>
             <form class="grid gap-3 self-end" action="{{ path('app_subscriptions') }}" method="post">
@@ -63,7 +63,7 @@
             {% if subscriptions is empty %}
                 <p class="mt-4 text-muted">Aucune source pour le moment.</p>
             {% else %}
-                <div class="mt-6 grid grid-cols-1 items-start gap-x-8 gap-y-8 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                <div class="subscription-groups mt-6">
                 {% for category in categories %}
                     {% set categorySubscriptions = subscriptions|filter(subscription => subscription.category and subscription.category.id == category.id) %}
                     {% if categorySubscriptions is not empty %}

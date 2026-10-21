@@ -241,7 +241,13 @@ dialog [data-article-saved][aria-pressed="true"] svg { color: var(--accent); fil
     .reading-saved-filters select { max-width: min(14rem, calc(100vw - 7rem)); }
 }
 
-[data-article-actions] button[hidden], [data-category-item][hidden] { display: none; }
+[data-article-actions] button[hidden], [data-category-item][hidden], [data-reading-favorite][hidden], [data-reading-saved][hidden] { display: none; }
+.category-chip { border-radius: .625rem; }
+.subscription-groups { column-count: 1; column-gap: 2rem; }
+.subscription-groups > section { display: inline-block; width: 100%; break-inside: avoid; margin-bottom: 2rem; }
+@media (min-width: 768px) { .subscription-groups { column-count: 2; } }
+@media (min-width: 1280px) { .subscription-groups { column-count: 3; } }
+@media (min-width: 1536px) { .subscription-groups { column-count: 4; } }
 
 .article-row-with-image { display: grid; gap: 1rem; }
 .article-list-image { position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; }
