@@ -15,6 +15,27 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class ArticleControllerTest extends WebTestCase
 {
+    public function testUnreadCounterWorksWithSubscribedFeeds(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $user = new User('zen-count-'.bin2hex(random_bytes(8)).'@example.test');
+        $feed = new Feed('https://example.test/'.bin2hex(random_bytes(8)));
+        $article = new Article($feed, new ParsedFeedItem('one', 'Article', null, null, null, null));
+        foreach ([$user, $feed, $article, new Subscription($user, $feed)] as $entity) $em->persist($entity);
+        $em->flush();
+        try {
+            $client->loginUser($user);
+            $client->request('GET', '/api/statistics/counters');
+            self::assertResponseIsSuccessful();
+            $result = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+            self::assertSame(1, (int) $result['all']['unread_count']);
+            self::assertSame((string) $feed->getId(), $result['feeds'][0]['id']);
+        } finally {
+            $em->getConnection()->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
+            $em->getConnection()->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);
+        }
+    }
     public function testListExposesOnlyLocalImagePathsForArticlesWithImages(): void
     {
         $client = static::createClient();

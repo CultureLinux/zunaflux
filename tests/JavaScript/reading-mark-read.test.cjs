@@ -21,6 +21,7 @@ test('marking an unread article updates the server and removes it from the unrea
             return { ok: true, json: async () => ({ skipped: 0 }) };
         },
         readFilter: { value: '0' }, loadedItems: [item], selectedIds,
+        document: { dispatchEvent() {} }, Event: class {},
         updateUnreadCount() {}, updateSelection() {}, bulkError: {},
     };
     vm.runInNewContext(source.slice(start, end) + '\nthis.run = markArticleRead;', context);

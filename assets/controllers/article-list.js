@@ -98,6 +98,7 @@ if (container) {
             if (!response.ok || (await response.json()).skipped) throw new Error();
             updateUnreadCount(item, true);
             item.isRead = true;
+            document.dispatchEvent(new Event('article-state-changed'));
             if (readFilter.value === '0') {
                 row.remove();
                 const index = loadedItems.indexOf(item);
@@ -144,6 +145,7 @@ if (container) {
                 processed += batch.length;
             }
             selectedIds.clear();
+            document.dispatchEvent(new Event('article-state-changed'));
             await loadPage();
         } catch (_) {
             bulkError.textContent = `L’action a échoué après ${processed} article(s). Actualisez la liste avant de réessayer.`;
@@ -201,6 +203,7 @@ if (container) {
                 selectedArticle = { ...selectedArticle, ...state };
                 setStateLabels(selectedArticle);
             }
+            document.dispatchEvent(new Event('article-state-changed'));
         });
         pendingStateUpdates.add(update);
         return update.finally(() => pendingStateUpdates.delete(update));
@@ -282,6 +285,7 @@ if (container) {
 
     desktopLayout.addEventListener('change', () => { if (dialog.open) dialog.close(); });
 
+    document.addEventListener('zen-state-changed', () => loadPage());
     const loadPage = (cursor = null, append = false) => {
         if (loading && append) return Promise.resolve();
         if (pageRequest) pageRequest.abort();
