@@ -42,36 +42,51 @@
         </div>
 
         <div class="mt-10"><label class="block text-sm text-muted" for="category-search">Filtrer les catégories</label><input class="mt-2 w-full border border-line bg-background px-4 py-3 text-foreground" id="category-search" type="search" placeholder="Rechercher une catégorie" data-category-search></div>
-        <section class="mt-4 grid gap-5 border border-line p-6 md:grid-cols-[1fr_auto]" aria-labelledby="categories-heading">
-            <div>
-                <h2 class="font-serif text-2xl text-foreground" id="categories-heading">Catégories</h2>
-                {% if categories is empty %}<p class="mt-4 text-muted">Aucune catégorie.</p>{% else %}
-                    <ul class="mt-4 flex flex-wrap gap-2">{% for category in categories %}<li data-category-item="{{ category.name }}" class="category-chip flex items-center gap-2 border border-line px-3 py-1 text-foreground">{{ category.name }} <form action="{{ path('app_category_delete', {id: category.id}) }}" method="post"><input type="hidden" name="_token" value="{{ csrf_token('delete-category-' ~ category.id) }}"><button class="flex h-11 w-11 items-center justify-center text-danger" type="submit" aria-label="Supprimer la catégorie {{ category.name }}" title="Supprimer la catégorie"><svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></form></li>{% endfor %}</ul>
-                {% endif %}
-            </div>
-            <form class="grid gap-3 self-end" action="{{ path('app_subscriptions') }}" method="post">
-                <label class="font-mono text-xs uppercase tracking-[.18em] text-muted" for="category_name">Nouvelle catégorie</label>
-                <input class="border border-line bg-background px-4 py-3 text-foreground outline-none focus:border-accent" id="category_name" name="category_name" required maxlength="100">
-                <input type="hidden" name="_token" value="{{ csrf_token('create-category') }}">
-                <input type="hidden" name="intent" value="create-category">
-                <button class="border border-line px-4 py-3 text-foreground hover:border-accent hover:text-accent" type="submit">Créer la catégorie</button>
-            </form>
-        </section>
-
         <section class="mt-12" aria-labelledby="subscriptions-heading">
-            <h2 class="font-serif text-2xl text-foreground" id="subscriptions-heading">Sources suivies</h2>
-            {% if subscriptions is empty %}
+            <div class="flex items-center gap-3">
+                <h2 class="font-serif text-2xl text-foreground" id="subscriptions-heading">Sources suivies</h2>
+                <button class="flex h-11 w-11 items-center justify-center border border-line text-accent hover:border-accent hover:bg-accent-soft" type="button" data-open-delete="create-category" aria-label="Ajouter une catégorie" title="Ajouter une catégorie"><svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+            </div>
+            <dialog id="create-category" class="m-auto w-full max-w-lg border border-line bg-surface p-6 text-foreground backdrop:bg-background/80" aria-labelledby="create-category-title">
+                <h3 class="font-serif text-2xl" id="create-category-title">Nouvelle catégorie</h3>
+                <form class="mt-4 grid gap-4" action="{{ path('app_subscriptions') }}" method="post">
+                    <label class="grid gap-2" for="category_name">Nom de la catégorie<input class="border border-line bg-background px-4 py-3 text-foreground outline-none focus:border-accent" id="category_name" name="category_name" required maxlength="100" autofocus></label>
+                    <input type="hidden" name="_token" value="{{ csrf_token('create-category') }}">
+                    <input type="hidden" name="intent" value="create-category">
+                    <button class="border border-accent px-4 py-3 text-accent" type="submit">Créer la catégorie</button>
+                </form>
+                <form method="dialog" class="mt-3"><button class="border border-line px-4 py-3" type="submit">Annuler</button></form>
+            </dialog>
+            {% if subscriptions is empty and categories is empty %}
                 <p class="mt-4 text-muted">Aucune source pour le moment.</p>
             {% else %}
                 <div class="subscription-groups mt-6">
                 {% for category in categories %}
                     {% set categorySubscriptions = subscriptions|filter(subscription => subscription.category and subscription.category.id == category.id) %}
-                    {% if categorySubscriptions is not empty %}
                         <section data-category-item="{{ category.name }}" class="min-w-0" aria-labelledby="source-category-{{ category.id }}">
-                            <h3 class="border-b border-line pb-3 font-serif text-xl text-foreground" id="source-category-{{ category.id }}">{{ category.name }} <span class="ml-2 font-mono text-xs text-muted">{{ categorySubscriptions|length }}</span></h3>
+                            <div class="flex items-center justify-between gap-2 border-b border-line pb-2">
+                                <h3 class="min-w-0 break-words font-serif text-xl text-foreground" id="source-category-{{ category.id }}">{{ category.name }} <span class="ml-2 font-mono text-xs text-muted">{{ categorySubscriptions|length }}</span></h3>
+                                <div class="flex shrink-0 items-center">
+                                    <button class="flex h-11 w-11 items-center justify-center text-muted hover:text-accent" type="button" data-open-delete="edit-category-{{ category.id }}" aria-label="Modifier la catégorie {{ category.name }}" title="Modifier"><svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg></button>
+                                    <button class="flex h-11 w-11 items-center justify-center text-danger" type="button" data-open-delete="delete-category-{{ category.id }}" aria-label="Supprimer la catégorie {{ category.name }}" title="Supprimer"><svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button>
+                                </div>
+                            </div>
+                            <dialog id="edit-category-{{ category.id }}" class="m-auto w-full max-w-lg border border-line bg-surface p-6 text-foreground backdrop:bg-background/80" aria-labelledby="edit-category-title-{{ category.id }}">
+                                <h4 class="font-serif text-2xl" id="edit-category-title-{{ category.id }}">Modifier la catégorie</h4>
+                                <form class="mt-4 grid gap-4" method="post" action="{{ path('app_category_update', {id: category.id}) }}">
+                                    <label class="grid gap-2" for="edit-name-{{ category.id }}">Nom de la catégorie<input id="edit-name-{{ category.id }}" name="category_name" value="{{ category.name }}" maxlength="100" required class="border border-line bg-background px-4 py-3"></label>
+                                    <input type="hidden" name="_token" value="{{ csrf_token('update-category-' ~ category.id) }}">
+                                    <button class="border border-accent px-4 py-3 text-accent" type="submit">Enregistrer</button>
+                                </form>
+                                <form method="dialog" class="mt-3"><button class="border border-line px-4 py-3" type="submit">Annuler</button></form>
+                            </dialog>
+                            <dialog id="delete-category-{{ category.id }}" class="m-auto w-full max-w-lg border border-line bg-surface p-6 text-foreground backdrop:bg-background/80" aria-labelledby="delete-category-title-{{ category.id }}">
+                                <h4 class="font-serif text-2xl" id="delete-category-title-{{ category.id }}">Supprimer {{ category.name }} ?</h4>
+                                <p class="mt-4 text-muted">Attention : cette action supprime vos {{ categorySubscriptions|length }} abonnement(s) de cette catégorie et leurs états de lecture, favoris et articles à lire plus tard. Les autres utilisateurs conservent leurs flux et leurs données.</p>
+                                <div class="mt-4 flex flex-wrap gap-3"><form method="dialog"><button class="border border-line px-4 py-3" type="submit">Annuler</button></form><form method="post" action="{{ path('app_category_delete', {id: category.id}) }}"><input type="hidden" name="_token" value="{{ csrf_token('delete-category-' ~ category.id) }}"><button class="border border-danger px-4 py-3 text-danger" type="submit">Supprimer la catégorie et ses flux</button></form></div>
+                            </dialog>
                             {% include 'subscription/_source_list.html.twig' with {items: categorySubscriptions} %}
                         </section>
-                    {% endif %}
                 {% endfor %}
                 {% set uncategorizedSubscriptions = subscriptions|filter(subscription => subscription.category is null) %}
                 {% if uncategorizedSubscriptions is not empty %}

@@ -12,6 +12,50 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class SubscriptionControllerTest extends WebTestCase
 {
+    public function testCategoryDeletionRemovesOnlyOwnersSubscriptionsAndStates(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $suffix = bin2hex(random_bytes(8));
+        $owner = new User('category-owner-'.$suffix.'@example.test');
+        $other = new User('category-other-'.$suffix.'@example.test');
+        $category = new \App\Entity\Category($owner, 'Veille');
+        $feed = new Feed('https://example.test/'.$suffix.'/feed');
+        $article = new \App\Entity\Article($feed, new \App\Domain\Feed\ParsedFeedItem('article', 'Article', null, null, null, null));
+        $subscription = new Subscription($owner, $feed);
+        $subscription->assignCategory($category);
+        $otherSubscription = new Subscription($other, $feed);
+        $ownerState = new \App\Entity\ArticleState($owner, $article);
+        $otherState = new \App\Entity\ArticleState($other, $article);
+        foreach ([$owner, $other, $category, $feed, $article, $subscription, $otherSubscription, $ownerState, $otherState] as $entity) $em->persist($entity);
+        $em->flush();
+        try {
+            $client->loginUser($other);
+            $client->request('POST', '/categories/'.$category->getId().'/delete');
+            self::assertResponseStatusCodeSame(403);
+            $client->loginUser($owner);
+            $crawler = $client->request('GET', '/subscriptions');
+            $rename = $crawler->filter('form[action="/categories/'.$category->getId().'/update"]')->form(['category_name' => 'Veille renommée']);
+            $client->submit($rename);
+            self::assertResponseRedirects('/subscriptions');
+            $crawler = $client->followRedirect();
+            self::assertStringContainsString('Veille renommée', $crawler->text());
+            $form = $crawler->filter('form[action="/categories/'.$category->getId().'/delete"]')->form();
+            $client->submit($form);
+            self::assertResponseRedirects('/subscriptions');
+            $connection = $em->getConnection();
+            self::assertSame(0, (int) $connection->fetchOne('SELECT COUNT(*) FROM subscription WHERE id = ?', [$subscription->getId()->toBinary()]));
+            self::assertSame(0, (int) $connection->fetchOne('SELECT COUNT(*) FROM article_state WHERE user_id = ?', [$owner->getId()->toBinary()]));
+            self::assertSame(1, (int) $connection->fetchOne('SELECT COUNT(*) FROM subscription WHERE id = ?', [$otherSubscription->getId()->toBinary()]));
+            self::assertSame(1, (int) $connection->fetchOne('SELECT COUNT(*) FROM article_state WHERE user_id = ?', [$other->getId()->toBinary()]));
+            self::assertSame(1, (int) $connection->fetchOne('SELECT COUNT(*) FROM article WHERE id = ?', [$article->getId()->toBinary()]));
+        } finally {
+            $connection = $em->getConnection();
+            $connection->executeStatement('DELETE FROM app_user WHERE id IN (?, ?)', [$owner->getId()->toBinary(), $other->getId()->toBinary()]);
+            $connection->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);
+        }
+    }
+
     public function testFeedPublicationAgeBandsAndUnknownDates(): void
     {
         $client = static::createClient();
@@ -381,6 +425,9 @@ final class SubscriptionControllerTest extends WebTestCase
         try {
             $client->loginUser($user);
             $crawler = $client->request('GET', '/subscriptions');
+            self::assertSelectorExists('button[data-open-delete="edit-subscription-'.$subscription->getId().'"]');
+            self::assertSelectorExists('dialog#edit-subscription-'.$subscription->getId().' form[action="/subscriptions/'.$subscription->getId().'/update"]');
+            self::assertSelectorExists('dialog#edit-subscription-'.$subscription->getId().' button[data-open-delete="delete-'.$subscription->getId().'"]');
             $form = $crawler->filter('form[action="/subscriptions/'.$subscription->getId().'/update"]')->form();
             $client->submit($form, ['feed_url' => $newUrl, 'custom_title' => 'Nouvelle source', 'category_id' => '', 'enabled' => '1']);
             self::assertResponseRedirects('/subscriptions');
@@ -406,6 +453,8 @@ final class SubscriptionControllerTest extends WebTestCase
         try {
             $client->loginUser($user);
             $crawler = $client->request('GET', '/subscriptions');
+            self::assertSelectorExists('[aria-labelledby="subscriptions-heading"] button[data-open-delete="create-category"]');
+            self::assertSelectorExists('dialog#create-category form input[name="category_name"]');
             $client->submit($crawler->selectButton('Créer la catégorie')->form(), [
                 'category_name' => 'Veille',
             ]);

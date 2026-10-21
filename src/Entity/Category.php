@@ -28,14 +28,9 @@ final class Category
 
     public function __construct(User $user, string $name, int $position = 0)
     {
-        $name = trim($name);
-        if ('' === $name) {
-            throw new \InvalidArgumentException('A category name cannot be blank.');
-        }
-
         $this->id = Uuid::v7();
         $this->user = $user;
-        $this->name = $name;
+        $this->rename($name);
         $this->position = $position;
     }
 
@@ -52,5 +47,14 @@ final class Category
     public function getName(): string
     {
         return $this->name;
+    }
+
+    public function rename(string $name): void
+    {
+        $name = trim($name);
+        if ('' === $name || mb_strlen($name) > 100) {
+            throw new \InvalidArgumentException('Le nom de catégorie doit contenir entre 1 et 100 caractères.');
+        }
+        $this->name = $name;
     }
 }

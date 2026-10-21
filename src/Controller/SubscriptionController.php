@@ -151,14 +151,39 @@ final class SubscriptionController extends AbstractController
         return $this->redirectToRoute('app_subscriptions', status: Response::HTTP_SEE_OTHER);
     }
 
+    #[Route('/categories/{id}/update', name: 'app_category_update', methods: ['POST'])]
+    public function updateCategory(string $id, Request $request, EntityManagerInterface $entityManager): RedirectResponse
+    {
+        $user = $this->currentUser();
+        try { $category = $entityManager->getRepository(Category::class)->find(Uuid::fromString($id)); } catch (\InvalidArgumentException) { $category = null; }
+        if (!$category instanceof Category || !$category->getUser()->getId()->equals($user->getId())) throw $this->createAccessDeniedException();
+        if (!$this->isCsrfTokenValid('update-category-'.$id, $request->request->getString('_token'))) throw $this->createAccessDeniedException();
+        try {
+            $name = trim($request->request->getString('category_name'));
+            $existing = $entityManager->getRepository(Category::class)->findOneBy(['user' => $user, 'name' => $name]);
+            if ($existing instanceof Category && !$existing->getId()->equals($category->getId())) throw new \InvalidArgumentException('Cette catégorie existe déjà.');
+            $category->rename($name);
+            $entityManager->flush();
+            $this->addFlash('success', 'Catégorie renommée.');
+        } catch (\InvalidArgumentException $e) { $this->addFlash('error', $e->getMessage()); }
+        return $this->redirectToRoute('app_subscriptions', status: Response::HTTP_SEE_OTHER);
+    }
+
     #[Route('/categories/{id}/delete', name: 'app_category_delete', methods: ['POST'])]
     public function deleteCategory(string $id, Request $request, EntityManagerInterface $entityManager): RedirectResponse
     {
         $user = $this->currentUser(); $category = $entityManager->getRepository(Category::class)->find(Uuid::fromString($id));
         if (!$category instanceof Category || !$category->getUser()->getId()->equals($user->getId())) throw $this->createAccessDeniedException();
         if (!$this->isCsrfTokenValid('delete-category-'.$id, $request->request->getString('_token'))) throw $this->createAccessDeniedException('Invalid CSRF token.');
-        foreach ($entityManager->getRepository(Subscription::class)->findBy(['user' => $user, 'category' => $category]) as $subscription) $subscription->assignCategory(null);
-        $entityManager->remove($category); $entityManager->flush(); $this->addFlash('success', 'Catégorie supprimée ; les abonnements sont sans catégorie.');
+        $entityManager->wrapInTransaction(function () use ($entityManager, $user, $category): void {
+            foreach ($entityManager->getRepository(Subscription::class)->findBy(['user' => $user, 'category' => $category]) as $subscription) {
+                $entityManager->getConnection()->executeStatement('DELETE article_state FROM article_state INNER JOIN article ON article.id = article_state.article_id WHERE article_state.user_id = ? AND article.feed_id = ?', [$user->getId()->toBinary(), $subscription->getFeed()->getId()->toBinary()], [\Doctrine\DBAL\ParameterType::BINARY, \Doctrine\DBAL\ParameterType::BINARY]);
+                $entityManager->remove($subscription);
+            }
+            $entityManager->remove($category);
+            $entityManager->flush();
+        });
+        $this->addFlash('success', 'Catégorie et abonnements associés supprimés.');
         return $this->redirectToRoute('app_subscriptions', status: Response::HTTP_SEE_OTHER);
     }
 

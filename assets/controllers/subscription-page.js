@@ -8,5 +8,8 @@ search?.addEventListener('input', () => {
 });
 
 document.querySelectorAll('[data-open-delete]').forEach((button) => {
-    button.addEventListener('click', () => document.getElementById(button.dataset.openDelete)?.showModal());
+    button.addEventListener('click', () => {
+        if (button.hasAttribute('data-close-current-dialog')) button.closest('dialog')?.close();
+        document.getElementById(button.dataset.openDelete)?.showModal();
+    });
 });
