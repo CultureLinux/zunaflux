@@ -37,7 +37,6 @@
         <div class="mb-5 flex flex-wrap items-center gap-2">
 
 
-        <section class="reading-saved-filters flex flex-wrap gap-2" data-saved-filters data-csrf-token="{{ csrf_token('saved-filter') }}"><label class="sr-only" for="saved-filter">Filtres enregistrés</label><select class="border border-line bg-background px-3 py-2" id="saved-filter" data-saved-filter><option value="">Filtres enregistrés</option></select><button class="reading-save-filter border border-accent bg-accent-soft px-3 py-2 text-sm text-accent hover:bg-accent hover:text-accent-foreground" data-save-filter type="button" aria-label="Enregistrer cette recherche" title="Enregistrer cette recherche"><svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M5 3h12l4 4v14H3V3h2Zm2 0v6h9V3M7 21v-8h10v8"/></svg><span>Enregistrer cette recherche</span></button></section>
         <section class="flex flex-wrap items-center gap-2" data-article-actions data-csrf-token="{{ csrf_token('article-bulk') }}" aria-label="Actions groupées">
             <button class="border border-line px-3 py-2 text-sm text-accent hover:border-accent hover:bg-accent-soft" data-select-all type="button" aria-pressed="false" hidden>Sélectionner les articles chargés</button>
             <span class="text-sm text-muted" data-selected-count aria-live="polite"></span>

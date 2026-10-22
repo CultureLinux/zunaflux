@@ -1,6 +1,6 @@
 <ul class="divide-y divide-line border-b border-line">
     {% for subscription in items %}
-        <li class="min-w-0 py-2">
+        <li class="min-w-0 py-2" data-subscription-item data-subscription-title="{{ subscription.displayTitle }}" data-feed-title="{{ subscription.feed.title|default('') }}" data-feed-url="{{ subscription.feed.canonicalUrl }}">
             <div class="flex min-h-11 items-center gap-2">
                     <span class="min-w-0 flex-1 break-words font-serif text-foreground">{{ subscription.displayTitle }}{% if not subscription.enabled %} <span class="font-sans text-xs text-muted">(inactif)</span>{% endif %}
                         {% set latest = latestPublications[subscription.id ~ '']|default(null) %}

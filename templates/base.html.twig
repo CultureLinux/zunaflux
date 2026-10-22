@@ -14,10 +14,10 @@
     <body class="bg-background text-foreground antialiased">
         {% if app.user %}
             {% set current_route = app.request.attributes.get('_route')|default('') %}
-            <nav class="relative z-50 border-b border-line bg-background px-4 py-3 md:px-12" aria-label="Navigation principale">
-                <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
-                    <a class="font-serif text-2xl text-foreground hover:text-accent" href="{{ path('app_articles') }}">Zunaflux</a>
-                    <div class="hidden flex-1 items-center gap-1 text-sm md:flex">{% include '_navigation_links.html.twig' %}</div>
+            <nav class="relative z-50 border-b border-line bg-background px-4 py-3 md:px-6" aria-label="Navigation principale">
+                <div class="site-header flex flex-wrap items-center justify-between gap-3">
+                    <a class="site-header-brand inline-flex items-center font-serif text-2xl text-foreground hover:text-accent" href="{{ path('app_articles') }}"><img class="site-header-logo hidden md:block" src="{{ asset('images/livre-rss-transparent.png') }}" alt="" width="54" height="40">Zunaflux</a>
+                    <div class="site-header-links hidden flex-1 items-center gap-1 text-sm md:flex">{% include '_navigation_links.html.twig' %}</div>
                     <div class="hidden items-center gap-3 md:flex"><p class="max-w-48 truncate text-xs text-muted" title="{{ app.user.userIdentifier }}">{{ app.user.userIdentifier }}</p><form action="{{ path('app_logout') }}" method="post"><input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}"><button class="border border-line px-3 py-2 text-xs font-semibold uppercase tracking-[.12em] text-foreground hover:border-warning hover:text-warning" type="submit">Quitter</button></form></div>
                     {% if current_route == 'app_articles' %}<button class="zen-open ml-auto inline-flex min-h-11 items-center justify-center text-accent md:hidden" type="button" data-zen-open aria-label="Ouvrir le mode zen"><svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16v12H4zM8 3v3m8-3v3M8 21v-3m8 3v-3"/></svg><span class="zen-count" data-zen-count aria-live="polite">…</span></button>{% endif %}
                     <details class="relative md:hidden">

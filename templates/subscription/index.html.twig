@@ -39,9 +39,12 @@
             <input type="hidden" name="intent" value="import-opml">
             <button class="self-end border border-line px-5 py-3 font-semibold text-foreground hover:border-accent hover:text-accent" type="submit">Importer OPML</button>
         </form>
+        <div class="min-w-0 border border-line bg-surface p-6">
+            <label class="font-mono text-xs uppercase tracking-[.18em] text-muted" for="category-search">Filtrer les catégories et les flux</label>
+            <input class="mt-2 w-full border border-line bg-background px-4 py-3 text-foreground outline-none focus:border-accent" id="category-search" type="search" placeholder="Rechercher une catégorie, un flux ou une adresse" data-category-search>
+        </div>
         </div>
 
-        <div class="mt-10"><label class="block text-sm text-muted" for="category-search">Filtrer les catégories</label><input class="mt-2 w-full border border-line bg-background px-4 py-3 text-foreground" id="category-search" type="search" placeholder="Rechercher une catégorie" data-category-search></div>
         <section class="mt-12" aria-labelledby="subscriptions-heading">
             <div class="flex items-center gap-3">
                 <h2 class="font-serif text-2xl text-foreground" id="subscriptions-heading">Sources suivies</h2>

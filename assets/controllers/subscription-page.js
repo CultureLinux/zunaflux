@@ -3,7 +3,15 @@ const normalize = (value) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, 
 search?.addEventListener('input', () => {
     const query = normalize(search.value);
     document.querySelectorAll('[data-category-item]').forEach((item) => {
-        item.hidden = !normalize(item.dataset.categoryItem).includes(query);
+        const categoryMatches = normalize(item.dataset.categoryItem).includes(query);
+        let hasMatchingSubscription = false;
+        item.querySelectorAll('[data-subscription-item]').forEach((subscription) => {
+            const subscriptionMatches = [subscription.dataset.subscriptionTitle, subscription.dataset.feedTitle, subscription.dataset.feedUrl]
+                .some((value) => normalize(value || '').includes(query));
+            subscription.hidden = !categoryMatches && !subscriptionMatches;
+            hasMatchingSubscription ||= subscriptionMatches;
+        });
+        item.hidden = !categoryMatches && !hasMatchingSubscription;
     });
 });
 

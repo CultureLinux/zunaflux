@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+.site-header-logo { width: 3.375rem; height: 2.5rem; object-fit: contain; margin-right: .5rem; }
+@media (min-width: 1024px) {
+    .site-header { display: grid; grid-template-columns: max(12rem, calc((100vw - 96rem) / 2 + .5rem)) minmax(0, 1fr) auto; gap: 0; min-height: 3.5rem; }
+    .site-header-brand { white-space: nowrap; }
+    .site-header-links { gap: .5rem; }
+}
+
 :root {
     color-scheme: light;
     --background: #F8F8F6;
@@ -245,8 +252,8 @@ dialog [data-article-saved][aria-pressed="true"] svg { color: var(--accent); fil
 }
 
 [data-article-actions][hidden] { display: none; }
-.reading-search-button, .reading-save-filter { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; }
-.reading-search-button svg, .reading-save-filter svg { display: none; }
+.reading-search-button { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; }
+.reading-search-button svg { display: none; }
 @media (max-width: 767px) {
     .reading-intro { display: none; }
     main[data-read-mode-default] { padding-top: 1rem; padding-bottom: 2rem; }
@@ -255,14 +262,12 @@ dialog [data-article-saved][aria-pressed="true"] svg { color: var(--accent); fil
     .reading-search-controls [data-article-search] { flex-basis: auto; flex-wrap: nowrap; }
     .reading-search-controls [data-read-filter] { width: 7.5rem; flex: none; }
     .reading-search-controls [data-article-search] input { width: 0; }
-    .reading-search-button, .reading-save-filter { width: 2.75rem; height: 2.75rem; padding: 0; flex: none; }
-    .reading-search-button svg, .reading-save-filter svg { display: block; }
-    .reading-search-button span, .reading-save-filter span { display: none; }
-    .reading-saved-filters { align-items: center; }
-    .reading-saved-filters select { max-width: min(14rem, calc(100vw - 7rem)); }
+    .reading-search-button { width: 2.75rem; height: 2.75rem; padding: 0; flex: none; }
+    .reading-search-button svg { display: block; }
+    .reading-search-button span { display: none; }
 }
 
-[data-article-actions] button[hidden], [data-category-item][hidden], [data-reading-favorite][hidden], [data-reading-saved][hidden] { display: none; }
+[data-article-actions] button[hidden], [data-category-item][hidden], [data-subscription-item][hidden], [data-reading-favorite][hidden], [data-reading-saved][hidden] { display: none; }
 .category-chip { border-radius: .625rem; }
 .feed-age[data-feed-age="day"] { color: #08714e; }
 .feed-age[data-feed-age="week"] { color: #245aa3; }

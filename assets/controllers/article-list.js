@@ -90,8 +90,6 @@ if (container) {
         });
     };
     updateSources();
-    const savedFilters = document.querySelector('[data-saved-filters]');
-    const savedFilterSelect = savedFilters?.querySelector('[data-saved-filter]');
     let nextCursor = null;
     let selectedArticle = null;
     let loading = false;
@@ -483,10 +481,6 @@ if (container) {
     searchForm?.addEventListener('submit', (event) => { event.preventDefault(); clearTimeout(searchTimer); loadPage(); });
     document.querySelector('[data-clear-source]').addEventListener('click', () => { subscriptionFilter = ''; sourceName = ''; const current = new URL(location.href); current.searchParams.delete('subscription'); history.replaceState(null, '', current); updateSourceFilter(); loadPage(); });
     readFilter.addEventListener('change', () => { const url = new URL(location.href); setViewParams(url.searchParams, readFilter.value); history.replaceState(null, '', url); updateSources(); loadPage(); });
-    const savedHeaders = { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': savedFilters?.dataset.csrfToken };
-    fetch('/api/saved-filters', { headers: { Accept: 'application/json' } }).then((r) => r.ok ? r.json() : []).then((filters) => filters.forEach((filter) => { const option = document.createElement('option'); option.value = JSON.stringify(filter.filters); option.textContent = filter.name; savedFilterSelect?.append(option); })).catch(() => {});
-    savedFilterSelect?.addEventListener('change', () => { if (!savedFilterSelect.value) return; const filters = JSON.parse(savedFilterSelect.value); if (typeof filters.q === 'string' && searchInput) searchInput.value = filters.q; const params = new URLSearchParams(filters); readFilter.value = viewFromParams(params); updateSources(); subscriptionFilter = typeof filters.subscription === 'string' ? filters.subscription : ''; sourceName = ''; updateSourceFilter(); history.replaceState(null, '', `${location.pathname}?${params}`); loadPage(); });
-    savedFilters?.querySelector('[data-save-filter]')?.addEventListener('click', () => { const name = window.prompt('Nom du filtre'); if (!name) return; const params = new URLSearchParams({ q: searchInput?.value.trim() || '', subscription: subscriptionFilter }); setViewParams(params, readFilter.value); fetch('/api/saved-filters', { method: 'POST', headers: savedHeaders, body: JSON.stringify({ name, filters: Object.fromEntries(params) }) }).then((r) => { if (!r.ok) throw new Error(); return r.json(); }).then(() => location.reload()).catch(() => window.alert('Impossible d’enregistrer ce filtre.')); });
 
     if (sentinel && 'IntersectionObserver' in window) {
         new IntersectionObserver(([entry]) => {
