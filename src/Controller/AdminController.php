@@ -33,6 +33,8 @@ final class AdminController extends AbstractController
    $rows=$em->getConnection()->fetchAllAssociative("SELECT DATE($column) AS day, COUNT(*) AS total FROM $table WHERE $column >= ? AND $column < ? GROUP BY DATE($column)", [$start->format('Y-m-d H:i:s'), $start->modify('+30 days')->format('Y-m-d H:i:s')]);
    $counts=array_column($rows,'total','day'); $days=[]; for($i=0;$i<30;++$i){$day=$start->modify('+'.$i.' days')->format('Y-m-d');$days[]=['date'=>$day,'count'=>(int)($counts[$day]??0)];} $stats[$label]=$days;
   }
+  $rows=$em->getConnection()->fetchAllAssociative('SELECT day, total FROM notification_daily_count WHERE day >= ? AND day < ?', [$start->format('Y-m-d'), $start->modify('+30 days')->format('Y-m-d')]);
+  $counts=array_column($rows,'total','day'); $days=[]; for($i=0;$i<30;++$i){$day=$start->modify('+'.$i.' days')->format('Y-m-d');$days[]=['date'=>$day,'count'=>(int)($counts[$day]??0)];} $stats['notifications envoyées']=$days;
   return $this->render('admin/index.html.twig',['users'=>$users,'quotaCounts'=>$quotaCounts,'stats'=>$stats,'unusedFeeds'=>$unusedFeeds,'incidents'=>$em->getRepository(FeedIncident::class)->findBy(['acknowledgedAt'=>null]),'feedCount'=>$em->getRepository(Feed::class)->count([]),'subscriptionCount'=>$em->getRepository(Subscription::class)->count([])]);
  }
  #[Route('/admin/incidents/{id}/retry', name:'app_admin_incident_retry', methods:['POST'])] public function retry(string $id, Request $r, EntityManagerInterface $em, MessageBusInterface $bus):Response {

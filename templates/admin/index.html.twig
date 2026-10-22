@@ -6,7 +6,7 @@
  <p class="mt-4 text-muted">{{ users|length }} comptes · {{ subscriptionCount }} abonnements · {{ feedCount }} flux partagés</p>
  <section class="mt-10" aria-labelledby="stats-title">
   <h2 id="stats-title" class="font-serif text-3xl text-foreground">Activité des 30 derniers jours</h2>
-  <p class="mt-2 text-sm text-muted">Flux et comptes créés, articles collectés, encore présents dans la base. Les suppressions ne sont pas représentées ; chaque graphique possède sa propre échelle.</p>
+  <p class="mt-2 text-sm text-muted">Flux et comptes créés, articles collectés, encore présents dans la base. Les suppressions ne sont pas représentées. Les notifications comptent les envois acceptés par le service push, tests compris, à partir de l’activation du compteur. Chaque graphique possède sa propre échelle.</p>
   <div class="mt-5 grid gap-4 md:grid-cols-3">{% for label, days in stats %}
    {% set maximum = max(1, max(days|map(day => day.count))) %}
    <div class="min-w-0 border border-line p-4"><h3 class="font-semibold text-foreground">{{ label|capitalize }}</h3>

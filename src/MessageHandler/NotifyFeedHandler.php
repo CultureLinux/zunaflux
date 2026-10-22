@@ -6,6 +6,7 @@ namespace App\MessageHandler;
 
 use App\Application\Notification\PushEndpoint;
 use App\Application\Notification\NotificationDiagnostics;
+use App\Application\Notification\NotificationCounter;
 use App\Entity\Feed;
 use App\Entity\PushSubscription;
 use App\Entity\Subscription;
@@ -27,6 +28,7 @@ final readonly class NotifyFeedHandler
         private EntityManagerInterface $em,
         private LoggerInterface $logger,
         private NotificationDiagnostics $diagnostics,
+        private NotificationCounter $counter,
         private string $pushPrivateFile,
         private string $pushSubject,
     ) {}
@@ -58,6 +60,7 @@ final readonly class NotifyFeedHandler
                     $recipient = WebPushSubscription::create(['endpoint' => $subscription->getEndpoint(), 'keys' => ['p256dh' => $subscription->getPublicKey(), 'auth' => $subscription->getAuthSecret()], 'contentEncoding' => 'aes128gcm']);
                     $report = $push->sendOneNotification($recipient, $payload);
                     if (!$report->isSuccess()) $this->diagnostics->failure('collecte', $report);
+                    else $this->counter->recordAccepted();
                     if ($report->isSubscriptionExpired()) $this->em->remove($subscription);
                 } catch (\Throwable $exception) {
                     $this->diagnostics->exception('collecte', 'envoi', $exception);

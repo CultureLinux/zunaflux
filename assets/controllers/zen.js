@@ -13,13 +13,14 @@ if (zen) {
     const source = zen.querySelector('[data-zen-source]');
     const body = zen.querySelector('[data-zen-body]');
     const message = zen.querySelector('[data-zen-message]');
+    const complete = zen.querySelector('[data-zen-complete]');
     const guide = zen.querySelector('[data-zen-guide]');
     const previous = zen.querySelector('[data-zen-previous]');
     const next = zen.querySelector('[data-zen-next]');
     const favorite = zen.querySelector('[data-zen-favorite]');
     const save = zen.querySelector('[data-zen-save]');
     const controls = [previous, next, favorite, save];
-    let items = [], cursor = null, hasMore = false, index = -1, article = null, busy = false, changed = false;
+    let items = [], cursor = null, hasMore = false, index = -1, article = null, busy = false, changed = false, finished = false;
     const refreshCount = async () => {
         try {
             const response = await fetch('/api/statistics/counters', { headers: { Accept: 'application/json' } });
@@ -45,6 +46,7 @@ if (zen) {
         const response = await fetch(`/api/articles/${encodeURIComponent(items[index].id)}`, { headers: { Accept: 'application/json' } });
         if (!response.ok) throw new Error('Impossible de charger cet article.');
         article = await response.json();
+        finished = false; complete.hidden = true; title.hidden = false; body.hidden = false; message.classList.remove('sr-only');
         title.textContent = article.title;
         source.textContent = article.source || 'Source sans titre';
         body.innerHTML = article.safeHtml;
@@ -74,13 +76,14 @@ if (zen) {
                 if (!article.isRead) await update({ isRead: true });
                 if (index + 1 >= items.length && hasMore) await loadMore();
                 if (index + 1 < items.length) { index++; await show(); }
-                else { message.textContent = 'Vous avez terminé les articles non lus.'; await refreshCount(); }
-            } else if (action === 'previous' && index > 0) { index--; await show(); }
+                else { finished = true; complete.hidden = false; title.hidden = true; source.textContent = ''; body.hidden = true; message.classList.add('sr-only'); message.textContent = 'Félicitations ! Vous avez terminé vos articles non lus.'; content.scrollTop = 0; }
+            } else if (action === 'previous' && finished) { await show(); }
+            else if (action === 'previous' && index > 0) { index--; await show(); }
             else if (action === 'favorite') { await update({ isFavorite: !article.isFavorite }); favorite.setAttribute('aria-pressed', String(article.isFavorite)); favorite.textContent = article.isFavorite ? '★' : '☆'; message.textContent = article.isFavorite ? 'Ajouté aux favoris.' : 'Retiré des favoris.'; }
             else if (action === 'save') { await update({ isSaved: true }); save.setAttribute('aria-pressed', 'true'); save.textContent = '◆'; message.textContent = 'Ajouté à lire plus tard.'; }
             if (action === 'next') await refreshCount();
         } catch (error) { message.textContent = error.message || 'Une erreur est survenue.'; }
-        finally { busy = false; controls.forEach(button => { button.disabled = false; }); previous.disabled = index <= 0; }
+        finally { busy = false; controls.forEach(button => { button.disabled = finished; }); previous.disabled = !finished && index <= 0; }
     };
     open.addEventListener('click', async () => {
         if (busy) return;
@@ -88,7 +91,7 @@ if (zen) {
         refreshCount();
         guide.hidden = true;
         try { if (!localStorage.getItem('zunaflux-zen-guide')) guide.hidden = false; } catch (_) { guide.hidden = false; }
-        items = []; cursor = null; hasMore = false; index = -1; article = null; changed = false;
+        items = []; cursor = null; hasMore = false; index = -1; article = null; changed = false; finished = false; complete.hidden = true; title.hidden = false; body.hidden = false; message.classList.remove('sr-only');
         title.textContent = 'Lecture zen'; source.textContent = ''; body.replaceChildren(); message.textContent = 'Chargement…';
         busy = true; controls.forEach(button => { button.disabled = true; });
         try { await loadMore(); if (items.length) { index = 0; await show(); } else message.textContent = 'Aucun article non lu pour le moment.'; }

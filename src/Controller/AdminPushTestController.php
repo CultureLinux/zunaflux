@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Application\Notification\PushEndpoint;
 use App\Application\Notification\NotificationDiagnostics;
+use App\Application\Notification\NotificationCounter;
 use App\Entity\PushSubscription;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
@@ -22,7 +23,7 @@ use Symfony\Component\Routing\Attribute\Route;
 final class AdminPushTestController extends AbstractController
 {
     #[Route('/admin/push-test', name: 'app_admin_push_test', methods: ['POST'])]
-    public function __invoke(Request $request, EntityManagerInterface $em, string $pushPrivateFile, string $pushSubject, NotificationDiagnostics $diagnostics): JsonResponse
+    public function __invoke(Request $request, EntityManagerInterface $em, string $pushPrivateFile, string $pushSubject, NotificationDiagnostics $diagnostics, NotificationCounter $counter): JsonResponse
     {
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
         if (!$this->isCsrfTokenValid('push-subscription', $request->headers->get('X-CSRF-Token', ''))) throw $this->createAccessDeniedException();
@@ -50,6 +51,7 @@ final class AdminPushTestController extends AbstractController
                 $diagnostics->failure('test', $report);
                 return $this->json(['error' => 'La notification n’a pas pu être envoyée.'], 502);
             }
+            $counter->recordAccepted();
         } catch (\Throwable $exception) {
             $diagnostics->exception('test', $stage, $exception);
             return $this->json(['error' => 'La notification n’a pas pu être envoyée.'], 502);
