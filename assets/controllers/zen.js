@@ -109,4 +109,10 @@ if (zen) {
     content.addEventListener('touchcancel', () => { start = null; });
     document.addEventListener('article-state-changed', refreshCount);
     refreshCount();
+    const url = new URL(location.href);
+    if (url.searchParams.get('zen') === '1') {
+        url.searchParams.delete('zen');
+        history.replaceState(null, '', url);
+        open.click();
+    }
 }

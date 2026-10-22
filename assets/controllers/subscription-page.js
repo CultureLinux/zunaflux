@@ -28,6 +28,32 @@ document.querySelectorAll('[data-open-delete]').forEach((button) => {
     });
 });
 
+const mobileActions = document.querySelector('[data-mobile-subscription-actions]');
+const mobileLayout = window.matchMedia('(max-width: 767px)');
+const movableForms = [...document.querySelectorAll('[data-mobile-move]')].map((form) => {
+    const placeholder = document.createComment('subscription form');
+    form.before(placeholder);
+    return { form, placeholder, slot: document.querySelector(`[data-mobile-slot="${form.dataset.mobileMove}"]`) };
+});
+const updateMobileLayout = () => {
+    movableForms.forEach(({ form, placeholder, slot }) => {
+        if (mobileLayout.matches) slot.append(form);
+        else placeholder.after(form);
+    });
+    if (mobileActions) mobileActions.hidden = !mobileLayout.matches;
+    if (!mobileLayout.matches) document.querySelectorAll('#mobile-add-feed[open], #mobile-import-feed[open]').forEach(dialog => dialog.close());
+};
+if (mobileActions && typeof HTMLDialogElement !== 'undefined' && HTMLDialogElement.prototype.showModal) {
+    updateMobileLayout();
+    mobileLayout.addEventListener('change', updateMobileLayout);
+}
+const directCategory = document.querySelector('[data-direct-category]');
+directCategory?.addEventListener('change', () => {
+    const create = directCategory.value === 'new';
+    document.querySelector('[data-direct-new-category]').hidden = !create;
+    document.querySelector('[data-direct-category-name]').required = create;
+});
+
 const discoveryForm = document.querySelector('[data-discovery-form]');
 const discoveryDialog = document.querySelector('[data-discovery-dialog]');
 if (discoveryForm && discoveryDialog && typeof discoveryDialog.showModal === 'function') {
@@ -57,12 +83,22 @@ if (discoveryForm && discoveryDialog && typeof discoveryDialog.showModal === 'fu
         manual.hidden = true;
         manualLink.removeAttribute('href');
         status.textContent = 'Chargement de la page et analyse de ses flux…';
+        discoveryForm.closest('dialog')?.close();
         discoveryDialog.showModal();
         const startedAt = Date.now();
         if (toastStack) discoveryDialog.append(toastStack);
         try {
-            const response = await fetch(discoveryForm.dataset.liveUrl, { method: 'POST', body: new FormData(discoveryForm), signal: request.signal });
-            const data = await response.json();
+            const response = await fetch(discoveryForm.dataset.liveUrl, { method: 'POST', headers: { Accept: 'application/json' }, body: new FormData(discoveryForm), signal: request.signal });
+            let data;
+            try {
+                data = await response.json();
+            } catch (error) {
+                if (error.name === 'AbortError') throw error;
+                throw new Error(`Réponse inattendue du serveur (HTTP ${response.status}). Consultez les journaux du serveur.`);
+            }
+            if (!data || typeof data !== 'object' || (response.ok && !Array.isArray(data.feeds))) {
+                throw new Error(`Réponse inattendue du serveur (HTTP ${response.status}). Consultez les journaux du serveur.`);
+            }
             await new Promise((resolve) => setTimeout(resolve, Math.max(0, 1000 - (Date.now() - startedAt))));
             if (request.signal.aborted) return;
             progress.hidden = true;

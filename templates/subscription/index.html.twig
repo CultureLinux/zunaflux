@@ -6,23 +6,35 @@
     <main class="mx-auto min-h-screen max-w-[96rem] px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
         <h1 class="font-serif text-5xl text-foreground">Vos abonnements</h1>
 
+        <div class="mobile-subscription-actions" data-mobile-subscription-actions hidden>
+            <button type="button" data-open-delete="mobile-add-feed" aria-label="Ajouter ou chercher un flux" title="Ajouter ou chercher un flux"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span>Ajouter</span></button>
+            <button type="button" data-open-delete="mobile-import-feed" aria-label="Importer un fichier OPML" title="Importer un fichier OPML"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m-4-4 4 4 4-4M4 17v3h16v-3"/></svg><span>Importer</span></button>
+        </div>
         <div class="mt-10 grid gap-4 lg:grid-cols-2">
-        <form class="grid min-w-0 gap-4 border border-line bg-surface p-6 xl:grid-cols-[minmax(0,1fr)_auto]" action="{{ path('app_feed_discovery_start') }}" method="post" data-discovery-form data-live-url="{{ path('app_feed_discovery_live') }}">
+        <form class="grid min-w-0 gap-4 border border-line bg-surface p-6 xl:grid-cols-[minmax(0,1fr)_auto]" action="{{ path('app_feed_discovery_start') }}" method="post" data-mobile-move="add" data-discovery-form data-live-url="{{ path('app_feed_discovery_live') }}">
             <div><label class="font-mono text-xs uppercase tracking-[.18em] text-muted" for="site_url">Découvrir les flux d’un site</label><input class="mt-2 w-full border border-line bg-background px-4 py-3 text-foreground" id="site_url" name="site_url" type="url" required placeholder="https://example.com/"></div>
             <input type="hidden" name="_token" value="{{ csrf_token('discover-feed') }}">
             <button class="self-end border border-line px-5 py-3 font-semibold text-foreground" type="submit">Chercher les flux</button>
         </form>
-        <form class="grid min-w-0 gap-4 border border-line bg-surface p-6 xl:grid-cols-[minmax(0,1fr)_auto]" action="{{ path('app_subscriptions') }}" method="post">
+        <form class="grid min-w-0 gap-4 border border-line bg-surface p-6 xl:grid-cols-[minmax(0,1fr)_auto]" action="{{ path('app_subscriptions') }}" method="post" data-mobile-move="add">
             <div>
                 <label class="font-mono text-xs uppercase tracking-[.18em] text-muted" for="feed_url">Adresse du flux RSS ou Atom</label>
                 <input class="mt-2 w-full border border-line bg-background px-4 py-3 text-foreground outline-none focus:border-accent" id="feed_url" name="feed_url" type="url" required placeholder="https://example.test/feed.xml">
             </div>
             <input type="hidden" name="_token" value="{{ csrf_token('subscribe-feed') }}">
             <input type="hidden" name="intent" value="subscribe-feed">
+            <label class="grid gap-2 text-sm" for="direct-category">Catégorie
+                <select id="direct-category" name="discovery_category" data-direct-category class="w-full border border-line bg-background px-3 py-2">
+                    <option value="none">Sans catégorie</option>
+                    {% for category in categories %}<option value="{{ category.id }}">{{ category.name }}</option>{% endfor %}
+                    <option value="new">Créer une catégorie</option>
+                </select>
+            </label>
+            <label class="grid gap-2 text-sm" data-direct-new-category hidden>Nom de la nouvelle catégorie<input class="w-full border border-line bg-background px-3 py-2" name="new_category" maxlength="100" data-direct-category-name></label>
             <button class="self-end border border-accent bg-accent px-5 py-3 font-semibold text-accent-foreground hover:bg-accent" type="submit">Ajouter le flux</button>
         </form>
 
-        <form class="grid min-w-0 gap-4 border border-dashed border-line p-6 xl:grid-cols-[minmax(0,1fr)_auto]" action="{{ path('app_subscriptions') }}" method="post" enctype="multipart/form-data">
+        <form class="grid min-w-0 gap-4 border border-dashed border-line p-6 xl:grid-cols-[minmax(0,1fr)_auto]" action="{{ path('app_subscriptions') }}" method="post" enctype="multipart/form-data" data-mobile-move="import">
             <div>
                 <label class="font-mono text-xs uppercase tracking-[.18em] text-muted" for="opml_file">Importer un fichier OPML</label>
                 <p class="mt-2 text-sm text-muted">Compatible FreshRSS. Les dossiers deviennent des catégories ; les abonnements déjà présents sont conservés.</p>
@@ -44,18 +56,7 @@
         <section class="mt-12" aria-labelledby="subscriptions-heading">
             <div class="flex items-center gap-3">
                 <h2 class="font-serif text-2xl text-foreground" id="subscriptions-heading">Sources suivies</h2>
-                <button class="flex h-11 w-11 items-center justify-center border border-line text-accent hover:border-accent hover:bg-accent-soft" type="button" data-open-delete="create-category" aria-label="Ajouter une catégorie" title="Ajouter une catégorie"><svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
             </div>
-            <dialog id="create-category" class="m-auto w-full max-w-lg border border-line bg-surface p-6 text-foreground backdrop:bg-background/80" aria-labelledby="create-category-title">
-                <h3 class="font-serif text-2xl" id="create-category-title">Nouvelle catégorie</h3>
-                <form class="mt-4 grid gap-4" action="{{ path('app_subscriptions') }}" method="post">
-                    <label class="grid gap-2" for="category_name">Nom de la catégorie<input class="border border-line bg-background px-4 py-3 text-foreground outline-none focus:border-accent" id="category_name" name="category_name" required maxlength="100" autofocus></label>
-                    <input type="hidden" name="_token" value="{{ csrf_token('create-category') }}">
-                    <input type="hidden" name="intent" value="create-category">
-                    <button class="border border-accent px-4 py-3 text-accent" type="submit">Créer la catégorie</button>
-                </form>
-                <form method="dialog" class="mt-3"><button class="border border-line px-4 py-3" type="submit">Annuler</button></form>
-            </dialog>
             {% if subscriptions is empty and categories is empty %}
                 <p class="mt-4 text-muted">Aucune source pour le moment.</p>
             {% else %}
@@ -98,6 +99,16 @@
             {% endif %}
         </section>
     </main>
+    <dialog id="mobile-add-feed" class="discovery-dialog" aria-labelledby="mobile-add-title">
+        <h2 id="mobile-add-title" class="font-serif text-2xl">Ajouter un flux</h2>
+        <div class="mobile-dialog-content" data-mobile-slot="add"></div>
+        <form method="dialog" class="mt-4"><button class="border border-line px-4 py-2" type="submit">Fermer</button></form>
+    </dialog>
+    <dialog id="mobile-import-feed" class="discovery-dialog" aria-labelledby="mobile-import-title">
+        <h2 id="mobile-import-title" class="font-serif text-2xl">Importer des flux</h2>
+        <div class="mobile-dialog-content" data-mobile-slot="import"></div>
+        <form method="dialog" class="mt-4"><button class="border border-line px-4 py-2" type="submit">Fermer</button></form>
+    </dialog>
     <dialog class="discovery-dialog" data-discovery-dialog aria-labelledby="discovery-title">
         <h2 id="discovery-title" class="font-serif text-2xl">Découverte des flux</h2>
         <div class="discovery-progress mt-4" data-discovery-progress hidden aria-hidden="true"><span></span><span></span><span></span></div>

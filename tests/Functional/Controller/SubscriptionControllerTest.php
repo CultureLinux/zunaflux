@@ -527,12 +527,9 @@ final class SubscriptionControllerTest extends WebTestCase
 
         try {
             $client->loginUser($user);
-            $crawler = $client->request('GET', '/subscriptions');
-            self::assertSelectorExists('[aria-labelledby="subscriptions-heading"] button[data-open-delete="create-category"]');
-            self::assertSelectorExists('dialog#create-category form input[name="category_name"]');
-            $client->submit($crawler->selectButton('Créer la catégorie')->form(), [
-                'category_name' => 'Veille',
-            ]);
+            $client->request('GET', '/subscriptions');
+            $token = static::getContainer()->get('security.csrf.token_manager')->getToken('create-category')->getValue();
+            $client->request('POST', '/subscriptions', ['intent' => 'create-category', '_token' => $token, 'category_name' => 'Veille']);
 
             self::assertResponseRedirects('/subscriptions');
             self::assertSame(1, (int) $entityManager->getConnection()->fetchOne(
