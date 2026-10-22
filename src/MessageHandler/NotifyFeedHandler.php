@@ -38,9 +38,18 @@ final readonly class NotifyFeedHandler
 
     public function __invoke(NotifyFeedMessage $message): void
     {
+<<<<<<< Updated upstream
         $fileReadable = is_file($this->pushPrivateFile) && is_readable($this->pushPrivateFile);
         if (!$fileReadable || '' === $this->pushSubject) {
             $this->diagnostics->configuration('collecte', $fileReadable, '' !== $this->pushSubject);
+=======
+        if (!is_file($this->pushPrivateFile) || !is_readable($this->pushPrivateFile) || '' === $this->pushSubject) {
+            $this->logger->error('Notification Web Push non envoyée : configuration VAPID indisponible.', [
+                'article_count' => $message->count,
+                'status' => 'configuration_error',
+            ]);
+
+>>>>>>> Stashed changes
             return;
         }
         $feed = $this->em->getRepository(Feed::class)->find(Uuid::fromString($message->feedId));
@@ -54,6 +63,7 @@ final readonly class NotifyFeedHandler
             throw $exception;
         }
         foreach ($this->em->getRepository(Subscription::class)->findBy(['feed' => $feed, 'enabled' => true]) as $feedSubscription) {
+<<<<<<< Updated upstream
             $preference = $this->em->getRepository(UserPreference::class)->findOneBy(['user' => $feedSubscription->getUser()]);
             $locale = $preference instanceof UserPreference ? $preference->getLocale() : 'fr';
             $body = 'error' === $message->kind ? $this->messages->error($locale) : $this->messages->articles($message->count, $locale);
@@ -68,6 +78,44 @@ final readonly class NotifyFeedHandler
                     if ($report->isSubscriptionExpired()) $this->em->remove($subscription);
                 } catch (\Throwable $exception) {
                     $this->diagnostics->exception('collecte', 'envoi', $exception);
+=======
+            $user = $feedSubscription->getUser();
+            $context = [
+                'article_count' => $message->count,
+                'user_email' => $user->getUserIdentifier(),
+            ];
+            $subscriptions = $this->em->getRepository(PushSubscription::class)->findBy(['user' => $user]);
+            $this->logger->info('Nouveaux articles détectés pour un utilisateur.', $context + ['status' => 'detected']);
+
+            if ([] === $subscriptions) {
+                $this->logger->warning('Notification Web Push non envoyée : aucun appareil abonné.', $context + ['status' => 'no_push_subscription']);
+
+                continue;
+            }
+
+            foreach ($subscriptions as $subscription) {
+                if (!PushEndpoint::isAllowed($subscription->getEndpoint())) {
+                    $this->logger->warning('Notification Web Push non envoyée : point de terminaison non autorisé.', $context + ['status' => 'unsupported_endpoint']);
+
+                    continue;
+                }
+                try {
+                    $recipient = WebPushSubscription::create(['endpoint' => $subscription->getEndpoint(), 'keys' => ['p256dh' => $subscription->getPublicKey(), 'auth' => $subscription->getAuthSecret()], 'contentEncoding' => 'aes128gcm']);
+                    $report = $push->sendOneNotification($recipient, $payload);
+                    if ($report->isSubscriptionExpired()) {
+                        $this->em->remove($subscription);
+                        $this->logger->warning('Notification Web Push non envoyée : abonnement expiré.', $context + ['status' => 'expired_subscription']);
+                    } elseif (!$report->isSuccess()) {
+                        $this->logger->warning('Échec de livraison d’une notification Web Push.', $context + ['status' => 'delivery_failed']);
+                    } else {
+                        $this->logger->info('Notification Web Push envoyée.', $context + ['status' => 'sent']);
+                    }
+                } catch (\Throwable $error) {
+                    $this->logger->warning('Échec de livraison d’une notification Web Push.', $context + [
+                        'status' => 'delivery_error',
+                        'error' => $error->getMessage(),
+                    ]);
+>>>>>>> Stashed changes
                 }
             }
         }
