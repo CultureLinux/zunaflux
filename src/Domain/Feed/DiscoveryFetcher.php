@@ -25,6 +25,8 @@ final readonly class DiscoveryFetcher
             $port = $parts['port'] ?? ('https' === strtolower($parts['scheme']) ? 443 : 80);
             $body = '';
             $location = null;
+            $tooLarge = false;
+            if (!function_exists('curl_init')) throw new \RuntimeException('L’extension PHP cURL est indisponible sur le serveur.');
             $curl = curl_init($url);
             if (false === $curl) throw new \RuntimeException('Connexion impossible.');
             try {
@@ -38,15 +40,16 @@ final readonly class DiscoveryFetcher
                         if (preg_match('/^location:\s*(.*?)\s*$/i', $header, $match)) $location = $match[1];
                         return strlen($header);
                     },
-                    CURLOPT_WRITEFUNCTION => static function ($handle, string $chunk) use (&$body): int {
-                        if (strlen($body) + strlen($chunk) > 2_000_000) return 0;
+                    CURLOPT_WRITEFUNCTION => static function ($handle, string $chunk) use (&$body, &$tooLarge): int {
+                        if (strlen($body) + strlen($chunk) > 2_000_000) { $tooLarge = true; return 0; }
                         $body .= $chunk;
                         return strlen($chunk);
                     },
                 ]);
                 $ok = curl_exec($curl);
                 $status = (int) curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
-                if (false === $ok) throw new \RuntimeException('Impossible de charger cette adresse.');
+                if ($tooLarge) throw new \RuntimeException('La page dépasse la limite de téléchargement de 2 Mo.');
+                if (false === $ok) throw new \RuntimeException('La connexion au site a échoué (code cURL '.curl_errno($curl).').');
             } finally {
                 curl_close($curl);
             }
@@ -54,7 +57,8 @@ final readonly class DiscoveryFetcher
                 $url = (new FeedDiscovery())->resolve($location, $url) ?? throw new \RuntimeException('Redirection invalide.');
                 continue;
             }
-            if (200 !== $status) throw new \RuntimeException('La page est indisponible.');
+            if (403 === $status) throw new \RuntimeException('Le site refuse l’accès (HTTP 403). Il utilise peut-être une protection contre les robots.', 403);
+            if (200 !== $status) throw new \RuntimeException('Le site a répondu avec le code HTTP '.$status.'.');
             return ['url' => $url, 'body' => $body];
         }
         throw new \RuntimeException('Trop de redirections.');

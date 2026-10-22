@@ -12,6 +12,81 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class SubscriptionControllerTest extends WebTestCase
 {
+    public function testDiscoveredFeedCanUseANewOrExistingOwnedCategory(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $suffix = bin2hex(random_bytes(8));
+        $user = new User('discover-category-'.$suffix.'@example.test');
+        $em->persist($user);
+        $em->flush();
+        try {
+            $client->loginUser($user);
+            $crawler = $client->request('GET', '/subscriptions');
+            $token = $crawler->filter('[data-discovery-results] input[name="_token"]')->attr('value');
+            $client->request('POST', '/subscriptions', ['intent' => 'subscribe-feed', '_token' => $token, 'feed_url' => 'https://example.test/'.$suffix.'/one', 'discovery_category' => 'new', 'new_category' => 'Veille']);
+            self::assertResponseRedirects('/subscriptions');
+            $category = $em->getRepository(\App\Entity\Category::class)->findOneBy(['user' => $user, 'name' => 'Veille']);
+            self::assertNotNull($category);
+            $first = $em->getRepository(Feed::class)->findOneBy(['canonicalUrl' => 'https://example.test/'.$suffix.'/one']);
+            self::assertTrue($em->getRepository(Subscription::class)->findOneBy(['user' => $user, 'feed' => $first])->getCategory()->getId()->equals($category->getId()));
+            $client->request('POST', '/subscriptions', ['intent' => 'subscribe-feed', '_token' => $token, 'feed_url' => 'https://example.test/'.$suffix.'/two', 'discovery_category' => (string) $category->getId()]);
+            self::assertResponseRedirects('/subscriptions');
+            $second = $em->getRepository(Feed::class)->findOneBy(['canonicalUrl' => 'https://example.test/'.$suffix.'/two']);
+            self::assertTrue($em->getRepository(Subscription::class)->findOneBy(['user' => $user, 'feed' => $second])->getCategory()->getId()->equals($category->getId()));
+        } finally {
+            $em->getConnection()->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
+            $em->getConnection()->executeStatement('DELETE FROM feed WHERE canonical_url IN (?, ?)', ['https://example.test/'.$suffix.'/one', 'https://example.test/'.$suffix.'/two']);
+        }
+    }
+
+    public function testDisablingSubscriptionShowsInactiveStatus(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $user = new User('inactive-'.bin2hex(random_bytes(8)).'@example.test');
+        $feed = new Feed('https://example.test/'.bin2hex(random_bytes(8)).'/feed');
+        $subscription = new Subscription($user, $feed);
+        foreach ([$user, $feed, $subscription] as $entity) $em->persist($entity);
+        $em->flush();
+        try {
+            $client->loginUser($user);
+            $crawler = $client->request('GET', '/subscriptions');
+            $form = $crawler->filter('form[action="/subscriptions/'.$subscription->getId().'/update"]')->form();
+            $form['enabled']->untick();
+            $client->submit($form);
+            self::assertResponseRedirects('/subscriptions');
+            $client->followRedirect();
+            self::assertSelectorTextContains('.subscription-inactive', 'Inactif');
+            $em->clear();
+            self::assertFalse($em->getRepository(Subscription::class)->find($subscription->getId())->isEnabled());
+        } finally {
+            $em->getConnection()->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
+            $em->getConnection()->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);
+        }
+    }
+
+    public function testLiveDiscoveryRejectsInvalidUrlsAndCsrf(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $user = new User('discovery-'.bin2hex(random_bytes(8)).'@example.test');
+        $em->persist($user);
+        $em->flush();
+        try {
+            $client->loginUser($user);
+            $crawler = $client->request('GET', '/subscriptions');
+            $token = $crawler->filter('[data-discovery-form] input[name="_token"]')->attr('value');
+            $client->request('POST', '/subscriptions/discovery/live', ['_token' => 'invalid', 'site_url' => 'https://example.com']);
+            self::assertResponseStatusCodeSame(403);
+            $client->request('POST', '/subscriptions/discovery/live', ['_token' => $token, 'site_url' => 'file:///etc/passwd']);
+            self::assertResponseStatusCodeSame(400);
+            self::assertStringContainsString('adresse HTTP ou HTTPS valide', $client->getResponse()->getContent());
+        } finally {
+            $em->getConnection()->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
+        }
+    }
+
     public function testCategoryDeletionRemovesOnlyOwnersSubscriptionsAndStates(): void
     {
         $client = static::createClient();

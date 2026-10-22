@@ -2,7 +2,7 @@
     {% for subscription in items %}
         <li class="min-w-0 py-2" data-subscription-item data-subscription-title="{{ subscription.displayTitle }}" data-feed-title="{{ subscription.feed.title|default('') }}" data-feed-url="{{ subscription.feed.canonicalUrl }}">
             <div class="flex min-h-11 items-center gap-2">
-                    <span class="min-w-0 flex-1 break-words font-serif text-foreground">{{ subscription.displayTitle }}{% if not subscription.enabled %} <span class="font-sans text-xs text-muted">(inactif)</span>{% endif %}
+                    <span class="min-w-0 flex-1 break-words font-serif text-foreground">{{ subscription.displayTitle }}{% if not subscription.enabled %} <span class="subscription-inactive">Inactif</span>{% endif %}
                         {% set latest = latestPublications[subscription.id ~ '']|default(null) %}
                         {% if latest %}
                             {% set timestamp = latest|date('U') %}
@@ -39,16 +39,16 @@
                         <label class="grid gap-1 text-sm" for="category-{{ subscription.id }}">Catégorie
                             <select class="w-full min-w-0 border border-line bg-background px-3 py-2" id="category-{{ subscription.id }}" name="category_id"><option value="">Sans catégorie</option>{% for category in categories %}<option value="{{ category.id }}" {{ subscription.category and subscription.category.id == category.id ? 'selected' }}>{{ category.name }}</option>{% endfor %}</select>
                         </label>
-                        <div class="flex items-center justify-between gap-3">
+                        <div class="flex flex-wrap items-center gap-3">
                             <label class="flex min-h-11 items-center gap-2 text-sm"><input name="enabled" type="checkbox" value="1" {{ subscription.enabled ? 'checked' }}> Actif</label>
                             <input type="hidden" name="_token" value="{{ csrf_token('subscription-' ~ subscription.id) }}">
-                            <button class="flex h-11 w-11 items-center justify-center border border-line text-foreground hover:border-accent hover:text-accent" type="submit" aria-label="Enregistrer les modifications de {{ subscription.displayTitle }}" title="Enregistrer">
+                            <button class="ml-auto flex h-11 w-11 items-center justify-center border border-line text-foreground hover:border-accent hover:text-accent" type="submit" aria-label="Enregistrer les modifications de {{ subscription.displayTitle }}" title="Enregistrer">
                                 <svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h12l4 4v14H3V3h2Zm2 0v6h9V3M7 21v-8h10v8"/></svg>
                             </button>
                             <button class="min-h-11 border border-danger px-3 text-danger" type="button" data-open-delete="delete-{{ subscription.id }}" data-close-current-dialog>Supprimer</button>
+                            <button class="min-h-11 border border-line px-4" type="submit" formmethod="dialog" formnovalidate>Annuler</button>
                         </div>
                     </form>
-                    <form method="dialog" class="mt-4"><button class="min-h-11 border border-line px-4" type="submit">Annuler</button></form>
                 </dialog>
                     <dialog id="delete-{{ subscription.id }}" class="m-auto max-w-lg border border-line bg-surface p-6 text-foreground backdrop:bg-background/80" aria-labelledby="delete-title-{{ subscription.id }}">
                         <h3 class="font-serif text-xl" id="delete-title-{{ subscription.id }}">Retirer {{ subscription.displayTitle }} ?</h3>

@@ -61,7 +61,21 @@ final class SubscriptionController extends AbstractController
                         throw $this->createAccessDeniedException('Invalid CSRF token.');
                     }
 
-                    $subscribeToFeed->subscribe($user, $request->request->getString('feed_url'));
+                    $categoryChoice = $request->request->getString('discovery_category');
+                    if ('' === $categoryChoice) {
+                        $subscribeToFeed->subscribe($user, $request->request->getString('feed_url'));
+                    } else {
+                        $category = null;
+                        if (!in_array($categoryChoice, ['none', 'new'], true)) {
+                            try { $category = $entityManager->getRepository(Category::class)->find(Uuid::fromString($categoryChoice)); } catch (\InvalidArgumentException) { $category = null; }
+                            if (!$category instanceof Category || !$category->getUser()->getId()->equals($user->getId())) throw $this->createAccessDeniedException();
+                        }
+                        $entityManager->wrapInTransaction(function () use ($categoryChoice, $category, $createCategory, $subscribeToFeed, $user, $request): void {
+                            $selected = 'new' === $categoryChoice ? $createCategory->create($user, $request->request->getString('new_category')) : $category;
+                            $subscription = $subscribeToFeed->subscribe($user, $request->request->getString('feed_url'));
+                            $subscription->assignCategory($selected);
+                        });
+                    }
                     $this->addFlash('success', 'Flux ajouté à vos abonnements.');
                 }
             } catch (\InvalidArgumentException $exception) {
