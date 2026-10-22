@@ -1,16 +1,16 @@
 {% set dialog_id = 'delete-feed-' ~ scope ~ '-' ~ feed.id %}
-<button class="min-h-11 border border-danger px-4 text-sm font-semibold text-danger hover:bg-surface-muted" type="button" data-confirm-open="{{ dialog_id }}">Supprimer le flux</button>
+<button class="min-h-11 border border-danger px-4 text-sm font-semibold text-danger hover:bg-surface-muted" type="button" data-confirm-open="{{ dialog_id }}">{{ "Supprimer le flux"|trans }}</button>
 <dialog class="m-auto w-[calc(100%-2rem)] max-w-lg border border-line bg-surface p-6 text-foreground sm:p-8" id="{{ dialog_id }}" aria-labelledby="{{ dialog_id }}-title" aria-describedby="{{ dialog_id }}-description">
-    <p class="font-mono text-xs uppercase tracking-[.2em] text-danger">Suppression définitive</p>
-    <h3 class="mt-3 font-serif text-2xl" id="{{ dialog_id }}-title">Supprimer cette source ?</h3>
+    <p class="font-mono text-xs uppercase tracking-[.2em] text-danger">{{ "Suppression définitive"|trans }}</p>
+    <h3 class="mt-3 font-serif text-2xl" id="{{ dialog_id }}-title">{{ "Supprimer cette source ?"|trans }}</h3>
     <p class="mt-3 break-words font-semibold">{{ feed.title ?: feed.canonicalUrl }}</p>
-    <p class="mt-3 text-sm leading-6 text-muted" id="{{ dialog_id }}-description">Le flux et ses articles seront supprimés. Les abonnements, favoris et états de lecture associés seront également supprimés pour tous les comptes.</p>
+    <p class="mt-3 text-sm leading-6 text-muted" id="{{ dialog_id }}-description">{{ 'Le flux et ses articles seront supprimés. Les abonnements, favoris et états de lecture associés seront également supprimés pour tous les comptes.'|trans }}</p>
     <div class="mt-7 flex flex-wrap justify-end gap-3">
-        <button class="min-h-11 border border-line px-4 text-foreground hover:border-accent" type="button" data-confirm-close autofocus>Annuler</button>
+        <button class="min-h-11 border border-line px-4 text-foreground hover:border-accent" type="button" data-confirm-close autofocus>{{ "Annuler"|trans }}</button>
         <form method="post" action="{{ path('app_admin_feed_delete', {id: feed.id}) }}">
             <input type="hidden" name="_token" value="{{ csrf_token('delete-feed-' ~ feed.id) }}">
             <input type="hidden" name="scope" value="{{ scope }}">
-            <button class="min-h-11 border border-danger px-4 font-semibold text-danger hover:bg-surface-muted" type="submit">Supprimer définitivement</button>
+            <button class="min-h-11 border border-danger px-4 font-semibold text-danger hover:bg-surface-muted" type="submit">{{ "Supprimer définitivement"|trans }}</button>
         </form>
     </div>
 </dialog>

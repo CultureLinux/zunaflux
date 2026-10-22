@@ -30,9 +30,9 @@ final class SubscriptionControllerTest extends WebTestCase
             $page = $client->request('GET', '/subscriptions');
             self::assertSelectorExists('[data-subscription-item] [aria-label="1 articles en base"]');
             $url = '/subscriptions/'.$subscription->getId().'/category';
+            $token = $page->filter('form[action="'.$url.'"] input[name="_token"]')->attr('value');
             $client->request('POST', $url, ['category_id' => (string) $category->getId()]);
             self::assertResponseStatusCodeSame(403);
-            $token = static::getContainer()->get('security.csrf.token_manager')->getToken('move-subscription-'.$subscription->getId())->getValue();
             $client->request('POST', $url, ['_token' => $token, 'category_id' => (string) $foreign->getId()]);
             self::assertResponseStatusCodeSame(403);
             $client->request('POST', $url, ['_token' => $token, 'category_id' => (string) $category->getId()]);
@@ -566,7 +566,18 @@ final class SubscriptionControllerTest extends WebTestCase
         try {
             $client->loginUser($user);
             $client->request('GET', '/subscriptions');
-            $token = static::getContainer()->get('security.csrf.token_manager')->getToken('create-category')->getValue();
+            $session = $client->getSession();
+            self::assertNotNull($session);
+            $request = new \Symfony\Component\HttpFoundation\Request();
+            $request->setSession($session);
+            $requestStack = static::getContainer()->get('request_stack');
+            $requestStack->push($request);
+            try {
+                $token = static::getContainer()->get('security.csrf.token_manager')->getToken('create-category')->getValue();
+            } finally {
+                $requestStack->pop();
+                $session->save();
+            }
             $client->request('POST', '/subscriptions', ['intent' => 'create-category', '_token' => $token, 'category_name' => 'Veille']);
 
             self::assertResponseRedirects('/subscriptions');

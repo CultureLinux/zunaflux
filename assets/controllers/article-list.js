@@ -1,8 +1,10 @@
-const readingMarkers = (item) => [
-    ...(!item.isRead ? ['Non lu'] : []),
-    ...(item.isFavorite ? ['Favori'] : []),
-    ...(item.isSaved ? ['À lire plus tard'] : []),
+const readingMarkers = (item, labels = { unread: 'Non lu', favorite: 'Favori', saved: 'À lire plus tard' }) => [
+    ...(!item.isRead ? [labels.unread] : []),
+    ...(item.isFavorite ? [labels.favorite] : []),
+    ...(item.isSaved ? [labels.saved] : []),
 ];
+
+const formatReadingDate = (date, locale) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
 
 const viewFromParams = (params) => {
     if (params.get('favorite') === '1') return 'favorite';
@@ -20,6 +22,8 @@ const setViewParams = (params, view) => {
 const container = document.querySelector('[data-article-list]');
 
 if (container) {
+    const labels = { unread: container.dataset.unreadLabel, favorite: container.dataset.favoriteLabel, saved: container.dataset.savedLabel };
+    const locale = document.documentElement.lang || 'fr';
     const endpoint = container.dataset.articleList;
     const workspace = document.querySelector('.reading-workspace');
     const desktopLayout = window.matchMedia('(min-width: 1024px)');
@@ -208,10 +212,10 @@ if (container) {
             if (item) Object.assign(item, state);
             const row = container.querySelector(`[data-article-row-id="${CSS.escape(String(article.id))}"]`);
             if (row) {
-                row.querySelector('[data-reading-state]').textContent = state.isRead ? '' : 'Non lu';
-                for (const [key, label] of [['favorite', 'Favori'], ['saved', 'À lire plus tard']]) {
+                row.querySelector('[data-reading-state]').textContent = state.isRead ? '' : labels.unread;
+                for (const [key, label] of [['favorite', labels.favorite], ['saved', labels.saved]]) {
                     const marker = row.querySelector(`[data-reading-${key}]`);
-                    if (marker) marker.hidden = !readingMarkers(state).includes(label);
+                    if (marker) marker.hidden = !readingMarkers(state, labels).includes(label);
                 }
                 row.querySelector('h2').classList.toggle('text-muted', state.isRead);
                 row.querySelector('h2').classList.toggle('text-foreground', !state.isRead);
@@ -384,18 +388,18 @@ if (container) {
                 if (timestamp && !Number.isNaN(date.getTime())) {
                     const time = document.createElement('time');
                     time.dateTime = timestamp;
-                    time.textContent = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+                    time.textContent = formatReadingDate(date, locale);
                     metadata.append(time);
                 }
                 const status = document.createElement('span');
                 status.dataset.readingState = '';
-                status.textContent = item.isRead ? '' : 'Non lu';
+                status.textContent = item.isRead ? '' : labels.unread;
                 metadata.append(status);
-                for (const [key, label, path] of [['favorite', 'Favori', 'M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z'], ['saved', 'À lire plus tard', 'M6 3h12v18l-6-4-6 4V3Z']]) {
+                for (const [key, label, path] of [['favorite', labels.favorite, 'M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z'], ['saved', labels.saved, 'M6 3h12v18l-6-4-6 4V3Z']]) {
                     const marker = document.createElement('span');
                     marker.dataset[`reading${key === 'favorite' ? 'Favorite' : 'Saved'}`] = '';
                     marker.className = 'inline-flex items-center text-accent';
-                    marker.hidden = !readingMarkers(item).includes(label);
+                    marker.hidden = !readingMarkers(item, labels).includes(label);
                     marker.setAttribute('role', 'img');
                     marker.setAttribute('aria-label', label);
                     marker.title = label;

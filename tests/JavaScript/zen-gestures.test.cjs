@@ -21,3 +21,11 @@ test('zen gestures target article content and remaining count appears in the hea
     assert.doesNotMatch(template, /data-zen-gesture/);
     assert.match(template, /class="zen-header"[^\n]*data-zen-remaining/);
 });
+
+test('zen counts use translated singular and plural messages', () => {
+    const context = { document: { querySelector: () => null } };
+    vm.runInNewContext(fs.readFileSync('assets/controllers/zen.js', 'utf8') + '\nthis.formatCount = formatZenCount;', context);
+    assert.equal(context.formatCount(1, '%count% ungelesener Artikel', '%count% ungelesene Artikel'), '1 ungelesener Artikel');
+    assert.equal(context.formatCount(2, '%count% ungelesener Artikel', '%count% ungelesene Artikel'), '2 ungelesene Artikel');
+    assert.equal(context.formatCount(0, '%count% article restant', '%count% articles restants'), '0 articles restants');
+});

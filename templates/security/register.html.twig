@@ -11,18 +11,18 @@
 
             <form method="post" action="{{ path('app_register') }}" class="mt-8 space-y-5">
                 <div>
-                    <label class="block text-sm font-medium text-foreground" for="email">Adresse e-mail</label>
+                    <label class="block text-sm font-medium text-foreground" for="email">{{ "Adresse e-mail"|trans }}</label>
                     <input class="mt-2 w-full border border-line bg-background px-4 py-3 text-foreground outline-none transition focus:border-accent focus:ring-1 focus:ring-accent" id="email" name="email" type="email" autocomplete="email" required autofocus>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-foreground" for="password">Mot de passe</label>
+                    <label class="block text-sm font-medium text-foreground" for="password">{{ "Mot de passe"|trans }}</label>
                     <input class="mt-2 w-full border border-line bg-background px-4 py-3 text-foreground outline-none transition focus:border-accent focus:ring-1 focus:ring-accent" id="password" name="password" type="password" autocomplete="new-password" minlength="12" required aria-describedby="password-hint">
-                    <p class="mt-2 text-xs text-muted" id="password-hint">12 caractères minimum.</p>
+                    <p class="mt-2 text-xs text-muted" id="password-hint">{{ "12 caractères minimum."|trans }}</p>
                 </div>
                 <input type="hidden" name="_token" value="{{ csrf_token('register') }}">
-                <button class="w-full bg-accent px-4 py-3 text-sm font-bold uppercase tracking-[.16em] text-accent-foreground transition hover:bg-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface" type="submit">Créer mon compte</button>
+                <button class="w-full bg-accent px-4 py-3 text-sm font-bold uppercase tracking-[.16em] text-accent-foreground transition hover:bg-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface" type="submit">{{ "Créer mon compte"|trans }}</button>
             </form>
-            <p class="mt-7 border-t border-line pt-5 text-center text-sm text-muted">Déjà inscrit ? <a class="font-semibold text-accent underline decoration-accent underline-offset-4 hover:text-accent" href="{{ path('app_login') }}">Se connecter</a></p>
+            <p class="mt-7 border-t border-line pt-5 text-center text-sm text-muted">{{ "Déjà inscrit ?"|trans }} <a class="font-semibold text-accent underline decoration-accent underline-offset-4 hover:text-accent" href="{{ path('app_login') }}">{{ "Se connecter"|trans }}</a></p>
         </section>
     </main>
 {% endblock %}

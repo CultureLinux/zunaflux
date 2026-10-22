@@ -15,28 +15,29 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class FeedDiscoveryController extends AbstractController
 {
     #[Route('/subscriptions/discovery/live', name: 'app_feed_discovery_live', methods: ['POST'])]
-    public function live(Request $request, DiscoveryFetcher $fetcher, FeedDiscovery $discovery): Response
+    public function live(Request $request, DiscoveryFetcher $fetcher, FeedDiscovery $discovery, TranslatorInterface $translator): Response
     {
         $this->user();
         if (!$this->isCsrfTokenValid('discover-feed', $request->request->getString('_token'))) throw $this->createAccessDeniedException();
         $url = trim($request->request->getString('site_url'));
         $parts = parse_url($url);
         if (strlen($url) > 2048 || !filter_var($url, FILTER_VALIDATE_URL) || !is_array($parts) || !in_array(strtolower($parts['scheme'] ?? ''), ['http', 'https'], true) || isset($parts['user']) || isset($parts['pass'])) {
-            return $this->json(['error' => 'Saisissez une adresse HTTP ou HTTPS valide.'], 400);
+            return $this->json(['error' => $translator->trans('Saisissez une adresse HTTP ou HTTPS valide.')], 400);
         }
         try {
             $page = $fetcher->fetch($url);
             return $this->json(['feeds' => $discovery->find($page['body'], $page['url'])]);
         } catch (\InvalidArgumentException $e) {
-            return $this->json(['error' => 'Adresse inaccessible ou interdite par les règles de sécurité.'], 422);
+            return $this->json(['error' => $translator->trans('Adresse inaccessible ou interdite par les règles de sécurité.')], 422);
         } catch (\RuntimeException $e) {
-            return $this->json(['error' => $e->getMessage(), 'reason' => 403 === $e->getCode() ? 'site_forbidden' : 'fetch_error'], 422);
+            return $this->json(['error' => $translator->trans($e->getMessage()), 'reason' => 403 === $e->getCode() ? 'site_forbidden' : 'fetch_error'], 422);
         } catch (\Throwable) {
-            return $this->json(['error' => 'La page n’a pas pu être consultée. Vérifiez son adresse et réessayez.'], 422);
+            return $this->json(['error' => $translator->trans('La page n’a pas pu être consultée. Vérifiez son adresse et réessayez.')], 422);
         }
     }
 

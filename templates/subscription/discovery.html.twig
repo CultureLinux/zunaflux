@@ -1,25 +1,25 @@
 {% extends 'base.html.twig' %}
-{% block title %}Recherche de flux · Zunaflux{% endblock %}
+{% block title %}{{ "Recherche de flux"|trans }} · Zunaflux{% endblock %}
 {% block body %}
 <main class="mx-auto max-w-3xl px-6 py-16">
-    <h1 class="font-serif text-4xl text-foreground">Recherche de flux</h1>
+    <h1 class="font-serif text-4xl text-foreground">{{ 'Recherche de flux'|trans }}</h1>
     {% if result.status == 'pending' %}
-        <p class="mt-6" role="status">La recherche est en cours. Actualisez cette page dans quelques instants.</p>
-        <a class="mt-4 inline-block border border-accent px-4 py-3 text-accent" href="{{ path('app_feed_discovery_result', {id: id}) }}">Actualiser</a>
+        <p class="mt-6" role="status">{{ 'La recherche est en cours. Actualisez cette page dans quelques instants.'|trans }}</p>
+        <a class="mt-4 inline-block border border-accent px-4 py-3 text-accent" href="{{ path('app_feed_discovery_result', {id: id}) }}">{{ 'Actualiser'|trans }}</a>
     {% elseif result.status == 'error' %}
-        <p class="mt-6" role="alert">La page n’a pas pu être consultée. Vérifiez son adresse et réessayez.</p>
+        <p class="mt-6" role="alert">{{ 'La page n’a pas pu être consultée. Vérifiez son adresse et réessayez.'|trans }}</p>
     {% elseif result.feeds is empty %}
-        <p class="mt-6" role="status">Aucun flux RSS ou Atom n’a été trouvé sur cette page.</p>
+        <p class="mt-6" role="status">{{ 'Aucun flux RSS ou Atom n’a été trouvé sur cette page.'|trans }}</p>
     {% else %}
-        <p class="mt-6">Choisissez un flux à ajouter :</p>
+        <p class="mt-6">{{ 'Choisissez un flux à ajouter :'|trans }}</p>
         <form class="mt-4 grid gap-4" method="post">
             {% for feed in result.feeds %}
                 <label class="flex gap-3 border border-line p-4"><input type="radio" name="feed" value="{{ loop.index0 }}" required><span><strong>{{ feed.title }}</strong><br><span class="break-all text-sm text-muted">{{ feed.url }}</span></span></label>
             {% endfor %}
             <input type="hidden" name="_token" value="{{ csrf_token('discover-select-' ~ id) }}">
-            <button class="justify-self-start border border-accent px-4 py-3 text-accent" type="submit">Ajouter ce flux</button>
+            <button class="justify-self-start border border-accent px-4 py-3 text-accent" type="submit">{{ "Ajouter ce flux"|trans }}</button>
         </form>
     {% endif %}
-    <a class="mt-8 inline-block text-accent" href="{{ path('app_subscriptions') }}">Retour aux abonnements</a>
+    <a class="mt-8 inline-block text-accent" href="{{ path('app_subscriptions') }}">{{ "Retour aux abonnements"|trans }}</a>
 </main>
 {% endblock %}

@@ -17,8 +17,11 @@ final class SecurityControllerTest extends WebTestCase
         $connection = static::getContainer()->get(EntityManagerInterface::class)->getConnection();
         $old = $connection->fetchOne('SELECT account_limit FROM registration_settings WHERE id = 1');
         $count = (int) $connection->fetchOne('SELECT COUNT(*) FROM app_user');
-        $connection->executeStatement('UPDATE registration_settings SET account_limit = ? WHERE id = 1', [max(1, $count)]);
         try {
+            $connection->executeStatement('UPDATE registration_settings SET account_limit = NULL WHERE id = 1');
+            $registration = $client->request('GET', '/register');
+            $token = $registration->filter('form[action="/register"] input[name="_token"]')->attr('value');
+            $connection->executeStatement('UPDATE registration_settings SET account_limit = ? WHERE id = 1', [max(1, $count)]);
             if (0 === $count) {
                 $user = new User('limit-'.bin2hex(random_bytes(8)).'@example.test');
                 $em = static::getContainer()->get(EntityManagerInterface::class);
@@ -27,7 +30,6 @@ final class SecurityControllerTest extends WebTestCase
             $client->request('GET', '/register');
             self::assertResponseStatusCodeSame(403);
             self::assertSelectorTextContains('body', 'limite');
-            $token = static::getContainer()->get('security.csrf.token_manager')->getToken('register')->getValue();
             $client->request('POST', '/register', ['_token' => $token, 'email' => 'blocked-'.bin2hex(random_bytes(8)).'@example.test', 'password' => 'a-secure-password']);
             self::assertResponseStatusCodeSame(403);
         } finally {
@@ -87,7 +89,7 @@ final class SecurityControllerTest extends WebTestCase
             $client->loginUser($user);
             $client->request('POST', '/logout', ['_csrf_token' => 'invalid']);
             self::assertResponseStatusCodeSame(403);
-            $crawler = $client->request('GET', '/');
+            $crawler = $client->request('GET', '/articles');
             self::assertSelectorExists('form[action="/logout"][method="post"] input[name="_csrf_token"]');
             $client->submit($crawler->selectButton('Quitter')->form());
             self::assertResponseRedirects('/');

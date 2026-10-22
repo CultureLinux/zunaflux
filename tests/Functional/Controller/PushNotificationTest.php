@@ -23,6 +23,9 @@ final class PushNotificationTest extends WebTestCase
             self::assertResponseStatusCodeSame(403);
             $client->request('GET', '/preferences');
             self::assertSelectorNotExists('[data-push-test]');
+            $em = static::getContainer()->get(EntityManagerInterface::class);
+            $user = $em->find(User::class, $user->getId());
+            self::assertInstanceOf(User::class, $user);
             $user->addRole('ROLE_ADMIN');
             $em->flush();
             $client->loginUser($user);

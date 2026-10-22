@@ -57,6 +57,7 @@ directCategory?.addEventListener('change', () => {
 const discoveryForm = document.querySelector('[data-discovery-form]');
 const discoveryDialog = document.querySelector('[data-discovery-dialog]');
 if (discoveryForm && discoveryDialog && typeof discoveryDialog.showModal === 'function') {
+    const messages = JSON.parse(discoveryDialog.dataset.messages);
     const status = discoveryDialog.querySelector('[data-discovery-status]');
     const results = discoveryDialog.querySelector('[data-discovery-results]');
     const options = discoveryDialog.querySelector('[data-discovery-options]');
@@ -82,7 +83,7 @@ if (discoveryForm && discoveryDialog && typeof discoveryDialog.showModal === 'fu
         progress.hidden = false;
         manual.hidden = true;
         manualLink.removeAttribute('href');
-        status.textContent = 'Chargement de la page et analyse de ses flux…';
+        status.textContent = messages.loading;
         discoveryForm.closest('dialog')?.close();
         discoveryDialog.showModal();
         const startedAt = Date.now();
@@ -94,10 +95,10 @@ if (discoveryForm && discoveryDialog && typeof discoveryDialog.showModal === 'fu
                 data = await response.json();
             } catch (error) {
                 if (error.name === 'AbortError') throw error;
-                throw new Error(`Réponse inattendue du serveur (HTTP ${response.status}). Consultez les journaux du serveur.`);
+                throw new Error(messages.unexpected.replace('%status%', response.status));
             }
             if (!data || typeof data !== 'object' || (response.ok && !Array.isArray(data.feeds))) {
-                throw new Error(`Réponse inattendue du serveur (HTTP ${response.status}). Consultez les journaux du serveur.`);
+                throw new Error(messages.unexpected.replace('%status%', response.status));
             }
             await new Promise((resolve) => setTimeout(resolve, Math.max(0, 1000 - (Date.now() - startedAt))));
             if (request.signal.aborted) return;
@@ -110,14 +111,14 @@ if (discoveryForm && discoveryDialog && typeof discoveryDialog.showModal === 'fu
                         manual.hidden = false;
                     }
                 }
-                throw new Error(data.error || 'La recherche a échoué.');
+                throw new Error(data.error || messages.failed);
             }
             if (!data.feeds.length) {
-                status.textContent = 'Aucun flux RSS ou Atom déclaré sur cette page.';
+                status.textContent = messages.empty;
                 window.dispatchEvent(new CustomEvent('zunaflux:toast', { detail: { type: 'error', message: status.textContent } }));
                 return;
             }
-            status.textContent = `${data.feeds.length} flux trouvé(s). Choisissez celui à ajouter.`;
+            status.textContent = messages.found.replace('%count%', data.feeds.length);
             data.feeds.forEach((feed) => {
                 const label = document.createElement('label');
                 label.className = 'discovery-option';
@@ -129,13 +130,13 @@ if (discoveryForm && discoveryDialog && typeof discoveryDialog.showModal === 'fu
                 text.append(title, url); label.append(radio, text); options.append(label);
             });
             results.hidden = false;
-            window.dispatchEvent(new CustomEvent('zunaflux:toast', { detail: { type: 'success', message: 'Recherche des flux terminée.' } }));
+            window.dispatchEvent(new CustomEvent('zunaflux:toast', { detail: { type: 'success', message: messages.completed } }));
         } catch (error) {
             if (error.name === 'AbortError') return;
             await new Promise((resolve) => setTimeout(resolve, Math.max(0, 1000 - (Date.now() - startedAt))));
             if (request.signal.aborted) return;
             progress.hidden = true;
-            status.textContent = error.message || 'La recherche a échoué.';
+            status.textContent = error.message || messages.failed;
             window.dispatchEvent(new CustomEvent('zunaflux:toast', { detail: { type: 'error', message: status.textContent } }));
         }
     });

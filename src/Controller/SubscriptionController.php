@@ -19,11 +19,12 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class SubscriptionController extends AbstractController
 {
     #[Route('/subscriptions', name: 'app_subscriptions', methods: ['GET', 'POST'])]
-    public function index(Request $request, SubscribeToFeed $subscribeToFeed, CreateCategory $createCategory, ImportOpml $importOpml, EntityManagerInterface $entityManager): Response
+    public function index(Request $request, SubscribeToFeed $subscribeToFeed, CreateCategory $createCategory, ImportOpml $importOpml, EntityManagerInterface $entityManager, TranslatorInterface $translator): Response
     {
         $user = $this->getUser();
         if (!$user instanceof User) {
@@ -55,7 +56,7 @@ final class SubscriptionController extends AbstractController
                         throw new \InvalidArgumentException('Le fichier OPML ne peut pas être lu.');
                     }
                     $report = $importOpml->import($user, $xml);
-                    $this->addFlash('success', sprintf('%d flux importé(s), %d déjà présent(s), %d non importé(s).', $report['imported'], $report['duplicate'], $report['failed']));
+                    $this->addFlash('success', $translator->trans('%imported% flux importé(s), %duplicate% déjà présent(s), %failed% non importé(s).', ['%imported%' => $report['imported'], '%duplicate%' => $report['duplicate'], '%failed%' => $report['failed']]));
                 } else {
                     if (!$this->isCsrfTokenValid('subscribe-feed', $request->request->getString('_token'))) {
                         throw $this->createAccessDeniedException('Invalid CSRF token.');
