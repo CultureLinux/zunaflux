@@ -1,12 +1,14 @@
 (() => {
     const root = document.querySelector('[data-push-notifications]');
     if (!root) return;
+    const messages = root.dataset.messages ? JSON.parse(root.dataset.messages) : {};
+    const text = (key, fallback) => messages[key] || fallback;
     const enable = root.querySelector('[data-push-enable]');
     const disable = root.querySelector('[data-push-disable]');
     const test = root.querySelector('[data-push-test]');
     const status = root.querySelector('[role="status"]');
     if (!('serviceWorker' in navigator) || !('PushManager' in window) || !window.isSecureContext || !root.dataset.publicKey) {
-        status.textContent = 'Les notifications ne sont pas disponibles sur cet appareil ou ce serveur.';
+        status.textContent = text('unavailable', 'Les notifications ne sont pas disponibles sur cet appareil ou ce serveur.');
         return;
     }
     const key = root.dataset.publicKey;
@@ -35,37 +37,37 @@
                 enable.disabled = false;
                 disable.disabled = true;
                 if (test) test.disabled = true;
-                status.textContent = 'Notifications désactivées sur cet appareil. L’autorisation du navigateur ne suffit pas : activez-les ici.';
+                status.textContent = text('disabledHelp', 'Notifications désactivées sur cet appareil. L’autorisation du navigateur ne suffit pas : activez-les ici.');
                 return;
             }
             const result = await send('POST', { endpoint: subscription.endpoint }, root.dataset.statusUrl);
             enable.disabled = result.subscribed;
             disable.disabled = !result.subscribed;
             if (test) test.disabled = !result.subscribed;
-            status.textContent = result.subscribed ? 'Notifications activées pour ce compte sur cet appareil.' : 'Cet appareil possède un abonnement, mais pas pour ce compte. Activez les notifications ici.';
+            status.textContent = result.subscribed ? text('enabled', 'Notifications activées pour ce compte sur cet appareil.') : text('otherAccount', 'Cet appareil possède un abonnement, mais pas pour ce compte. Activez les notifications ici.');
         };
         enable.addEventListener('click', async () => {
             enable.disabled = true;
             try {
-                status.textContent = 'Connexion au service de notifications…';
+                status.textContent = text('connecting', 'Connexion au service de notifications…');
                 const pending = currentSubscription || registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: bytes });
                 const subscription = await withTimeout(pending, 'push-timeout');
                 currentSubscription = subscription;
-                status.textContent = 'Enregistrement de cet appareil…';
+                status.textContent = text('registering', 'Enregistrement de cet appareil…');
                 await withTimeout(send('POST', subscription.toJSON()), 'server-timeout');
                 disable.disabled = false;
                 if (test) test.disabled = false;
-                status.textContent = 'Notifications activées pour ce compte sur cet appareil.';
+                status.textContent = text('enabled', 'Notifications activées pour ce compte sur cet appareil.');
             } catch (error) {
                 enable.disabled = false;
-                if (error.name === 'NotAllowedError') status.textContent = 'Firefox a refusé la demande. Vérifiez ses autorisations de notifications.';
-                else if (error.message === 'push-timeout') status.textContent = 'Le service de notifications ne répond pas. Rechargez la page et réessayez.';
-                else if (error.message === 'server-timeout') status.textContent = 'Le serveur ne répond pas pour enregistrer cet appareil. Réessayez.';
-                else if (error.message?.startsWith('server-')) status.textContent = 'Le serveur n’a pas enregistré cet appareil. Vérifiez la session et la configuration des notifications.';
+                if (error.name === 'NotAllowedError') status.textContent = text('refused', 'Firefox a refusé la demande. Vérifiez ses autorisations de notifications.');
+                else if (error.message === 'push-timeout') status.textContent = text('pushTimeout', 'Le service de notifications ne répond pas. Rechargez la page et réessayez.');
+                else if (error.message === 'server-timeout') status.textContent = text('serverTimeout', 'Le serveur ne répond pas pour enregistrer cet appareil. Réessayez.');
+                else if (error.message?.startsWith('server-')) status.textContent = text('serverError', 'Le serveur n’a pas enregistré cet appareil. Vérifiez la session et la configuration des notifications.');
                 else {
                     const knownErrors = ['AbortError', 'InvalidAccessError', 'InvalidStateError', 'NetworkError', 'NotSupportedError', 'SecurityError', 'TypeError'];
                     const detail = knownErrors.includes(error.name) ? ` (${error.name})` : '';
-                    status.textContent = `Le navigateur n’a pas pu créer l’abonnement aux notifications${detail}. Vérifiez sa connexion et les autorisations du site.`;
+                    status.textContent = text('browserError', 'Le navigateur n’a pas pu créer l’abonnement aux notifications%detail%. Vérifiez sa connexion et les autorisations du site.').replace('%detail%', detail);
                 }
             }
         });
@@ -77,8 +79,8 @@
                 currentSubscription = null;
                 enable.disabled = false;
                 if (test) test.disabled = true;
-                status.textContent = 'Notifications désactivées sur cet appareil.';
-            } catch (_) { status.textContent = 'Impossible de désactiver les notifications.'; disable.disabled = false; }
+                status.textContent = text('disabled', 'Notifications désactivées sur cet appareil.');
+            } catch (_) { status.textContent = text('disableError', 'Impossible de désactiver les notifications.'); disable.disabled = false; }
         });
         if (test) test.addEventListener('click', async () => {
             test.disabled = true;
@@ -86,10 +88,10 @@
                 const subscription = await registration.pushManager.getSubscription();
                 if (!subscription) throw new Error('no subscription');
                 await send('POST', { endpoint: subscription.endpoint }, test.dataset.url);
-                status.textContent = 'Notification de test envoyée. Vérifiez les notifications de cet appareil.';
-            } catch (_) { status.textContent = 'Échec du test. Vérifiez l’activation et la configuration des notifications.'; }
+                status.textContent = text('testSent', 'Notification de test envoyée. Vérifiez les notifications de cet appareil.');
+            } catch (_) { status.textContent = text('testError', 'Échec du test. Vérifiez l’activation et la configuration des notifications.'); }
             finally { test.disabled = false; }
         });
         await refresh();
-    }).catch(() => { status.textContent = 'Impossible de préparer les notifications sur cet appareil.'; });
+    }).catch(() => { status.textContent = text('prepareError', 'Impossible de préparer les notifications sur cet appareil.'); });
 })();

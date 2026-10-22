@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Application\Notification\PushEndpoint;
 use App\Application\Notification\NotificationDiagnostics;
 use App\Application\Notification\NotificationCounter;
+use App\Application\Notification\PushMessage;
 use App\Entity\PushSubscription;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
@@ -23,7 +24,7 @@ use Symfony\Component\Routing\Attribute\Route;
 final class AdminPushTestController extends AbstractController
 {
     #[Route('/admin/push-test', name: 'app_admin_push_test', methods: ['POST'])]
-    public function __invoke(Request $request, EntityManagerInterface $em, string $pushPrivateFile, string $pushSubject, NotificationDiagnostics $diagnostics, NotificationCounter $counter): JsonResponse
+    public function __invoke(Request $request, EntityManagerInterface $em, string $pushPrivateFile, string $pushSubject, NotificationDiagnostics $diagnostics, NotificationCounter $counter, PushMessage $messages): JsonResponse
     {
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
         if (!$this->isCsrfTokenValid('push-subscription', $request->headers->get('X-CSRF-Token', ''))) throw $this->createAccessDeniedException();
@@ -45,7 +46,7 @@ final class AdminPushTestController extends AbstractController
             $push = new WebPush(['VAPID' => ['subject' => $pushSubject, 'pemFile' => $pushPrivateFile]], [], $client, $factory, $factory);
             $stage = 'envoi';
             $recipient = Subscription::create(['endpoint' => $endpoint, 'keys' => ['p256dh' => $subscription->getPublicKey(), 'auth' => $subscription->getAuthSecret()], 'contentEncoding' => 'aes128gcm']);
-            $report = $push->sendOneNotification($recipient, json_encode(['body' => 'Ceci est une notification de test Zunaflux.', 'tag' => 'zunaflux-test'], JSON_THROW_ON_ERROR));
+            $report = $push->sendOneNotification($recipient, json_encode(['body' => $messages->test($request->getLocale()), 'tag' => 'zunaflux-test'], JSON_THROW_ON_ERROR));
             if ($report->isSubscriptionExpired()) { $em->remove($subscription); $em->flush(); }
             if (!$report->isSuccess()) {
                 $diagnostics->failure('test', $report);

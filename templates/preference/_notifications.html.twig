@@ -1,4 +1,21 @@
-<section class="mt-10 border border-line bg-surface p-6" data-push-notifications data-public-key="{{ push_public_key|default('') }}" data-csrf="{{ csrf_token('push-subscription') }}" data-url="{{ path('app_push_subscription') }}" data-status-url="{{ path('app_push_subscription_status') }}">
+<section class="mt-10 border border-line bg-surface p-6" data-push-notifications data-messages="{{ {
+    unavailable: 'Les notifications ne sont pas disponibles sur cet appareil ou ce serveur.'|trans,
+    disabledHelp: 'Notifications désactivées sur cet appareil. L’autorisation du navigateur ne suffit pas : activez-les ici.'|trans,
+    enabled: 'Notifications activées pour ce compte sur cet appareil.'|trans,
+    otherAccount: 'Cet appareil possède un abonnement, mais pas pour ce compte. Activez les notifications ici.'|trans,
+    connecting: 'Connexion au service de notifications…'|trans,
+    registering: 'Enregistrement de cet appareil…'|trans,
+    refused: 'Firefox a refusé la demande. Vérifiez ses autorisations de notifications.'|trans,
+    pushTimeout: 'Le service de notifications ne répond pas. Rechargez la page et réessayez.'|trans,
+    serverTimeout: 'Le serveur ne répond pas pour enregistrer cet appareil. Réessayez.'|trans,
+    serverError: 'Le serveur n’a pas enregistré cet appareil. Vérifiez la session et la configuration des notifications.'|trans,
+    browserError: 'Le navigateur n’a pas pu créer l’abonnement aux notifications%detail%. Vérifiez sa connexion et les autorisations du site.'|trans,
+    disabled: 'Notifications désactivées sur cet appareil.'|trans,
+    disableError: 'Impossible de désactiver les notifications.'|trans,
+    testSent: 'Notification de test envoyée. Vérifiez les notifications de cet appareil.'|trans,
+    testError: 'Échec du test. Vérifiez l’activation et la configuration des notifications.'|trans,
+    prepareError: 'Impossible de préparer les notifications sur cet appareil.'|trans
+}|json_encode|e('html_attr') }}" data-public-key="{{ push_public_key|default('') }}" data-csrf="{{ csrf_token('push-subscription') }}" data-url="{{ path('app_push_subscription') }}" data-status-url="{{ path('app_push_subscription_status') }}">
     <h2 class="font-serif text-2xl text-foreground">{{ "Notifications"|trans }}</h2>
     <p class="mt-2 text-sm text-muted">{{ "Recevez les nouveautés et les erreurs de collecte sur cet appareil."|trans }}</p>
     <div class="mt-4 flex flex-wrap gap-3">

@@ -7,9 +7,11 @@ namespace App\MessageHandler;
 use App\Application\Notification\PushEndpoint;
 use App\Application\Notification\NotificationDiagnostics;
 use App\Application\Notification\NotificationCounter;
+use App\Application\Notification\PushMessage;
 use App\Entity\Feed;
 use App\Entity\PushSubscription;
 use App\Entity\Subscription;
+use App\Entity\UserPreference;
 use App\Message\NotifyFeedMessage;
 use Doctrine\ORM\EntityManagerInterface;
 use Minishlink\WebPush\Subscription as WebPushSubscription;
@@ -29,6 +31,7 @@ final readonly class NotifyFeedHandler
         private LoggerInterface $logger,
         private NotificationDiagnostics $diagnostics,
         private NotificationCounter $counter,
+        private PushMessage $messages,
         private string $pushPrivateFile,
         private string $pushSubject,
     ) {}
@@ -50,10 +53,11 @@ final readonly class NotifyFeedHandler
             $this->diagnostics->exception('collecte', 'initialisation', $exception);
             throw $exception;
         }
-        $body = 'error' === $message->kind ? 'Une source rencontre une erreur de synchronisation.' : sprintf('%d nouvel(aux) article(s) dans vos sources.', $message->count);
-        $payload = json_encode(['body' => $body, 'tag' => 'feed-'.$message->kind.'-'.$message->feedId], JSON_THROW_ON_ERROR);
-
         foreach ($this->em->getRepository(Subscription::class)->findBy(['feed' => $feed, 'enabled' => true]) as $feedSubscription) {
+            $preference = $this->em->getRepository(UserPreference::class)->findOneBy(['user' => $feedSubscription->getUser()]);
+            $locale = $preference instanceof UserPreference ? $preference->getLocale() : 'fr';
+            $body = 'error' === $message->kind ? $this->messages->error($locale) : $this->messages->articles($message->count, $locale);
+            $payload = json_encode(['body' => $body, 'tag' => 'feed-'.$message->kind.'-'.$message->feedId], JSON_THROW_ON_ERROR);
             foreach ($this->em->getRepository(PushSubscription::class)->findBy(['user' => $feedSubscription->getUser()]) as $subscription) {
                 if (!PushEndpoint::isAllowed($subscription->getEndpoint())) continue;
                 try {

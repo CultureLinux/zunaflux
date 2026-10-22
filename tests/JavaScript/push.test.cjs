@@ -3,6 +3,18 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
 
+test('notification availability is reported in the selected language', () => {
+    const status = { textContent: '' };
+    const root = {
+        dataset: { messages: JSON.stringify({ unavailable: 'Benachrichtigungen sind nicht verfügbar.' }) },
+        querySelector: selector => selector === '[role="status"]' ? status : {},
+    };
+    vm.runInNewContext(fs.readFileSync('public/push.js', 'utf8'), {
+        document: { querySelector: () => root }, navigator: {}, window: {},
+    });
+    assert.equal(status.textContent, 'Benachrichtigungen sind nicht verfügbar.');
+});
+
 test('an active subscription registered to this account enables the test and disables activation', async () => {
     const elements = Object.fromEntries(['enable', 'disable', 'test', 'status'].map(name => [name, { disabled: true, dataset: {}, addEventListener() {}, textContent: '' }]));
     const root = { dataset: { publicKey: 'AQ', csrf: 'token', url: '/api/push-subscription', statusUrl: '/api/push-subscription/status' }, querySelector(selector) { return elements[selector.includes('enable') ? 'enable' : selector.includes('disable') ? 'disable' : selector.includes('test') ? 'test' : 'status']; } };
