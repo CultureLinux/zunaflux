@@ -86,26 +86,46 @@ final class SubscriptionController extends AbstractController
         }
 
         $latestArticles = $entityManager->createQueryBuilder()
-            ->select('subscription.id AS subscriptionId, MAX(a.publishedAt) AS latestPublication')
+            ->select('subscription.id AS subscriptionId, MAX(a.publishedAt) AS latestPublication, COUNT(a.id) AS articleCount')
             ->from(Article::class, 'a')
             ->innerJoin(Subscription::class, 'subscription', 'WITH', 'subscription.feed = a.feed AND subscription.user = :user')
             ->setParameter('user', $user->getId(), 'uuid')
             ->groupBy('subscription.id')
             ->getQuery()->getResult();
         $latestPublications = [];
+        $articleCounts = [];
         foreach ($latestArticles as $row) {
             $subscriptionId = $row['subscriptionId'];
             if (is_string($subscriptionId) && 16 === strlen($subscriptionId)) {
                 $subscriptionId = Uuid::fromBinary($subscriptionId);
             }
             $latestPublications[(string) $subscriptionId] = $row['latestPublication'];
+            $articleCounts[(string) $subscriptionId] = (int) $row['articleCount'];
         }
 
         return $this->render('subscription/index.html.twig', [
             'latestPublications' => $latestPublications,
+            'articleCounts' => $articleCounts,
             'subscriptions' => $entityManager->getRepository(Subscription::class)->findBy(['user' => $user], ['createdAt' => 'DESC']),
             'categories' => $entityManager->getRepository(Category::class)->findBy(['user' => $user], ['position' => 'ASC', 'name' => 'ASC']),
         ]);
+    }
+
+    #[Route('/subscriptions/{id}/category', name: 'app_subscription_move', methods: ['POST'])]
+    public function moveCategory(string $id, Request $request, EntityManagerInterface $entityManager): RedirectResponse
+    {
+        $subscription = $this->ownedSubscription($id, $entityManager);
+        if (!$this->isCsrfTokenValid('move-subscription-'.$id, $request->request->getString('_token'))) throw $this->createAccessDeniedException();
+        $categoryId = $request->request->getString('category_id');
+        $category = null;
+        if ('' !== $categoryId) {
+            try { $category = $entityManager->getRepository(Category::class)->find(Uuid::fromString($categoryId)); } catch (\InvalidArgumentException) { $category = null; }
+            if (!$category instanceof Category || !$category->getUser()->getId()->equals($this->currentUser()->getId())) throw $this->createAccessDeniedException();
+        }
+        $subscription->assignCategory($category);
+        $entityManager->flush();
+        $this->addFlash('success', 'Flux déplacé.');
+        return $this->redirectToRoute('app_subscriptions', status: Response::HTTP_SEE_OTHER);
     }
 
     #[Route('/subscriptions/{id}/update', name: 'app_subscription_update', methods: ['POST'])]

@@ -4,5 +4,5 @@ monolog:
         notification:
             type: stream
             path: '%kernel.logs_dir%/notification_%kernel.environment%.log'
-            level: warning
+            level: info
             channels: ['notification']

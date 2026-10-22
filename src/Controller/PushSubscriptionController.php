@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Application\Notification\PushEndpoint;
+use App\Application\Notification\NotificationDiagnostics;
 use App\Entity\PushSubscription;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
@@ -31,7 +32,7 @@ final class PushSubscriptionController extends AbstractController
     }
 
     #[Route('/api/push-subscription', name: 'app_push_subscription', methods: ['POST', 'DELETE'])]
-    public function subscription(Request $request, EntityManagerInterface $em): JsonResponse
+    public function subscription(Request $request, EntityManagerInterface $em, NotificationDiagnostics $diagnostics): JsonResponse
     {
         $user = $this->getUser();
         if (!$user instanceof User || !$this->isCsrfTokenValid('push-subscription', $request->headers->get('X-CSRF-Token', ''))) {
@@ -52,6 +53,7 @@ final class PushSubscriptionController extends AbstractController
             if ($subscription instanceof PushSubscription && $subscription->getUser()->getId()->equals($user->getId())) {
                 $em->remove($subscription);
                 $em->flush();
+                $diagnostics->subscriptionDeactivated();
             }
 
             return $this->json(['ok' => true]);
@@ -71,6 +73,7 @@ final class PushSubscriptionController extends AbstractController
             $em->persist(new PushSubscription($user, $endpoint, $key, $secret));
         }
         $em->flush();
+        $diagnostics->subscriptionActivated();
 
         return $this->json(['ok' => true]);
     }

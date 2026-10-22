@@ -63,7 +63,7 @@
                 <div class="subscription-groups mt-6">
                 {% for category in categories %}
                     {% set categorySubscriptions = subscriptions|filter(subscription => subscription.category and subscription.category.id == category.id) %}
-                        <section data-category-item="{{ category.name }}" class="min-w-0" aria-labelledby="source-category-{{ category.id }}">
+                        <section data-category-item="{{ category.name }}" data-drop-category="{{ category.id }}" class="min-w-0" aria-labelledby="source-category-{{ category.id }}">
                             <div class="flex items-center justify-between gap-2 border-b border-line pb-2">
                                 <h3 class="min-w-0 break-words font-serif text-xl text-foreground" id="source-category-{{ category.id }}">{{ category.name }} <span class="ml-2 font-mono text-xs text-muted">{{ categorySubscriptions|length }}</span></h3>
                                 <div class="flex shrink-0 items-center">
@@ -89,8 +89,8 @@
                         </section>
                 {% endfor %}
                 {% set uncategorizedSubscriptions = subscriptions|filter(subscription => subscription.category is null) %}
-                {% if uncategorizedSubscriptions is not empty %}
-                    <section data-category-item="Sans catégorie" class="min-w-0" aria-labelledby="source-uncategorized">
+                {% if uncategorizedSubscriptions is not empty or categories is not empty %}
+                    <section data-category-item="Sans catégorie" data-drop-category="" class="min-w-0" aria-labelledby="source-uncategorized">
                         <h3 class="border-b border-line pb-3 font-serif text-xl text-foreground" id="source-uncategorized">Sans catégorie <span class="ml-2 font-mono text-xs text-muted">{{ uncategorizedSubscriptions|length }}</span></h3>
                         {% include 'subscription/_source_list.html.twig' with {items: uncategorizedSubscriptions} %}
                     </section>

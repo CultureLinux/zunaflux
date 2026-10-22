@@ -2,6 +2,7 @@
     {% for subscription in items %}
         <li class="min-w-0 py-2" data-subscription-item data-subscription-title="{{ subscription.displayTitle }}" data-feed-title="{{ subscription.feed.title|default('') }}" data-feed-url="{{ subscription.feed.canonicalUrl }}">
             <div class="flex min-h-11 items-center gap-2">
+                    <span class="hidden cursor-grab text-muted lg:block" data-drag-handle title="Glisser vers une catégorie" aria-hidden="true">⋮⋮</span>
                     <span class="min-w-0 flex-1 break-words font-serif text-foreground">{{ subscription.displayTitle }}{% if not subscription.enabled %} <span class="subscription-inactive">Inactif</span>{% endif %}
                         {% set latest = latestPublications[subscription.id ~ '']|default(null) %}
                         {% if latest %}
@@ -21,10 +22,14 @@
                             <span class="text-xs">Indisponible</span>
                         </span>
                     {% endif %}
-                    <button type="button" data-open-delete="edit-subscription-{{ subscription.id }}" class="flex h-11 w-11 shrink-0 items-center justify-center text-muted hover:text-accent" aria-label="Modifier {{ subscription.displayTitle }}" title="Modifier les paramètres">
+                    <div class="flex shrink-0 flex-col items-center"><button type="button" data-open-delete="edit-subscription-{{ subscription.id }}" class="flex h-11 w-11 shrink-0 items-center justify-center text-muted hover:text-accent" aria-label="Modifier {{ subscription.displayTitle }}" title="Modifier les paramètres">
                         <svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>
-                        </button>
+                        </button><span class="inline-flex items-center gap-1 whitespace-nowrap text-xs text-muted" aria-label="{{ articleCounts[subscription.id ~ '']|default(0) }} articles en base" title="Articles en base"><svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5zM8 7h8M8 11h8M8 15h8"/></svg>{{ articleCounts[subscription.id ~ '']|default(0) }}</span></div>
                 </div>
+                <form method="post" action="{{ path('app_subscription_move', {id: subscription.id}) }}" data-move-subscription hidden>
+                    <input type="hidden" name="_token" value="{{ csrf_token('move-subscription-' ~ subscription.id) }}">
+                    <input type="hidden" name="category_id" value="">
+                </form>
                 <dialog id="edit-subscription-{{ subscription.id }}" class="m-auto w-full max-w-lg border border-line bg-surface p-6 text-foreground backdrop:bg-background/80" aria-labelledby="edit-subscription-title-{{ subscription.id }}">
                     <h3 class="font-serif text-2xl" id="edit-subscription-title-{{ subscription.id }}">Modifier {{ subscription.displayTitle }}</h3>
                     {% if subscription.feed.failureCount > 0 %}<p class="mb-3 text-sm text-warning">Source indisponible : {{ subscription.feed.lastError }}</p>{% endif %}

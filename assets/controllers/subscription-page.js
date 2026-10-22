@@ -144,3 +144,45 @@ if (discoveryForm && discoveryDialog && typeof discoveryDialog.showModal === 'fu
         if (toastStack) document.body.append(toastStack);
     });
 }
+
+// Le déplacement à la souris complète le sélecteur de catégorie du formulaire.
+const dragDesktop = window.matchMedia('(min-width: 1024px) and (pointer: fine)');
+let draggedSubscription = null;
+document.querySelectorAll('[data-drag-handle]').forEach((handle) => {
+    const updateHandle = () => {
+        handle.draggable = dragDesktop.matches;
+        handle.hidden = !dragDesktop.matches;
+    };
+    updateHandle();
+    dragDesktop.addEventListener('change', updateHandle);
+    handle.addEventListener('dragstart', (event) => {
+        if (!dragDesktop.matches) return;
+        draggedSubscription = handle.closest('[data-subscription-item]');
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', 'subscription');
+    });
+    handle.addEventListener('dragend', () => {
+        draggedSubscription = null;
+        document.querySelectorAll('[data-drop-category]').forEach((zone) => zone.classList.remove('bg-accent-soft'));
+    });
+});
+document.querySelectorAll('[data-drop-category]').forEach((zone) => {
+    zone.addEventListener('dragover', (event) => {
+        if (!draggedSubscription || !dragDesktop.matches) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+        zone.classList.add('bg-accent-soft');
+    });
+    zone.addEventListener('dragleave', (event) => {
+        if (!zone.contains(event.relatedTarget)) zone.classList.remove('bg-accent-soft');
+    });
+    zone.addEventListener('drop', (event) => {
+        if (!draggedSubscription || !dragDesktop.matches) return;
+        event.preventDefault();
+        zone.classList.remove('bg-accent-soft');
+        if (draggedSubscription.closest('[data-drop-category]') === zone) return;
+        const form = draggedSubscription.querySelector('[data-move-subscription]');
+        form.elements.category_id.value = zone.dataset.dropCategory;
+        form.requestSubmit();
+    });
+});

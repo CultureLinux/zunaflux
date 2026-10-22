@@ -12,6 +12,39 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class SubscriptionControllerTest extends WebTestCase
 {
+    public function testMovingSubscriptionChecksOwnershipAndCsrf(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $owner = new User('move-owner-'.bin2hex(random_bytes(8)).'@example.test');
+        $other = new User('move-other-'.bin2hex(random_bytes(8)).'@example.test');
+        $feed = new Feed('https://example.test/'.bin2hex(random_bytes(8)));
+        $article = new \App\Entity\Article($feed, new \App\Domain\Feed\ParsedFeedItem('move-test', 'Article', null, null, null, null));
+        $subscription = new Subscription($owner, $feed);
+        $category = new \App\Entity\Category($owner, 'Destination');
+        $foreign = new \App\Entity\Category($other, 'Privée');
+        foreach ([$owner, $other, $feed, $article, $subscription, $category, $foreign] as $entity) $em->persist($entity);
+        $em->flush();
+        try {
+            $client->loginUser($owner);
+            $page = $client->request('GET', '/subscriptions');
+            self::assertSelectorExists('[data-subscription-item] [aria-label="1 articles en base"]');
+            $url = '/subscriptions/'.$subscription->getId().'/category';
+            $client->request('POST', $url, ['category_id' => (string) $category->getId()]);
+            self::assertResponseStatusCodeSame(403);
+            $token = static::getContainer()->get('security.csrf.token_manager')->getToken('move-subscription-'.$subscription->getId())->getValue();
+            $client->request('POST', $url, ['_token' => $token, 'category_id' => (string) $foreign->getId()]);
+            self::assertResponseStatusCodeSame(403);
+            $client->request('POST', $url, ['_token' => $token, 'category_id' => (string) $category->getId()]);
+            self::assertResponseRedirects('/subscriptions');
+            $em->clear();
+            self::assertTrue($em->getRepository(Subscription::class)->find($subscription->getId())->getCategory()->getId()->equals($category->getId()));
+        } finally {
+            $em->getConnection()->executeStatement('DELETE FROM app_user WHERE id IN (?, ?)', [$owner->getId()->toBinary(), $other->getId()->toBinary()]);
+            $em->getConnection()->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);
+        }
+    }
+
     public function testDiscoveredFeedCanUseANewOrExistingOwnedCategory(): void
     {
         $client = static::createClient();
@@ -398,12 +431,17 @@ final class SubscriptionControllerTest extends WebTestCase
             self::assertResponseStatusCodeSame(403);
             $client->request('POST', '/admin/feeds/'.$feed->getId().'/delete');
             self::assertResponseStatusCodeSame(403);
+            $client->request('POST', '/admin/incidents/'.$incident->getId().'/retry');
+            self::assertResponseStatusCodeSame(403);
             $client->loginUser($admin);
+            $client->request('POST', '/admin/incidents/'.$incident->getId().'/retry');
+            self::assertResponseStatusCodeSame(403);
             $crawler = $client->request('GET', '/admin');
             self::assertCount(1, $crawler->filter('h2')->reduce(static fn ($node): bool => 'Comptes' === trim($node->text())));
             self::assertStringContainsString('Le flux est introuvable sur le site (HTTP 404).', $crawler->filter('[data-open-incidents]')->text());
             self::assertStringContainsString('Feed request returned HTTP 404.', $crawler->filter('[data-open-incidents]')->text());
             self::assertSelectorExists('[data-open-incidents] form[action="/admin/feeds/'.$feed->getId().'/delete"]');
+            self::assertSelectorExists('[data-open-incidents] form[action="/admin/incidents/'.$incident->getId().'/retry"]');
             $form = $crawler->filter('form[action="/admin/feeds/'.$feed->getId().'/delete"]')->form();
             $client->submit($form);
             self::assertResponseRedirects('/admin');

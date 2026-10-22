@@ -14,6 +14,21 @@ use Psr\Log\LogLevel;
 
 final class NotificationDiagnosticsTest extends TestCase
 {
+    public function testSubscriptionChangesAreLoggedAtInfoLevel(): void
+    {
+        $logger = new class extends AbstractLogger {
+            public array $entries = [];
+            public function log($level, \Stringable|string $message, array $context = []): void { $this->entries[] = [$level, (string) $message, $context]; }
+        };
+        $diagnostics = new NotificationDiagnostics($logger);
+
+        $diagnostics->subscriptionActivated();
+        $diagnostics->subscriptionDeactivated();
+
+        self::assertSame([LogLevel::INFO, 'Notifications activées.', []], $logger->entries[0]);
+        self::assertSame([LogLevel::INFO, 'Notifications désactivées.', []], $logger->entries[1]);
+    }
+
     public function testReportRecordsHttpStatusWithoutExposingEndpointOrResponse(): void
     {
         $logger = new class extends AbstractLogger {

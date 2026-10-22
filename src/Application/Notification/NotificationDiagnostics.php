@@ -11,6 +11,16 @@ final readonly class NotificationDiagnostics
 {
     public function __construct(private LoggerInterface $logger) {}
 
+    public function subscriptionActivated(): void
+    {
+        $this->logger->info('Notifications activées.');
+    }
+
+    public function subscriptionDeactivated(): void
+    {
+        $this->logger->info('Notifications désactivées.');
+    }
+
     public function configuration(string $source, bool $fileReadable, bool $subjectSet): void
     {
         $this->logger->warning('Configuration Web Push indisponible.', ['source' => $source, 'private_key_readable' => $fileReadable, 'subject_set' => $subjectSet]);
