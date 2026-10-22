@@ -295,5 +295,6 @@
   "Impossible de désactiver les notifications.": "Benachrichtigungen konnten nicht deaktiviert werden.",
   "Notification de test envoyée. Vérifiez les notifications de cet appareil.": "Testbenachrichtigung gesendet. Prüfen Sie die Benachrichtigungen dieses Geräts.",
   "Échec du test. Vérifiez l’activation et la configuration des notifications.": "Test fehlgeschlagen. Prüfen Sie die Aktivierung und Konfiguration der Benachrichtigungen.",
-  "Impossible de préparer les notifications sur cet appareil.": "Benachrichtigungen konnten auf diesem Gerät nicht eingerichtet werden."
+  "Impossible de préparer les notifications sur cet appareil.": "Benachrichtigungen konnten auf diesem Gerät nicht eingerichtet werden.",
+  "Cet abonnement n’est plus enregistré et a pu expirer. Réactivez les notifications sur cet appareil.": "Dieses Abonnement ist nicht mehr registriert und möglicherweise abgelaufen. Aktivieren Sie die Benachrichtigungen auf diesem Gerät erneut."
 }

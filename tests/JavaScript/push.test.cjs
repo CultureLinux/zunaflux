@@ -81,3 +81,20 @@ test('a browser push service failure shows its error type without exposing its m
     assert.doesNotMatch(elements.status.textContent, /private details/);
     assert.equal(elements.enable.disabled, false);
 });
+
+test('an unregistered browser subscription warns the user and is renewed on activation', async () => {
+    const listeners = {};
+    const elements = Object.fromEntries(['enable', 'disable', 'test', 'status'].map(name => [name, { disabled: true, dataset: {}, addEventListener(event, handler) { listeners[name] = handler; }, textContent: '' }]));
+    const root = { dataset: { publicKey: 'AQ', csrf: 'token', url: '/api/push-subscription', statusUrl: '/api/push-subscription/status' }, querySelector(selector) { return elements[selector.includes('enable') ? 'enable' : selector.includes('disable') ? 'disable' : selector.includes('test') ? 'test' : 'status']; } };
+    let unsubscribed = false;
+    const old = { endpoint: 'https://fcm.googleapis.com/fcm/send/old', unsubscribe: async () => { unsubscribed = true; return true; } };
+    const replacement = { toJSON: () => ({ endpoint: 'https://fcm.googleapis.com/fcm/send/new', keys: {} }) };
+    const registration = { pushManager: { getSubscription: async () => old, subscribe: async () => { assert.equal(unsubscribed, true); return replacement; } } };
+    const context = { document: { querySelector: () => root }, navigator: { serviceWorker: { register: async () => registration, ready: Promise.resolve(registration) } }, window: { PushManager: function () {}, isSecureContext: true }, fetch: async url => ({ ok: true, json: async () => url.endsWith('/status') ? { subscribed: false, missing: true } : { ok: true } }), atob, Uint8Array, setTimeout, clearTimeout };
+    vm.runInNewContext(fs.readFileSync('public/push.js', 'utf8'), context);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.match(elements.status.textContent, /expir/);
+    await listeners.enable();
+    assert.equal(unsubscribed, true);
+    assert.match(elements.status.textContent, /activées/);
+});

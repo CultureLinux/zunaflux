@@ -31,6 +31,7 @@
     navigator.serviceWorker.register('/sw.js').then(async () => {
         const registration = await withTimeout(navigator.serviceWorker.ready, 'worker-timeout');
         let currentSubscription = null;
+        let renewSubscription = false;
         const refresh = async () => {
             const subscription = currentSubscription = await registration.pushManager.getSubscription();
             if (!subscription) {
@@ -41,15 +42,21 @@
                 return;
             }
             const result = await send('POST', { endpoint: subscription.endpoint }, root.dataset.statusUrl);
+            renewSubscription = result.missing === true;
             enable.disabled = result.subscribed;
             disable.disabled = !result.subscribed;
             if (test) test.disabled = !result.subscribed;
-            status.textContent = result.subscribed ? text('enabled', 'Notifications activées pour ce compte sur cet appareil.') : text('otherAccount', 'Cet appareil possède un abonnement, mais pas pour ce compte. Activez les notifications ici.');
+            status.textContent = result.subscribed ? text('enabled', 'Notifications activées pour ce compte sur cet appareil.') : renewSubscription ? text('subscriptionMissing', 'Cet abonnement n’est plus enregistré et a pu expirer. Réactivez les notifications sur cet appareil.') : text('otherAccount', 'Cet appareil possède un abonnement, mais pas pour ce compte. Activez les notifications ici.');
         };
         enable.addEventListener('click', async () => {
             enable.disabled = true;
             try {
                 status.textContent = text('connecting', 'Connexion au service de notifications…');
+                if (renewSubscription && currentSubscription) {
+                    if (!await currentSubscription.unsubscribe()) throw new Error('unsubscribe-failed');
+                    currentSubscription = null;
+                    renewSubscription = false;
+                }
                 const pending = currentSubscription || registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: bytes });
                 const subscription = await withTimeout(pending, 'push-timeout');
                 currentSubscription = subscription;

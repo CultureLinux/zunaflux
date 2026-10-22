@@ -28,7 +28,10 @@ final class PushSubscriptionController extends AbstractController
         if (!is_string($endpoint) || !PushEndpoint::isAllowed($endpoint)) return $this->json(['error' => 'Abonnement invalide.'], 400);
         $subscription = $em->getRepository(PushSubscription::class)->findOneBy(['endpointHash' => hash('sha256', $endpoint, true)]);
 
-        return $this->json(['subscribed' => $subscription instanceof PushSubscription && $subscription->getUser()->getId()->equals($user->getId())]);
+        return $this->json([
+            'subscribed' => $subscription instanceof PushSubscription && $subscription->getUser()->getId()->equals($user->getId()),
+            'missing' => !$subscription instanceof PushSubscription,
+        ]);
     }
 
     #[Route('/api/push-subscription', name: 'app_push_subscription', methods: ['POST', 'DELETE'])]

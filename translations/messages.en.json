@@ -295,5 +295,6 @@
   "Impossible de désactiver les notifications.": "Unable to disable notifications.",
   "Notification de test envoyée. Vérifiez les notifications de cet appareil.": "Test notification sent. Check this device's notifications.",
   "Échec du test. Vérifiez l’activation et la configuration des notifications.": "Test failed. Check notification activation and configuration.",
-  "Impossible de préparer les notifications sur cet appareil.": "Unable to set up notifications on this device."
+  "Impossible de préparer les notifications sur cet appareil.": "Unable to set up notifications on this device.",
+  "Cet abonnement n’est plus enregistré et a pu expirer. Réactivez les notifications sur cet appareil.": "This subscription is no longer registered and may have expired. Enable notifications again on this device."
 }

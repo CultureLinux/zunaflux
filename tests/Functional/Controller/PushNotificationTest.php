@@ -59,12 +59,17 @@ final class PushNotificationTest extends WebTestCase
             self::assertResponseIsSuccessful();
             self::assertTrue(json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR)['subscribed']);
 
+            $missingEndpoint = 'https://fcm.googleapis.com/fcm/send/'.bin2hex(random_bytes(16));
+            $client->request('POST', '/api/push-subscription/status', server: ['CONTENT_TYPE' => 'application/json', 'HTTP_X_CSRF_TOKEN' => $token], content: json_encode(['endpoint' => $missingEndpoint], JSON_THROW_ON_ERROR));
+            self::assertTrue(json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR)['missing']);
+
             $client->loginUser($other);
             $page = $client->request('GET', '/preferences');
             $token = $page->filter('[data-push-notifications]')->attr('data-csrf');
             $client->request('POST', '/api/push-subscription/status', server: ['CONTENT_TYPE' => 'application/json', 'HTTP_X_CSRF_TOKEN' => $token], content: json_encode(['endpoint' => $endpoint], JSON_THROW_ON_ERROR));
             self::assertResponseIsSuccessful();
             self::assertFalse(json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR)['subscribed']);
+            self::assertFalse(json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR)['missing']);
             $client->request('DELETE', '/api/push-subscription', server: ['CONTENT_TYPE' => 'application/json', 'HTTP_X_CSRF_TOKEN' => $token], content: json_encode(['endpoint' => $endpoint], JSON_THROW_ON_ERROR));
             self::assertResponseIsSuccessful();
             self::assertSame(1, (int) $em->getConnection()->fetchOne('SELECT COUNT(*) FROM push_subscription WHERE user_id = ?', [$owner->getId()->toBinary()]));
