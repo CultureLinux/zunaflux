@@ -11,6 +11,31 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class SecurityControllerTest extends WebTestCase
 {
+    public function testRegistrationIsBlockedAtConfiguredAccountLimit(): void
+    {
+        $client = static::createClient();
+        $connection = static::getContainer()->get(EntityManagerInterface::class)->getConnection();
+        $old = $connection->fetchOne('SELECT account_limit FROM registration_settings WHERE id = 1');
+        $count = (int) $connection->fetchOne('SELECT COUNT(*) FROM app_user');
+        $connection->executeStatement('UPDATE registration_settings SET account_limit = ? WHERE id = 1', [max(1, $count)]);
+        try {
+            if (0 === $count) {
+                $user = new User('limit-'.bin2hex(random_bytes(8)).'@example.test');
+                $em = static::getContainer()->get(EntityManagerInterface::class);
+                $em->persist($user); $em->flush();
+            }
+            $client->request('GET', '/register');
+            self::assertResponseStatusCodeSame(403);
+            self::assertSelectorTextContains('body', 'limite');
+            $token = static::getContainer()->get('security.csrf.token_manager')->getToken('register')->getValue();
+            $client->request('POST', '/register', ['_token' => $token, 'email' => 'blocked-'.bin2hex(random_bytes(8)).'@example.test', 'password' => 'a-secure-password']);
+            self::assertResponseStatusCodeSame(403);
+        } finally {
+            $connection->executeStatement('UPDATE registration_settings SET account_limit = ? WHERE id = 1', [$old]);
+            if (isset($user)) $connection->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
+        }
+    }
+
     /** Removing CSRF protection from the login boundary must make this contract fail. */
     public function testTheLoginPageProvidesAnAccessibleCsrfProtectedForm(): void
     {

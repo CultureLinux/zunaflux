@@ -23,7 +23,7 @@ final class AdminController extends AbstractController
   $this->addFlash('success','Flux et données associées supprimés pour tous les comptes.');
   return $this->redirectToRoute('app_admin');
  }
- #[Route('/admin', name:'app_admin', methods:['GET'])] public function index(EntityManagerInterface $em):Response {
+ #[Route('/admin', name:'app_admin', methods:['GET'])] public function index(EntityManagerInterface $em, \App\Application\Administration\RegistrationLimit $registrationLimit):Response {
   $this->denyAccessUnlessGranted('ROLE_ADMIN');
   $unusedFeeds=$em->createQuery('SELECT f FROM App\Entity\Feed f WHERE NOT EXISTS (SELECT s.id FROM App\Entity\Subscription s WHERE s.feed = f) ORDER BY f.createdAt DESC')->getResult();
   $users=$em->getRepository(User::class)->findBy([],['createdAt'=>'DESC']); $quotaCounts=[];
@@ -35,7 +35,16 @@ final class AdminController extends AbstractController
   }
   $rows=$em->getConnection()->fetchAllAssociative('SELECT day, total FROM notification_daily_count WHERE day >= ? AND day < ?', [$start->format('Y-m-d'), $start->modify('+30 days')->format('Y-m-d')]);
   $counts=array_column($rows,'total','day'); $days=[]; for($i=0;$i<30;++$i){$day=$start->modify('+'.$i.' days')->format('Y-m-d');$days[]=['date'=>$day,'count'=>(int)($counts[$day]??0)];} $stats['notifications envoyées']=$days;
-  return $this->render('admin/index.html.twig',['users'=>$users,'quotaCounts'=>$quotaCounts,'stats'=>$stats,'unusedFeeds'=>$unusedFeeds,'incidents'=>$em->getRepository(FeedIncident::class)->findBy(['acknowledgedAt'=>null]),'feedCount'=>$em->getRepository(Feed::class)->count([]),'subscriptionCount'=>$em->getRepository(Subscription::class)->count([])]);
+  return $this->render('admin/index.html.twig',['users'=>$users,'quotaCounts'=>$quotaCounts,'stats'=>$stats,'registrationLimit'=>$registrationLimit->effectiveLimit(),'registrationLimitLocked'=>null !== $registrationLimit->environmentLimit(),'unusedFeeds'=>$unusedFeeds,'incidents'=>$em->getRepository(FeedIncident::class)->findBy(['acknowledgedAt'=>null]),'feedCount'=>$em->getRepository(Feed::class)->count([]),'subscriptionCount'=>$em->getRepository(Subscription::class)->count([])]);
+ }
+ #[Route('/admin/registration-limit', name:'app_admin_registration_limit', methods:['POST'])] public function registrationLimit(Request $r, \App\Application\Administration\RegistrationLimit $limit):Response {
+  $this->denyAccessUnlessGranted('ROLE_ADMIN');
+  if (!$this->isCsrfTokenValid('registration-limit',$r->request->getString('_token'))) throw $this->createAccessDeniedException();
+  if (null !== $limit->environmentLimit()) throw $this->createAccessDeniedException('La limite est définie par l’environnement.');
+  $value=$r->request->getString('account_limit');
+  try { if ('' !== $value && (!ctype_digit($value) || (string)(int)$value !== $value)) throw new \InvalidArgumentException('Saisissez un entier positif.'); $limit->update('' === $value ? null : (int)$value); $this->addFlash('success','Limite d’inscriptions enregistrée.'); }
+  catch (\InvalidArgumentException $e) { $this->addFlash('error',$e->getMessage()); }
+  return $this->redirectToRoute('app_admin', status:Response::HTTP_SEE_OTHER);
  }
  #[Route('/admin/incidents/{id}/retry', name:'app_admin_incident_retry', methods:['POST'])] public function retry(string $id, Request $r, EntityManagerInterface $em, MessageBusInterface $bus):Response {
   $this->denyAccessUnlessGranted('ROLE_ADMIN');

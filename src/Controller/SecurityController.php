@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\User;
+use App\Application\Administration\RegistrationLimit;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -32,11 +33,13 @@ final class SecurityController extends AbstractController
         EntityManagerInterface $entityManager,
         UserPasswordHasherInterface $passwordHasher,
         bool $publicRegistration,
+        RegistrationLimit $registrationLimit,
     ): Response {
         if (!$publicRegistration) {
             throw $this->createNotFoundException();
         }
         if ($request->isMethod('GET')) {
+            if ($registrationLimit->isFull()) return $this->render('security/registration_full.html.twig', [], new Response(status: Response::HTTP_FORBIDDEN));
             return $this->render('security/register.html.twig');
         }
 
@@ -67,8 +70,13 @@ final class SecurityController extends AbstractController
         }
 
         $user->setPasswordHash($passwordHasher->hashPassword($user, $password));
-        $entityManager->persist($user);
-        $entityManager->flush();
+        $created = $entityManager->wrapInTransaction(function () use ($registrationLimit, $entityManager, $user): bool {
+            if ($registrationLimit->isFull(true)) return false;
+            $entityManager->persist($user);
+            $entityManager->flush();
+            return true;
+        });
+        if (!$created) return $this->render('security/registration_full.html.twig', [], new Response(status: Response::HTTP_FORBIDDEN));
 
         $this->addFlash('success', 'Votre compte est créé. Vous pouvez maintenant vous connecter.');
 
