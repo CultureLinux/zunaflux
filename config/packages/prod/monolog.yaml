@@ -8,6 +8,6 @@ monolog:
             buffer_size: 50
         nested:
             type: stream
-            path: php://stderr
+            path: '%kernel.logs_dir%/%kernel.environment%.log'
             level: warning
             formatter: monolog.formatter.json
