@@ -2,8 +2,18 @@
     const stack = document.querySelector('[data-toast-stack]');
     if (!stack) return;
     const setup = (toast) => {
-        toast.querySelector('[data-toast-close]')?.addEventListener('click', () => toast.remove());
-        setTimeout(() => toast.remove(), 6000);
+        let closing = false;
+        const remove = () => {
+            if (closing) return;
+            closing = true;
+            clearTimeout(timer);
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { toast.remove(); return; }
+            toast.classList.add('toast--closing');
+            toast.addEventListener('animationend', () => toast.remove(), { once: true });
+            setTimeout(() => toast.remove(), 250);
+        };
+        const timer = setTimeout(remove, 6000);
+        toast.querySelector('[data-toast-close]')?.addEventListener('click', remove);
     };
     stack.querySelectorAll('.toast').forEach(setup);
     window.addEventListener('zunaflux:toast', (event) => {

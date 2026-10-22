@@ -70,11 +70,13 @@ if (zen) {
         changed = true;
         if (!zen.open) document.dispatchEvent(new Event('zen-state-changed'));
     };
-    const act = async action => {
+    const act = async (action, swipe = false) => {
         if (busy || !article || !guide.hidden) return;
         busy = true;
         controls.forEach(button => { button.disabled = true; });
         try {
+            const previousIndex = index;
+            const wasFinished = finished;
             if (action === 'next') {
                 if (!article.isRead) await update({ isRead: true });
                 if (index + 1 >= items.length && hasMore) await loadMore();
@@ -84,6 +86,9 @@ if (zen) {
             else if (action === 'previous' && index > 0) { index--; await show(); }
             else if (action === 'favorite') { await update({ isFavorite: !article.isFavorite }); favorite.setAttribute('aria-pressed', String(article.isFavorite)); favorite.textContent = article.isFavorite ? '★' : '☆'; message.textContent = article.isFavorite ? messages.favorited : messages.unfavorited; }
             else if (action === 'save') { await update({ isSaved: true }); save.setAttribute('aria-pressed', 'true'); save.textContent = '◆'; message.textContent = messages.saved; }
+            if (swipe && (index !== previousIndex || finished !== wasFinished) && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                content.animate?.([{ opacity: 0.7, transform: `translateX(${action === 'next' ? '12px' : '-12px'})` }, { opacity: 1, transform: 'translateX(0)' }], { duration: 200, easing: 'ease-out' });
+            }
             if (action === 'next') await refreshCount();
         } catch (error) { message.textContent = error.message || messages.error; }
         finally { busy = false; controls.forEach(button => { button.disabled = finished; }); previous.disabled = !finished && index <= 0; }
@@ -111,7 +116,7 @@ if (zen) {
     save.addEventListener('click', () => act('save'));
     let start = null;
     content.addEventListener('touchstart', event => { start = event.touches.length === 1 ? [event.touches[0].clientX, event.touches[0].clientY] : null; }, { passive: true });
-    content.addEventListener('touchend', event => { if (!start || event.changedTouches.length !== 1) { start = null; return; } const touch = event.changedTouches[0]; const action = classifyZenGesture(touch.clientX - start[0], touch.clientY - start[1]); start = null; if (action) act(action); }, { passive: true });
+    content.addEventListener('touchend', event => { if (!start || event.changedTouches.length !== 1) { start = null; return; } const touch = event.changedTouches[0]; const action = classifyZenGesture(touch.clientX - start[0], touch.clientY - start[1]); start = null; if (action) act(action, true); }, { passive: true });
     content.addEventListener('touchcancel', () => { start = null; });
     document.addEventListener('article-state-changed', refreshCount);
     refreshCount();

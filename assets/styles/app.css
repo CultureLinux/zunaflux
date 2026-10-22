@@ -324,6 +324,12 @@ dialog [data-article-saved][aria-pressed="true"] svg { color: var(--accent); fil
 .toast { display: flex; align-items: start; justify-content: space-between; gap: 1rem; padding: 1rem; border: 1px solid var(--success); border-radius: .5rem; background: var(--surface); color: var(--foreground); box-shadow: 0 8px 24px #0003; pointer-events: auto; }
 .toast--error { border-color: var(--danger); }
 .toast button { font-size: 1.25rem; line-height: 1; cursor: pointer; }
+@media (prefers-reduced-motion: no-preference) {
+    .toast { animation: toast-enter 180ms ease-out both; }
+    .toast--closing { animation: toast-exit 150ms ease-in both; pointer-events: none; }
+    @keyframes toast-enter { from { opacity: 0; transform: translateY(-.4rem); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes toast-exit { to { opacity: 0; transform: translateY(-.4rem); } }
+}
 .discovery-dialog { margin: auto; width: min(36rem, calc(100% - 2rem)); max-height: 85dvh; overflow: auto; padding: 1.5rem; border: 1px solid var(--line); border-radius: .75rem; background: var(--surface); color: var(--foreground); }
 .discovery-dialog::backdrop { background: #0009; }
 .discovery-dialog [hidden] { display: none; }
