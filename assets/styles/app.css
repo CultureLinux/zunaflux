@@ -86,26 +86,26 @@ dialog [data-article-saved][aria-pressed="true"] svg { color: var(--accent); fil
 :root[data-accent="lime"] { --accent: #4D6919; --accent-soft: #ECF4DA; --accent-foreground: #FFFFFF; }
 :root[data-accent="slate"] { --accent: #4A6072; --accent-soft: #E9EFF3; --accent-foreground: #FFFFFF; }
 
-:root[data-theme="dark"][data-accent="cyan"] { --accent: #56C5D5; --accent-soft: #173B42; --accent-foreground: #0F1419; }
-:root[data-theme="dark"][data-accent="orange"] { --accent: #FFAF73; --accent-soft: #493021; --accent-foreground: #0F1419; }
+:root[data-theme="dark"][data-accent="cyan"] { --accent: #50D4DC; --accent-soft: #173B42; --accent-foreground: #0F1419; }
+:root[data-theme="dark"][data-accent="orange"] { --accent: #FF9863; --accent-soft: #493021; --accent-foreground: #0F1419; }
 :root[data-theme="dark"][data-accent="emerald"] { --accent: #55D6A0; --accent-soft: #193D30; --accent-foreground: #0F1419; }
-:root[data-theme="dark"][data-accent="blue"] { --accent: #8DBAFF; --accent-soft: #203752; --accent-foreground: #0F1419; }
+:root[data-theme="dark"][data-accent="blue"] { --accent: #85A9FF; --accent-soft: #203752; --accent-foreground: #0F1419; }
 :root[data-theme="dark"][data-accent="violet"] { --accent: #C4A5F2; --accent-soft: #362A4A; --accent-foreground: #0F1419; }
 :root[data-theme="dark"][data-accent="rose"] { --accent: #F3A4CA; --accent-soft: #492838; --accent-foreground: #0F1419; }
-:root[data-theme="dark"][data-accent="red"] { --accent: #FFAAAA; --accent-soft: #482B2B; --accent-foreground: #0F1419; }
-:root[data-theme="dark"][data-accent="amber"] { --accent: #F4C36E; --accent-soft: #44351F; --accent-foreground: #0F1419; }
+:root[data-theme="dark"][data-accent="red"] { --accent: #FF818A; --accent-soft: #482B2B; --accent-foreground: #0F1419; }
+:root[data-theme="dark"][data-accent="amber"] { --accent: #F5D35C; --accent-soft: #44351F; --accent-foreground: #0F1419; }
 :root[data-theme="dark"][data-accent="lime"] { --accent: #B6D781; --accent-soft: #303D22; --accent-foreground: #0F1419; }
 :root[data-theme="dark"][data-accent="slate"] { --accent: #B2C7D8; --accent-soft: #2B3A45; --accent-foreground: #0F1419; }
 
 @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]):not([data-theme="dark"])[data-accent="cyan"] { --accent: #56C5D5; --accent-soft: #173B42; --accent-foreground: #0F1419; }
-    :root:not([data-theme="light"]):not([data-theme="dark"])[data-accent="orange"] { --accent: #FFAF73; --accent-soft: #493021; --accent-foreground: #0F1419; }
+    :root:not([data-theme="light"]):not([data-theme="dark"])[data-accent="cyan"] { --accent: #50D4DC; --accent-soft: #173B42; --accent-foreground: #0F1419; }
+    :root:not([data-theme="light"]):not([data-theme="dark"])[data-accent="orange"] { --accent: #FF9863; --accent-soft: #493021; --accent-foreground: #0F1419; }
     :root:not([data-theme="light"]):not([data-theme="dark"])[data-accent="emerald"] { --accent: #55D6A0; --accent-soft: #193D30; --accent-foreground: #0F1419; }
-    :root:not([data-theme="light"]):not([data-theme="dark"])[data-accent="blue"] { --accent: #8DBAFF; --accent-soft: #203752; --accent-foreground: #0F1419; }
+    :root:not([data-theme="light"]):not([data-theme="dark"])[data-accent="blue"] { --accent: #85A9FF; --accent-soft: #203752; --accent-foreground: #0F1419; }
     :root:not([data-theme="light"]):not([data-theme="dark"])[data-accent="violet"] { --accent: #C4A5F2; --accent-soft: #362A4A; --accent-foreground: #0F1419; }
     :root:not([data-theme="light"]):not([data-theme="dark"])[data-accent="rose"] { --accent: #F3A4CA; --accent-soft: #492838; --accent-foreground: #0F1419; }
-    :root:not([data-theme="light"]):not([data-theme="dark"])[data-accent="red"] { --accent: #FFAAAA; --accent-soft: #482B2B; --accent-foreground: #0F1419; }
-    :root:not([data-theme="light"]):not([data-theme="dark"])[data-accent="amber"] { --accent: #F4C36E; --accent-soft: #44351F; --accent-foreground: #0F1419; }
+    :root:not([data-theme="light"]):not([data-theme="dark"])[data-accent="red"] { --accent: #FF818A; --accent-soft: #482B2B; --accent-foreground: #0F1419; }
+    :root:not([data-theme="light"]):not([data-theme="dark"])[data-accent="amber"] { --accent: #F5D35C; --accent-soft: #44351F; --accent-foreground: #0F1419; }
     :root:not([data-theme="light"]):not([data-theme="dark"])[data-accent="lime"] { --accent: #B6D781; --accent-soft: #303D22; --accent-foreground: #0F1419; }
     :root:not([data-theme="light"]):not([data-theme="dark"])[data-accent="slate"] { --accent: #B2C7D8; --accent-soft: #2B3A45; --accent-foreground: #0F1419; }
 }
@@ -368,25 +368,25 @@ dialog [data-article-saved][aria-pressed="true"] svg { color: var(--accent); fil
 .preference-accent[data-accent-value="lime"], .preference-accent option[value="lime"] { color: #4D6919; }
 .preference-accent[data-accent-value="slate"], .preference-accent option[value="slate"] { color: #4A6072; }
 @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent[data-accent-value="cyan"], :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent option[value="cyan"] { color: #56C5D5; }
-    :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent[data-accent-value="orange"], :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent option[value="orange"] { color: #FFAF73; }
+    :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent[data-accent-value="cyan"], :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent option[value="cyan"] { color: #50D4DC; }
+    :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent[data-accent-value="orange"], :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent option[value="orange"] { color: #FF9863; }
     :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent[data-accent-value="emerald"], :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent option[value="emerald"] { color: #55D6A0; }
-    :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent[data-accent-value="blue"], :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent option[value="blue"] { color: #8DBAFF; }
+    :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent[data-accent-value="blue"], :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent option[value="blue"] { color: #85A9FF; }
     :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent[data-accent-value="violet"], :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent option[value="violet"] { color: #C4A5F2; }
     :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent[data-accent-value="rose"], :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent option[value="rose"] { color: #F3A4CA; }
-    :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent[data-accent-value="red"], :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent option[value="red"] { color: #FFAAAA; }
-    :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent[data-accent-value="amber"], :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent option[value="amber"] { color: #F4C36E; }
+    :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent[data-accent-value="red"], :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent option[value="red"] { color: #FF818A; }
+    :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent[data-accent-value="amber"], :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent option[value="amber"] { color: #F5D35C; }
     :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent[data-accent-value="lime"], :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent option[value="lime"] { color: #B6D781; }
     :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent[data-accent-value="slate"], :root:not([data-theme="light"]):not([data-theme="dark"]) .preference-accent option[value="slate"] { color: #B2C7D8; }
 }
-:root[data-theme="dark"] .preference-accent[data-accent-value="cyan"], :root[data-theme="dark"] .preference-accent option[value="cyan"] { color: #56C5D5; }
-:root[data-theme="dark"] .preference-accent[data-accent-value="orange"], :root[data-theme="dark"] .preference-accent option[value="orange"] { color: #FFAF73; }
+:root[data-theme="dark"] .preference-accent[data-accent-value="cyan"], :root[data-theme="dark"] .preference-accent option[value="cyan"] { color: #50D4DC; }
+:root[data-theme="dark"] .preference-accent[data-accent-value="orange"], :root[data-theme="dark"] .preference-accent option[value="orange"] { color: #FF9863; }
 :root[data-theme="dark"] .preference-accent[data-accent-value="emerald"], :root[data-theme="dark"] .preference-accent option[value="emerald"] { color: #55D6A0; }
-:root[data-theme="dark"] .preference-accent[data-accent-value="blue"], :root[data-theme="dark"] .preference-accent option[value="blue"] { color: #8DBAFF; }
+:root[data-theme="dark"] .preference-accent[data-accent-value="blue"], :root[data-theme="dark"] .preference-accent option[value="blue"] { color: #85A9FF; }
 :root[data-theme="dark"] .preference-accent[data-accent-value="violet"], :root[data-theme="dark"] .preference-accent option[value="violet"] { color: #C4A5F2; }
 :root[data-theme="dark"] .preference-accent[data-accent-value="rose"], :root[data-theme="dark"] .preference-accent option[value="rose"] { color: #F3A4CA; }
-:root[data-theme="dark"] .preference-accent[data-accent-value="red"], :root[data-theme="dark"] .preference-accent option[value="red"] { color: #FFAAAA; }
-:root[data-theme="dark"] .preference-accent[data-accent-value="amber"], :root[data-theme="dark"] .preference-accent option[value="amber"] { color: #F4C36E; }
+:root[data-theme="dark"] .preference-accent[data-accent-value="red"], :root[data-theme="dark"] .preference-accent option[value="red"] { color: #FF818A; }
+:root[data-theme="dark"] .preference-accent[data-accent-value="amber"], :root[data-theme="dark"] .preference-accent option[value="amber"] { color: #F5D35C; }
 :root[data-theme="dark"] .preference-accent[data-accent-value="lime"], :root[data-theme="dark"] .preference-accent option[value="lime"] { color: #B6D781; }
 :root[data-theme="dark"] .preference-accent[data-accent-value="slate"], :root[data-theme="dark"] .preference-accent option[value="slate"] { color: #B2C7D8; }
 
