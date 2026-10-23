@@ -7,6 +7,7 @@
     const disable = root.querySelector('[data-push-disable]');
     const test = root.querySelector('[data-push-test]');
     const status = root.querySelector('[role="status"]');
+    const controls = root.querySelector('[data-push-controls]');
     if (!('serviceWorker' in navigator) || !('PushManager' in window) || !window.isSecureContext || !root.dataset.publicKey) {
         status.textContent = text('unavailable', 'Les notifications ne sont pas disponibles sur cet appareil ou ce serveur.');
         return;
@@ -47,6 +48,7 @@
                     if (row.dataset.pushDevice !== result.deviceId) return;
                     if (result.deviceLabel && result.deviceLabel !== 'Navigateur inconnu') row.querySelector('[data-push-device-label]').textContent = result.deviceLabel;
                     row.querySelector('[data-push-current]').hidden = false;
+                    if (result.subscribed && controls) controls.hidden = true;
                     row.querySelector('[data-push-device-delete]').addEventListener('submit', async event => {
                         event.preventDefault();
                         try {
@@ -54,7 +56,7 @@
                             if (!response.ok || !(await response.json()).ok) throw new Error('delete-failed');
                             await subscription.unsubscribe();
                             window.location.reload();
-                        } catch (_) { status.textContent = text('disableError', 'Impossible de désactiver les notifications.'); }
+                        } catch (_) { if (controls) controls.hidden = false; status.textContent = text('disableError', 'Impossible de désactiver les notifications.'); }
                     });
                 });
             }

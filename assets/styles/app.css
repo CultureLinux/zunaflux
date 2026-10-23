@@ -412,3 +412,5 @@ dialog [data-article-saved][aria-pressed="true"] svg { color: var(--accent); fil
 :root[data-theme="dark"] .preference-accent[data-accent-value="slate"], :root[data-theme="dark"] .preference-accent option[value="slate"] { color: #B2C7D8; }
 
 .preference-accent option { background-color: var(--surface); }
+
+.push-current-browser:not([hidden]) { display: inline-flex; align-items: center; gap: .35rem; border: 1px solid var(--line); border-radius: 999px; padding: .25rem .6rem; color: var(--muted); font-size: .75rem; }

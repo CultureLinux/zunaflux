@@ -3,6 +3,27 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
 
+test('a registered current browser is identified and hides the activation controls', async () => {
+    const controls = { hidden: false };
+    const current = { hidden: true };
+    const label = { textContent: '' };
+    const remove = { addEventListener() {} };
+    const row = { dataset: { pushDevice: 'device-1' }, querySelector(selector) { return selector === '[data-push-current]' ? current : selector === '[data-push-device-label]' ? label : remove; } };
+    const elements = Object.fromEntries(['enable', 'disable', 'test', 'status'].map(name => [name, { disabled: true, dataset: {}, addEventListener() {}, textContent: '' }]));
+    const root = {
+        dataset: { publicKey: 'AQ', csrf: 'token', url: '/api/push-subscription', statusUrl: '/api/push-subscription/status', deviceList: '1' },
+        querySelector(selector) { if (selector === '[data-push-controls]') return controls; return elements[selector.includes('enable') ? 'enable' : selector.includes('disable') ? 'disable' : selector.includes('test') ? 'test' : 'status']; },
+        querySelectorAll: () => [row],
+    };
+    const subscription = { endpoint: 'https://updates.push.services.mozilla.com/wpush/v2/test' };
+    const registration = { pushManager: { getSubscription: async () => subscription } };
+    const context = { document: { querySelector: () => root }, navigator: { serviceWorker: { register: async () => registration, ready: Promise.resolve(registration) } }, window: { PushManager: function () {}, isSecureContext: true }, fetch: async () => ({ ok: true, json: async () => ({ subscribed: true, deviceId: 'device-1', deviceLabel: 'Firefox' }) }), atob, Uint8Array, setTimeout, clearTimeout };
+    vm.runInNewContext(fs.readFileSync('public/push.js', 'utf8'), context);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(current.hidden, false);
+    assert.equal(controls.hidden, true);
+});
+
 test('notification availability is reported in the selected language', () => {
     const status = { textContent: '' };
     const root = {

@@ -18,6 +18,7 @@
     prepareError: 'Impossible de préparer les notifications sur cet appareil.'|trans
 }|json_encode|e('html_attr') }}" data-public-key="{{ push_public_key|default('') }}" data-csrf="{{ csrf_token('push-subscription') }}" data-url="{{ path('app_push_subscription') }}" data-status-url="{{ path('app_push_subscription_status') }}" data-device-list="1">
     <h2 class="font-serif text-2xl text-foreground">{{ "Notifications"|trans }}</h2>
+    <div data-push-controls>
     <p class="mt-2 text-sm text-muted">{{ "Recevez les nouveautés et les erreurs de collecte sur cet appareil."|trans }}</p>
     <div class="mt-4 flex flex-wrap gap-3">
         <button class="border border-accent px-4 py-3 text-accent" type="button" data-push-enable disabled>{{ "Activer sur cet appareil"|trans }}</button>
@@ -25,12 +26,13 @@
         {% if is_granted('ROLE_ADMIN') %}<button class="border border-line px-4 py-3 text-accent" type="button" data-push-test data-url="{{ path('app_admin_push_test') }}" disabled>{{ "Tester la notification"|trans }}</button>{% endif %}
     </div>
     <p class="mt-3 text-sm text-muted" role="status">{{ "Notifications indisponibles pour le moment."|trans }}</p>
+    </div>
     <h3 class="mt-6 text-lg font-semibold">{{ 'Appareils enregistrés'|trans }}</h3>
     <p class="mt-1 text-sm text-muted">{{ 'Un envoi accepté ne garantit pas son affichage sur l’appareil.'|trans }}</p>
     <ul class="mt-3 grid gap-3">
         {% for device in push_devices %}
             <li class="border border-line p-4" data-push-device="{{ device.id }}">
-                <p class="font-semibold"><span data-push-device-label>{{ device.deviceLabel|trans }}</span> <span data-push-current hidden>{{ '· Cet appareil'|trans }}</span></p>
+                <div class="flex flex-wrap items-center justify-between gap-2"><p class="font-semibold" data-push-device-label>{{ device.deviceLabel|trans }}</p><span class="push-current-browser" data-push-current hidden><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>{{ 'Ce navigateur'|trans }}</span></div>
                 <p class="mt-1 text-sm text-muted">
                     {% if device.lastResult == 'accepted' %}{{ 'Dernier envoi accepté par le service push'|trans }}{% elseif device.lastResult == 'failed' %}{{ 'Dernier envoi en échec'|trans }}{% else %}{{ 'Aucun résultat enregistré'|trans }}{% endif %}
                     {% if device.lastResultAt %} · <time datetime="{{ device.lastResultAt|date('c') }}">{{ device.lastResultAt|date('d/m/Y H:i', preference.timezone) }}</time>{% endif %}
