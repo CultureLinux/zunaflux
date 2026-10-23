@@ -10,6 +10,22 @@
         {% block stylesheets %}
             <link rel="stylesheet" href="{{ asset('styles/app.css') }}">
         {% endblock %}
+        {% if app.environment == 'prod' and matomo_url|trim != '' and matomo_site_id|trim != '' %}
+            <!-- Matomo -->
+            <script>
+                var _paq = window._paq = window._paq || [];
+                _paq.push(['trackPageView']);
+                _paq.push(['enableLinkTracking']);
+                (function() {
+                    var u = {{ (matomo_url|trim|trim('/') ~ '/')|json_encode|raw }};
+                    _paq.push(['setTrackerUrl', u + 'matomo.php']);
+                    _paq.push(['setSiteId', {{ matomo_site_id|trim|json_encode|raw }}]);
+                    var d = document, g = d.createElement('script'), s = d.getElementsByTagName('script')[0];
+                    g.async = true; g.src = u + 'matomo.js'; s.parentNode.insertBefore(g, s);
+                })();
+            </script>
+            <!-- End Matomo Code -->
+        {% endif %}
     </head>
     <body class="bg-background text-foreground antialiased">
         {% if app.user %}
@@ -43,5 +59,10 @@
         </div>
         <script src="{{ asset('toast.js') }}" defer></script>
         {% block body %}{% endblock %}
+        {% if app.environment == 'prod' and matomo_url|trim != '' and matomo_site_id|trim != '' %}
+            <!-- Matomo Image Tracker -->
+            <noscript><img referrerpolicy="no-referrer-when-downgrade" src="{{ matomo_url|trim|trim('/') }}/matomo.php?idsite={{ matomo_site_id|trim|url_encode }}&amp;rec=1" style="border:0" alt=""></noscript>
+            <!-- End Matomo -->
+        {% endif %}
     </body>
 </html>

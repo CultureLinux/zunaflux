@@ -1,5 +1,8 @@
 twig:
     file_name_pattern: '*.twig'
+    globals:
+        matomo_url: '%env(default:app.push_empty:MATOMO_URL)%'
+        matomo_site_id: '%env(default:app.push_empty:MATOMO_SITE_ID)%'
 when@test:
     twig:
         strict_variables: true
