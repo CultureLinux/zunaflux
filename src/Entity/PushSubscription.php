@@ -44,6 +44,7 @@ final class PushSubscription
     public function __construct(User $user, string $endpoint, string $publicKey, string $authSecret)
     {
         $this->id = Uuid::v7();
+        $this->user = $user;
         $this->endpoint = $endpoint;
         $this->endpointHash = hash('sha256', $endpoint, true);
         $this->update($user, $publicKey, $authSecret);
