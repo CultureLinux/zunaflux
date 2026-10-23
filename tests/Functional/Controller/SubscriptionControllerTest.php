@@ -457,6 +457,59 @@ final class SubscriptionControllerTest extends WebTestCase
         }
     }
 
+    public function testAdminCanInspectFeedRetryInADialogAndOpenTheFeedManually(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $admin = new User('retry-dialog-'.bin2hex(random_bytes(8)).'@example.test');
+        $admin->addRole('ROLE_ADMIN');
+        $feed = new Feed('https://example.test/'.bin2hex(random_bytes(8)).'/feed');
+        $incident = new \App\Entity\FeedIncident($feed, new \RuntimeException('Feed request failed.'));
+        foreach ([$admin, $feed, $incident] as $entity) $em->persist($entity);
+        $em->flush();
+
+        try {
+            $client->loginUser($admin);
+            $client->request('GET', '/admin');
+            self::assertResponseIsSuccessful();
+            self::assertSelectorExists('dialog[data-feed-retry-dialog]');
+            self::assertSelectorExists('dialog[data-feed-retry-dialog] [data-feed-retry-log]');
+            self::assertSelectorExists('dialog[data-feed-retry-dialog] a[href="'.$feed->getCanonicalUrl().'"][target="_blank"][rel~="noopener"]');
+        } finally {
+            $connection = $em->getConnection();
+            $connection->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);
+            $connection->executeStatement('DELETE FROM app_user WHERE id = ?', [$admin->getId()->toBinary()]);
+        }
+    }
+
+    public function testAdminRetryReturnsTheCollectionErrorInTheDialogResponse(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $admin = new User('retry-result-'.bin2hex(random_bytes(8)).'@example.test');
+        $admin->addRole('ROLE_ADMIN');
+        $feed = new Feed('http://127.0.0.1/'.bin2hex(random_bytes(8)));
+        $incident = new \App\Entity\FeedIncident($feed, new \RuntimeException('Previous failure'));
+        foreach ([$admin, $feed, $incident] as $entity) $em->persist($entity);
+        $em->flush();
+
+        try {
+            $client->loginUser($admin);
+            $crawler = $client->request('GET', '/admin');
+            $token = $crawler->filter('form[action="/admin/incidents/'.$incident->getId().'/retry"] input[name="_token"]')->attr('value');
+            $client->request('POST', '/admin/incidents/'.$incident->getId().'/retry', ['_token' => $token], server: ['HTTP_ACCEPT' => 'application/json']);
+            self::assertResponseIsSuccessful();
+            $result = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+            self::assertFalse($result['success']);
+            self::assertStringContainsString('bloquée', implode(' ', $result['logs']));
+            self::assertStringContainsString('incident reste ouvert', implode(' ', $result['logs']));
+        } finally {
+            $connection = $em->getConnection();
+            $connection->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);
+            $connection->executeStatement('DELETE FROM app_user WHERE id = ?', [$admin->getId()->toBinary()]);
+        }
+    }
+
     public function testAnOpenIncidentIsVisibleOnlyForTheUsersOwnSource(): void
     {
         $client = static::createClient();

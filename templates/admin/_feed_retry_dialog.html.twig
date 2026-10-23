@@ -1,0 +1,18 @@
+<dialog class="discovery-dialog" data-feed-retry-dialog data-loading="{{ 'Test en cours…'|trans }}" data-error="{{ 'Impossible de récupérer le résultat du test. Vérifiez votre connexion et réessayez.'|trans }}" aria-labelledby="feed-retry-title-{{ incident.id }}">
+    <div class="flex items-start justify-between gap-4">
+        <div class="min-w-0">
+            <p class="font-mono text-xs uppercase tracking-[.2em] text-muted">{{ 'Diagnostic du flux'|trans }}</p>
+            <h3 class="mt-2 break-words font-serif text-2xl" id="feed-retry-title-{{ incident.id }}">{{ incident.feed.title ?: incident.feed.canonicalUrl }}</h3>
+        </div>
+        <button class="min-h-11 min-w-11 text-xl text-muted" type="button" data-feed-retry-close aria-label="{{ 'Fermer'|trans }}">×</button>
+    </div>
+    <p class="mt-4 break-all text-sm text-muted">{{ incident.feed.canonicalUrl }}</p>
+    <div class="mt-5 border border-line bg-background p-4">
+        <p class="text-sm font-semibold">{{ 'Résultat du test'|trans }}</p>
+        <pre class="mt-3 whitespace-pre-wrap break-words text-sm leading-6" data-feed-retry-log role="status" aria-live="polite">{{ 'Test en cours…'|trans }}</pre>
+    </div>
+    <div class="mt-5 flex flex-wrap gap-3">
+        <a class="inline-flex min-h-11 items-center border border-accent px-4 text-accent" href="{{ incident.feed.canonicalUrl }}" target="_blank" rel="noopener noreferrer">{{ 'Ouvrir le flux dans un nouvel onglet'|trans }}</a>
+        <button class="min-h-11 border border-line px-4" type="button" data-feed-retry-close>{{ 'Fermer'|trans }}</button>
+    </div>
+</dialog>

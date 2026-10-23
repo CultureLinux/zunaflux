@@ -46,12 +46,25 @@ final class AdminController extends AbstractController
   catch (\InvalidArgumentException $e) { $this->addFlash('error',$e->getMessage()); }
   return $this->redirectToRoute('app_admin', status:Response::HTTP_SEE_OTHER);
  }
- #[Route('/admin/incidents/{id}/retry', name:'app_admin_incident_retry', methods:['POST'])] public function retry(string $id, Request $r, EntityManagerInterface $em, MessageBusInterface $bus):Response {
+ #[Route('/admin/incidents/{id}/retry', name:'app_admin_incident_retry', methods:['POST'])] public function retry(string $id, Request $r, EntityManagerInterface $em, MessageBusInterface $bus, \App\MessageHandler\CollectFeedHandler $collect, \App\Application\Notification\IncidentMessage $incidentMessage):Response {
   $this->denyAccessUnlessGranted('ROLE_ADMIN');
   try{$incident=$em->getRepository(FeedIncident::class)->find(Uuid::fromString($id));}catch(\InvalidArgumentException){$incident=null;}
   if(!$incident instanceof FeedIncident)throw $this->createNotFoundException();
   if(!$this->isCsrfTokenValid('retry-incident-'.$id,$r->request->getString('_token')))throw $this->createAccessDeniedException();
   if(null !== $incident->getAcknowledgedAt()) throw new \Symfony\Component\HttpKernel\Exception\ConflictHttpException('Cet incident n’est plus ouvert.');
+  if ('application/json' === $r->headers->get('Accept')) {
+   $logs = ['Vérification de l’adresse et collecte du flux…'];
+   try {
+    $collect(new CollectFeedMessage((string)$incident->getFeed()->getId()));
+    $logs[] = 'Collecte terminée avec succès.';
+    $logs[] = 'L’incident reste ouvert jusqu’à son acquittement.';
+    return $this->json(['success' => true, 'logs' => $logs]);
+   } catch (\Throwable $error) {
+    $logs[] = $incidentMessage->describe($error->getMessage());
+    $logs[] = 'La collecte a échoué. L’incident reste ouvert.';
+    return $this->json(['success' => false, 'logs' => $logs]);
+   }
+  }
   $bus->dispatch(new CollectFeedMessage((string)$incident->getFeed()->getId()));
   $this->addFlash('success','Nouvelle collecte placée en file. L’incident reste ouvert jusqu’à son acquittement.');
   return $this->redirectToRoute('app_admin');
