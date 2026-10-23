@@ -19,6 +19,11 @@ const setViewParams = (params, view) => {
     else params.set('read', view);
 };
 
+const isReadingSourceVisible = ({ unread, read }, view, sourceCategoryId, selectedCategoryId) => {
+    if (selectedCategoryId && sourceCategoryId !== selectedCategoryId) return false;
+    return (view === '0' ? unread : view === '1' ? read : unread + read) > 0;
+};
+
 const container = document.querySelector('[data-article-list]');
 
 if (container) {
@@ -47,13 +52,20 @@ if (container) {
     const bulkError = document.querySelector('[data-bulk-error]');
     const sourceFilter = document.querySelector('[data-source-filter]');
     const sourceFilterLabel = document.querySelector('[data-source-filter-label]');
+    const categoryContext = document.querySelector('[data-reading-category-context]');
     let subscriptionFilter = new URLSearchParams(location.search).get('subscription') || '';
     let categoryFilter = new URLSearchParams(location.search).get('category') || '';
     let selectedSearch = !!new URLSearchParams(location.search).get('filterName');
     let sourceName = '';
+    let categoryName = categoryFilter ? new URLSearchParams(location.search).get('filterName') || 'Catégorie active' : '';
     const updateSourceFilter = () => {
-        sourceFilter.hidden = !subscriptionFilter;
-        sourceFilterLabel.textContent = sourceName ? `Flux : ${sourceName}` : 'Filtre sur un flux actif';
+        const categoryLabel = categoryName || 'Catégorie active';
+        sourceFilter.hidden = !subscriptionFilter && !categoryFilter;
+        sourceFilterLabel.textContent = categoryFilter ? `Catégorie : ${categoryLabel}` : sourceName ? `Flux : ${sourceName}` : 'Filtre sur un flux actif';
+        if (categoryContext) {
+            categoryContext.hidden = !categoryFilter;
+            categoryContext.textContent = categoryFilter ? `Catégorie : ${categoryLabel}` : '';
+        }
     };
     updateSourceFilter();
     const loadedItems = [];
@@ -90,7 +102,7 @@ if (container) {
         document.querySelectorAll('[data-reading-source]').forEach((row) => {
             const unread = Number(row.dataset.unread);
             const read = Number(row.dataset.read);
-            row.hidden = (readFilter.value === '0' ? unread : readFilter.value === '1' ? read : unread + read) === 0;
+            row.hidden = !isReadingSourceVisible({ unread, read }, readFilter.value, row.dataset.categoryId || '', categoryFilter);
             const link = row.querySelector('[data-source-link]');
             const url = new URL(link.href);
             setViewParams(url.searchParams, readFilter.value);
@@ -403,6 +415,7 @@ if (container) {
                     categoryFilter = '';
                     selectedSearch = true;
                     sourceName = item.source || 'Source sans titre';
+                    categoryName = '';
                     searchInput.value = sourceName;
                     const current = new URL(location.href);
                     current.searchParams.set('subscription', subscriptionFilter);
@@ -411,6 +424,7 @@ if (container) {
                     current.searchParams.set('filterName', sourceName);
                     history.replaceState(null, '', current);
                     updateSourceFilter();
+                    updateSources();
                     loadPage();
                 });
                 const title = document.createElement('h2');
@@ -483,6 +497,7 @@ if (container) {
                         categoryFilter = item.categoryId;
                         selectedSearch = true;
                         sourceName = '';
+                        categoryName = item.categoryName;
                         searchInput.value = item.categoryName;
                         const current = new URL(location.href);
                         current.searchParams.delete('subscription');
@@ -491,6 +506,7 @@ if (container) {
                         current.searchParams.set('filterName', item.categoryName);
                         history.replaceState(null, '', current);
                         updateSourceFilter();
+                        updateSources();
                         loadPage();
                     });
                     const separator = document.createElement('span');
@@ -548,11 +564,12 @@ if (container) {
     searchInput?.addEventListener('input', () => {
         if (selectedSearch) {
             selectedSearch = false;
-            subscriptionFilter = ''; categoryFilter = ''; sourceName = '';
+            subscriptionFilter = ''; categoryFilter = ''; sourceName = ''; categoryName = '';
             const current = new URL(location.href);
             current.searchParams.delete('subscription'); current.searchParams.delete('category'); current.searchParams.delete('filterName'); current.searchParams.delete('q');
             history.replaceState(null, '', current);
             updateSourceFilter();
+            updateSources();
         }
         clearTimeout(searchTimer);
         searchTimer = setTimeout(() => loadPage(), 300);
@@ -561,15 +578,16 @@ if (container) {
     clearSearch?.addEventListener('click', () => {
         clearTimeout(searchTimer);
         searchInput.value = '';
-        selectedSearch = false; subscriptionFilter = ''; categoryFilter = ''; sourceName = '';
+        selectedSearch = false; subscriptionFilter = ''; categoryFilter = ''; sourceName = ''; categoryName = '';
         const current = new URL(location.href);
         current.searchParams.delete('q'); current.searchParams.delete('subscription'); current.searchParams.delete('category'); current.searchParams.delete('filterName');
         history.replaceState(null, '', current);
         updateSourceFilter();
+        updateSources();
         searchInput.focus();
         loadPage();
     });
-    document.querySelector('[data-clear-source]').addEventListener('click', () => { subscriptionFilter = ''; sourceName = ''; if (selectedSearch) { selectedSearch = false; searchInput.value = ''; } const current = new URL(location.href); current.searchParams.delete('subscription'); current.searchParams.delete('filterName'); history.replaceState(null, '', current); updateSourceFilter(); loadPage(); });
+    document.querySelector('[data-clear-source]').addEventListener('click', () => { subscriptionFilter = ''; categoryFilter = ''; sourceName = ''; categoryName = ''; if (selectedSearch) { selectedSearch = false; searchInput.value = ''; } const current = new URL(location.href); current.searchParams.delete('subscription'); current.searchParams.delete('category'); current.searchParams.delete('filterName'); history.replaceState(null, '', current); updateSourceFilter(); updateSources(); loadPage(); });
     readFilter.addEventListener('change', () => { const url = new URL(location.href); setViewParams(url.searchParams, readFilter.value); history.replaceState(null, '', url); updateSources(); loadPage(); });
 
     if (sentinel && 'IntersectionObserver' in window) {

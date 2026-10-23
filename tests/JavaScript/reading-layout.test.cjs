@@ -1,6 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const vm = require('node:vm');
 test('the saved desktop layout preference controls the split layout without changing mobile dialogs', () => {
     const template = fs.readFileSync('templates/article/index.html.twig', 'utf8');
     const script = fs.readFileSync('assets/controllers/article-list.js', 'utf8');
@@ -39,4 +40,18 @@ test('the article list has one column on desktop while keeping the mobile layout
     assert.ok(classes.includes('md:grid-cols-2'));
     assert.ok(classes.includes('lg:grid-cols-1'));
     assert.ok(!classes.some(name => /^(xl|2xl):grid-cols-/.test(name)));
+});
+
+test('the desktop source list keeps only sources from the selected category', () => {
+    const context = { document: { querySelector: () => null } };
+    vm.runInNewContext(fs.readFileSync('assets/controllers/article-list.js', 'utf8') + '\nthis.sourceIsVisible = isReadingSourceVisible;', context);
+
+    assert.equal(context.sourceIsVisible({ unread: 2, read: 1 }, 'favorite', 'science', 'science'), true);
+    assert.equal(context.sourceIsVisible({ unread: 2, read: 1 }, 'saved', 'culture', 'science'), false);
+    assert.equal(context.sourceIsVisible({ unread: 0, read: 0 }, '', 'science', 'science'), false);
+});
+
+test('the desktop source pane exposes the active category context', () => {
+    const template = fs.readFileSync('templates/article/index.html.twig', 'utf8');
+    assert.match(template, /data-reading-category-context/);
 });

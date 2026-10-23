@@ -185,6 +185,7 @@ dialog [data-article-saved][aria-pressed="true"] svg { color: var(--accent); fil
         .reading-workspace { display: grid; grid-template-columns: 13rem minmax(18rem, 1fr) minmax(20rem, 1.1fr); min-height: calc(100dvh - 5rem); max-width: 112rem; margin: auto; }
         .reading-workspace .reading-sidebar { display: block; min-width: 0; padding: 1.75rem 1rem; border-right: 1px solid var(--line); background: var(--surface); }
         .reading-sidebar-title, .reading-sidebar-heading { color: var(--muted); font-size: .7rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+        .reading-sidebar-category { margin: .75rem .5rem -.75rem; color: var(--accent); font-size: .875rem; font-weight: 600; overflow-wrap: anywhere; }
         .reading-sidebar-heading { display: flex; align-items: center; justify-content: space-between; margin: 2rem .5rem .5rem; }
         .reading-sidebar-heading a { color: var(--accent); font-size: 1.5rem; }
         .reading-sidebar-nav { display: grid; gap: .25rem; margin-top: .75rem; }

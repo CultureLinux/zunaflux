@@ -16,13 +16,14 @@
         {% if preference.sidebarCollapsed %}
         <aside class="reading-sidebar" aria-label="Navigation de lecture">
             <p class="reading-sidebar-title">{{ "Votre lecture"|trans }}</p>
+            <p class="reading-sidebar-category" data-reading-category-context aria-live="polite" hidden></p>
 
             <div class="reading-sidebar-heading"><p>{{ "Sources"|trans }}</p><a href="{{ path('app_subscriptions') }}" aria-label="Gérer les sources">+</a></div>
             <nav class="reading-sidebar-nav" aria-label="Vos sources">
                 {% for subscription in readingSubscriptions %}
                     {% set counts = readingCounts[subscription.id ~ '']|default({unread: 0, read: 0}) %}
                     {% set currentRead = app.request.query.get('read', '0') %}
-                    <div class="reading-source-row" data-reading-source data-unread="{{ counts.unread }}" data-read="{{ counts.read }}" {% if (currentRead == '0' and counts.unread == 0) or (currentRead == '1' and counts.read == 0) or (currentRead == '' and counts.unread + counts.read == 0) %}hidden{% endif %}>
+                    <div class="reading-source-row" data-reading-source data-category-id="{{ subscription.category ? subscription.category.id : '' }}" data-unread="{{ counts.unread }}" data-read="{{ counts.read }}" {% if (currentRead == '0' and counts.unread == 0) or (currentRead == '1' and counts.read == 0) or (currentRead == '' and counts.unread + counts.read == 0) %}hidden{% endif %}>
                         <a data-source-link href="{{ path('app_articles', {subscription: subscription.id, read: currentRead}) }}" {% if app.request.query.get('subscription') == subscription.id ~ '' %}aria-current="page"{% endif %}><span>{{ subscription.displayTitle }} {% if subscription.feed.lastError %}<svg data-feed-warning class="inline h-4 w-4 text-warning" role="img" aria-label="Erreur de collecte" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 2 21h20L12 3Zm0 6v5m0 3v1"/></svg>{% endif %}</span><span class="reading-unread-count" data-unread-subscription="{{ subscription.id }}" aria-label="{{ counts.unread }} articles non lus">{{ counts.unread }}</span></a>
                         <form method="post" action="{{ path('app_subscription_mark_read', {id: subscription.id}) }}"><input type="hidden" name="_token" value="{{ csrf_token('mark-feed-read-' ~ subscription.id) }}"><button type="submit" class="reading-mark-feed" title="Marquer tous les articles de {{ subscription.displayTitle }} comme lus" aria-label="Marquer tous les articles de {{ subscription.displayTitle }} comme lus">✓</button></form>
                     </div>
