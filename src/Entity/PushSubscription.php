@@ -32,6 +32,15 @@ final class PushSubscription
     #[ORM\Column(name: 'auth_secret', length: 255)]
     private string $authSecret;
 
+    #[ORM\Column(name: 'device_label', length: 80, options: ['default' => 'Navigateur inconnu'])]
+    private string $deviceLabel = 'Navigateur inconnu';
+
+    #[ORM\Column(name: 'last_result', length: 20, nullable: true)]
+    private ?string $lastResult = null;
+
+    #[ORM\Column(name: 'last_result_at', type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $lastResultAt = null;
+
     public function __construct(User $user, string $endpoint, string $publicKey, string $authSecret)
     {
         $this->id = Uuid::v7();
@@ -42,13 +51,23 @@ final class PushSubscription
 
     public function update(User $user, string $publicKey, string $authSecret): void
     {
+        if (!$this->user->getId()->equals($user->getId())) {
+            $this->lastResult = null;
+            $this->lastResultAt = null;
+        }
         $this->user = $user;
         $this->publicKey = $publicKey;
         $this->authSecret = $authSecret;
     }
 
     public function getUser(): User { return $this->user; }
+    public function getId(): Uuid { return $this->id; }
     public function getEndpoint(): string { return $this->endpoint; }
     public function getPublicKey(): string { return $this->publicKey; }
     public function getAuthSecret(): string { return $this->authSecret; }
+    public function getDeviceLabel(): string { return $this->deviceLabel; }
+    public function getLastResult(): ?string { return $this->lastResult; }
+    public function getLastResultAt(): ?\DateTimeImmutable { return $this->lastResultAt; }
+    public function setDeviceLabel(string $label): void { $this->deviceLabel = $label; }
+    public function recordResult(string $result): void { $this->lastResult = $result; $this->lastResultAt = new \DateTimeImmutable(); }
 }

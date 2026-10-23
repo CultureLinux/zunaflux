@@ -16,7 +16,7 @@
     testSent: 'Notification de test envoyée. Vérifiez les notifications de cet appareil.'|trans,
     testError: 'Échec du test. Vérifiez l’activation et la configuration des notifications.'|trans,
     prepareError: 'Impossible de préparer les notifications sur cet appareil.'|trans
-}|json_encode|e('html_attr') }}" data-public-key="{{ push_public_key|default('') }}" data-csrf="{{ csrf_token('push-subscription') }}" data-url="{{ path('app_push_subscription') }}" data-status-url="{{ path('app_push_subscription_status') }}">
+}|json_encode|e('html_attr') }}" data-public-key="{{ push_public_key|default('') }}" data-csrf="{{ csrf_token('push-subscription') }}" data-url="{{ path('app_push_subscription') }}" data-status-url="{{ path('app_push_subscription_status') }}" data-device-list="1">
     <h2 class="font-serif text-2xl text-foreground">{{ "Notifications"|trans }}</h2>
     <p class="mt-2 text-sm text-muted">{{ "Recevez les nouveautés et les erreurs de collecte sur cet appareil."|trans }}</p>
     <div class="mt-4 flex flex-wrap gap-3">
@@ -25,5 +25,31 @@
         {% if is_granted('ROLE_ADMIN') %}<button class="border border-line px-4 py-3 text-accent" type="button" data-push-test data-url="{{ path('app_admin_push_test') }}" disabled>{{ "Tester la notification"|trans }}</button>{% endif %}
     </div>
     <p class="mt-3 text-sm text-muted" role="status">{{ "Notifications indisponibles pour le moment."|trans }}</p>
+    <h3 class="mt-6 text-lg font-semibold">{{ 'Appareils enregistrés'|trans }}</h3>
+    <p class="mt-1 text-sm text-muted">{{ 'Un envoi accepté ne garantit pas son affichage sur l’appareil.'|trans }}</p>
+    <ul class="mt-3 grid gap-3">
+        {% for device in push_devices %}
+            <li class="border border-line p-4" data-push-device="{{ device.id }}">
+                <p class="font-semibold"><span data-push-device-label>{{ device.deviceLabel|trans }}</span> <span data-push-current hidden>{{ '· Cet appareil'|trans }}</span></p>
+                <p class="mt-1 text-sm text-muted">
+                    {% if device.lastResult == 'accepted' %}{{ 'Dernier envoi accepté par le service push'|trans }}{% elseif device.lastResult == 'failed' %}{{ 'Dernier envoi en échec'|trans }}{% else %}{{ 'Aucun résultat enregistré'|trans }}{% endif %}
+                    {% if device.lastResultAt %} · <time datetime="{{ device.lastResultAt|date('c') }}">{{ device.lastResultAt|date('d/m/Y H:i', preference.timezone) }}</time>{% endif %}
+                </p>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    <form method="post" action="{{ path('app_push_device_action', {id: device.id, action: 'test'}) }}"><input type="hidden" name="_token" value="{{ csrf_token('push-device-' ~ device.id) }}"><button class="border border-line px-3 py-2 text-accent" type="submit">{{ 'Tester cet appareil'|trans }}</button></form>
+                    <form method="post" action="{{ path('app_push_device_action', {id: device.id, action: 'delete'}) }}" data-push-device-delete><input type="hidden" name="_token" value="{{ csrf_token('push-device-' ~ device.id) }}"><button class="border border-line px-3 py-2 text-accent" type="submit">{{ 'Supprimer cet appareil'|trans }}</button></form>
+                </div>
+            </li>
+        {% else %}
+            <li class="text-sm text-muted">{{ 'Aucun appareil enregistré.'|trans }}</li>
+        {% endfor %}
+    </ul>
+    {% for notice in push_notices %}
+        <div class="mt-3 border border-line p-4" role="status">
+            <p>{{ 'Un abonnement de notifications a expiré : %device%. Réactivez les notifications sur cet appareil.'|trans({'%device%': notice.deviceLabel|trans}) }}</p>
+            <p class="mt-1 text-sm text-muted"><time datetime="{{ notice.expiredAt|date('c') }}">{{ notice.expiredAt|date('d/m/Y H:i', preference.timezone) }}</time></p>
+            <form class="mt-2" method="post" action="{{ path('app_push_notice_dismiss', {id: notice.id}) }}"><input type="hidden" name="_token" value="{{ csrf_token('push-notice-' ~ notice.id) }}"><button class="text-accent underline" type="submit">{{ 'Masquer cet avis'|trans }}</button></form>
+        </div>
+    {% endfor %}
 </section>
 <script src="{{ asset('push.js') }}" defer></script>

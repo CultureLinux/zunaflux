@@ -6,6 +6,7 @@ namespace App\Controller;
 
 use App\Application\Notification\PushEndpoint;
 use App\Application\Notification\NotificationDiagnostics;
+use App\Application\Notification\PushDeviceLabel;
 use App\Entity\PushSubscription;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
@@ -28,9 +29,17 @@ final class PushSubscriptionController extends AbstractController
         if (!is_string($endpoint) || !PushEndpoint::isAllowed($endpoint)) return $this->json(['error' => 'Abonnement invalide.'], 400);
         $subscription = $em->getRepository(PushSubscription::class)->findOneBy(['endpointHash' => hash('sha256', $endpoint, true)]);
 
+        $owned = $subscription instanceof PushSubscription && $subscription->getUser()->getId()->equals($user->getId());
+        if ($owned) {
+            $subscription->setDeviceLabel(PushDeviceLabel::fromUserAgent($request->headers->get('User-Agent', '')));
+            $em->flush();
+        }
+
         return $this->json([
-            'subscribed' => $subscription instanceof PushSubscription && $subscription->getUser()->getId()->equals($user->getId()),
+            'subscribed' => $owned,
             'missing' => !$subscription instanceof PushSubscription,
+            'deviceId' => $owned ? (string) $subscription->getId() : null,
+            'deviceLabel' => $owned ? $subscription->getDeviceLabel() : null,
         ]);
     }
 
@@ -73,8 +82,10 @@ final class PushSubscriptionController extends AbstractController
             }
             $subscription->update($user, $key, $secret);
         } else {
-            $em->persist(new PushSubscription($user, $endpoint, $key, $secret));
+            $subscription = new PushSubscription($user, $endpoint, $key, $secret);
+            $em->persist($subscription);
         }
+        $subscription->setDeviceLabel(PushDeviceLabel::fromUserAgent($request->headers->get('User-Agent', '')));
         $em->flush();
         $diagnostics->subscriptionActivated();
 

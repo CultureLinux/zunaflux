@@ -300,5 +300,22 @@
   "Effacer la recherche": "Suche löschen",
   "Retirer des favoris": "Aus Favoriten entfernen",
   "Retirer de la liste à lire plus tard": "Aus der Leseliste entfernen",
-  "Ouvrir l’article original": "Originalartikel öffnen"
+  "Ouvrir l’article original": "Originalartikel öffnen",
+  "Appareils enregistrés": "Registrierte Geräte",
+  "Un envoi accepté ne garantit pas son affichage sur l’appareil.": "Eine angenommene Benachrichtigung wird nicht garantiert auf dem Gerät angezeigt.",
+  "Navigateur inconnu": "Unbekannter Browser",
+  "· Cet appareil": "· Dieses Gerät",
+  "Dernier envoi accepté par le service push": "Letzter Versand vom Push-Dienst angenommen",
+  "Dernier envoi en échec": "Letzter Versand fehlgeschlagen",
+  "Aucun résultat enregistré": "Kein Ergebnis gespeichert",
+  "Tester cet appareil": "Dieses Gerät testen",
+  "Supprimer cet appareil": "Dieses Gerät entfernen",
+  "Aucun appareil enregistré.": "Keine Geräte registriert.",
+  "Un abonnement de notifications a expiré : %device%. Réactivez les notifications sur cet appareil.": "Ein Benachrichtigungsabonnement ist abgelaufen: %device%. Aktivieren Sie die Benachrichtigungen auf diesem Gerät erneut.",
+  "Masquer cet avis": "Hinweis ausblenden",
+  "Appareil supprimé des notifications.": "Gerät aus den Benachrichtigungen entfernt.",
+  "Test accepté par le service de notifications. Vérifiez l’appareil.": "Test vom Benachrichtigungsdienst angenommen. Prüfen Sie das Gerät.",
+  "Cet abonnement a expiré. Réactivez les notifications sur cet appareil.": "Dieses Abonnement ist abgelaufen. Aktivieren Sie die Benachrichtigungen erneut.",
+  "Le service de notifications a refusé le test.": "Der Benachrichtigungsdienst hat den Test abgelehnt.",
+  "Impossible d’envoyer le test à cet appareil.": "Der Test konnte nicht an dieses Gerät gesendet werden."
 }

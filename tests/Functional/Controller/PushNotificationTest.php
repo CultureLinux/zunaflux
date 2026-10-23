@@ -129,4 +129,34 @@ final class PushNotificationTest extends WebTestCase
             $entityManager->getConnection()->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
         }
     }
+
+    public function testDevicesAreListedPerAccountAndCannotBeDeletedByAnotherUser(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $owner = new User('push-owner-'.bin2hex(random_bytes(8)).'@example.test');
+        $other = new User('push-other-'.bin2hex(random_bytes(8)).'@example.test');
+        $first = new \App\Entity\PushSubscription($owner, 'https://fcm.googleapis.com/fcm/send/'.bin2hex(random_bytes(12)), str_repeat('A', 87), str_repeat('B', 22));
+        $second = new \App\Entity\PushSubscription($owner, 'https://fcm.googleapis.com/fcm/send/'.bin2hex(random_bytes(12)), str_repeat('C', 87), str_repeat('D', 22));
+        $first->setDeviceLabel('Firefox · Windows');
+        $second->setDeviceLabel('Chrome · Android');
+        foreach ([$owner, $other, $first, $second] as $entity) $em->persist($entity);
+        $em->flush();
+        try {
+            $client->loginUser($owner);
+            $client->request('GET', '/preferences');
+            self::assertSelectorCount(2, '[data-push-device]');
+            self::assertSelectorTextContains('[data-push-device="'.$first->getId().'"]', 'Firefox · Windows');
+            $client->loginUser($other);
+            $client->request('GET', '/preferences');
+            self::assertSelectorNotExists('[data-push-device]');
+            $token = static::getContainer()->get('security.csrf.token_manager')->getToken('push-device-'.$first->getId())->getValue();
+            $client->request('POST', '/preferences/push-device/'.$first->getId().'/delete', ['_token' => $token]);
+            self::assertResponseStatusCodeSame(404);
+            self::assertSame(2, (int) $em->getConnection()->fetchOne('SELECT COUNT(*) FROM push_subscription WHERE user_id = ?', [$owner->getId()->toBinary()]));
+        } finally {
+            $em->getConnection()->executeStatement('DELETE FROM app_user WHERE id IN (?, ?)', [$owner->getId()->toBinary(), $other->getId()->toBinary()]);
+        }
+    }
+
 }

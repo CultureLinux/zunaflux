@@ -8,6 +8,7 @@ use App\Application\Notification\PushEndpoint;
 use App\Application\Notification\NotificationDiagnostics;
 use App\Application\Notification\NotificationCounter;
 use App\Application\Notification\PushMessage;
+use App\Application\Notification\PushDelivery;
 use App\Entity\PushSubscription;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
@@ -24,7 +25,7 @@ use Symfony\Component\Routing\Attribute\Route;
 final class AdminPushTestController extends AbstractController
 {
     #[Route('/admin/push-test', name: 'app_admin_push_test', methods: ['POST'])]
-    public function __invoke(Request $request, EntityManagerInterface $em, string $pushPrivateFile, string $pushSubject, NotificationDiagnostics $diagnostics, NotificationCounter $counter, PushMessage $messages): JsonResponse
+    public function __invoke(Request $request, EntityManagerInterface $em, string $pushPrivateFile, string $pushSubject, NotificationDiagnostics $diagnostics, NotificationCounter $counter, PushMessage $messages, PushDelivery $delivery): JsonResponse
     {
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
         if (!$this->isCsrfTokenValid('push-subscription', $request->headers->get('X-CSRF-Token', ''))) throw $this->createAccessDeniedException();
@@ -47,13 +48,16 @@ final class AdminPushTestController extends AbstractController
             $stage = 'envoi';
             $recipient = Subscription::create(['endpoint' => $endpoint, 'keys' => ['p256dh' => $subscription->getPublicKey(), 'auth' => $subscription->getAuthSecret()], 'contentEncoding' => 'aes128gcm']);
             $report = $push->sendOneNotification($recipient, json_encode(['body' => $messages->test($request->getLocale()), 'tag' => 'zunaflux-test'], JSON_THROW_ON_ERROR));
-            if ($report->isSubscriptionExpired()) { $em->remove($subscription); $em->flush(); }
+            $delivery->record($subscription, $report);
+            $em->flush();
             if (!$report->isSuccess()) {
                 $diagnostics->failure('test', $report);
                 return $this->json(['error' => 'La notification n’a pas pu être envoyée.'], 502);
             }
             $counter->recordAccepted();
         } catch (\Throwable $exception) {
+            $subscription->recordResult('failed');
+            $em->flush();
             $diagnostics->exception('test', $stage, $exception);
             return $this->json(['error' => 'La notification n’a pas pu être envoyée.'], 502);
         }

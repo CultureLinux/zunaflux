@@ -42,6 +42,22 @@
                 return;
             }
             const result = await send('POST', { endpoint: subscription.endpoint }, root.dataset.statusUrl);
+            if (result.deviceId && root.dataset.deviceList) {
+                root.querySelectorAll('[data-push-device]').forEach(row => {
+                    if (row.dataset.pushDevice !== result.deviceId) return;
+                    if (result.deviceLabel && result.deviceLabel !== 'Navigateur inconnu') row.querySelector('[data-push-device-label]').textContent = result.deviceLabel;
+                    row.querySelector('[data-push-current]').hidden = false;
+                    row.querySelector('[data-push-device-delete]').addEventListener('submit', async event => {
+                        event.preventDefault();
+                        try {
+                            const response = await fetch(event.currentTarget.action, { method: 'POST', credentials: 'same-origin', headers: { Accept: 'application/json' }, body: new FormData(event.currentTarget) });
+                            if (!response.ok || !(await response.json()).ok) throw new Error('delete-failed');
+                            await subscription.unsubscribe();
+                            window.location.reload();
+                        } catch (_) { status.textContent = text('disableError', 'Impossible de désactiver les notifications.'); }
+                    });
+                });
+            }
             renewSubscription = result.missing === true;
             enable.disabled = result.subscribed;
             disable.disabled = !result.subscribed;
@@ -65,6 +81,7 @@
                 disable.disabled = false;
                 if (test) test.disabled = false;
                 status.textContent = text('enabled', 'Notifications activées pour ce compte sur cet appareil.');
+                if (root.dataset.deviceList) window.location.reload();
             } catch (error) {
                 enable.disabled = false;
                 if (error.name === 'NotAllowedError') status.textContent = text('refused', 'Firefox a refusé la demande. Vérifiez ses autorisations de notifications.');
@@ -87,6 +104,7 @@
                 enable.disabled = false;
                 if (test) test.disabled = true;
                 status.textContent = text('disabled', 'Notifications désactivées sur cet appareil.');
+                if (root.dataset.deviceList) window.location.reload();
             } catch (_) { status.textContent = text('disableError', 'Impossible de désactiver les notifications.'); disable.disabled = false; }
         });
         if (test) test.addEventListener('click', async () => {

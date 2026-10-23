@@ -300,5 +300,22 @@
   "Effacer la recherche": "Clear search",
   "Retirer des favoris": "Remove from favorites",
   "Retirer de la liste à lire plus tard": "Remove from read later",
-  "Ouvrir l’article original": "Open original article"
+  "Ouvrir l’article original": "Open original article",
+  "Appareils enregistrés": "Registered devices",
+  "Un envoi accepté ne garantit pas son affichage sur l’appareil.": "Acceptance does not guarantee that the notification appears on the device.",
+  "Navigateur inconnu": "Unknown browser",
+  "· Cet appareil": "· This device",
+  "Dernier envoi accepté par le service push": "Last notification accepted by the push service",
+  "Dernier envoi en échec": "Last notification failed",
+  "Aucun résultat enregistré": "No result recorded",
+  "Tester cet appareil": "Test this device",
+  "Supprimer cet appareil": "Remove this device",
+  "Aucun appareil enregistré.": "No devices registered.",
+  "Un abonnement de notifications a expiré : %device%. Réactivez les notifications sur cet appareil.": "A notification subscription expired: %device%. Enable notifications again on this device.",
+  "Masquer cet avis": "Dismiss this notice",
+  "Appareil supprimé des notifications.": "Device removed from notifications.",
+  "Test accepté par le service de notifications. Vérifiez l’appareil.": "Test accepted by the notification service. Check the device.",
+  "Cet abonnement a expiré. Réactivez les notifications sur cet appareil.": "This subscription has expired. Enable notifications again on this device.",
+  "Le service de notifications a refusé le test.": "The notification service rejected the test.",
+  "Impossible d’envoyer le test à cet appareil.": "Unable to send the test to this device."
 }

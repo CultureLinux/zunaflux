@@ -8,18 +8,14 @@ use App\Application\Notification\PushEndpoint;
 use App\Application\Notification\NotificationDiagnostics;
 use App\Application\Notification\NotificationCounter;
 use App\Application\Notification\PushMessage;
+use App\Application\Notification\PushDelivery;
 use App\Entity\Feed;
 use App\Entity\PushSubscription;
 use App\Entity\Subscription;
 use App\Entity\UserPreference;
 use App\Message\NotifyFeedMessage;
 use Doctrine\ORM\EntityManagerInterface;
-use Minishlink\WebPush\Subscription as WebPushSubscription;
-use Minishlink\WebPush\WebPush;
-use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\HttpClient\HttpClient;
-use Symfony\Component\HttpClient\Psr18Client;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Uid\Uuid;
 
@@ -32,6 +28,7 @@ final readonly class NotifyFeedHandler
         private NotificationDiagnostics $diagnostics,
         private NotificationCounter $counter,
         private PushMessage $messages,
+        private PushDelivery $delivery,
         private string $pushPrivateFile,
         private string $pushSubject,
     ) {}
@@ -48,16 +45,12 @@ final readonly class NotifyFeedHandler
         }
         $feed = $this->em->getRepository(Feed::class)->find(Uuid::fromString($message->feedId));
         if (!$feed instanceof Feed || !in_array($message->kind, ['articles', 'error'], true)) return;
-        $factory = new Psr17Factory();
-        $client = new Psr18Client(HttpClient::create(['max_redirects' => 0, 'timeout' => 10]), $factory, $factory);
-        try {
-            $push = new WebPush(['VAPID' => ['subject' => $this->pushSubject, 'pemFile' => $this->pushPrivateFile]], [], $client, $factory, $factory, logger: $this->logger);
-        } catch (\Throwable $exception) {
-            $this->diagnostics->exception('collecte', 'initialisation', $exception);
-            throw $exception;
-        }
         foreach ($this->em->getRepository(Subscription::class)->findBy(['feed' => $feed, 'enabled' => true]) as $feedSubscription) {
             $user = $feedSubscription->getUser();
+            $preference = $this->em->getRepository(UserPreference::class)->findOneBy(['user' => $user]);
+            $locale = $preference instanceof UserPreference ? $preference->getLocale() : 'fr';
+            $body = 'articles' === $message->kind ? $this->messages->articles($message->count, $locale) : $this->messages->error($locale);
+            $payload = json_encode(['body' => $body, 'tag' => 'zunaflux'], JSON_THROW_ON_ERROR);
             $context = [
                 'article_count' => $message->count,
                 'user_email' => $user->getUserIdentifier(),
@@ -72,26 +65,29 @@ final readonly class NotifyFeedHandler
             }
 
             foreach ($subscriptions as $subscription) {
+                $deviceContext = $context + ['device_id' => (string) $subscription->getId()];
                 if (!PushEndpoint::isAllowed($subscription->getEndpoint())) {
-                    $this->logger->warning('Notification Web Push non envoyée : point de terminaison non autorisé.', $context + ['status' => 'unsupported_endpoint']);
+                    $subscription->recordResult('failed');
+                    $this->logger->warning('Notification Web Push non envoyée : point de terminaison non autorisé.', $deviceContext + ['status' => 'unsupported_endpoint']);
 
                     continue;
                 }
                 try {
-                    $recipient = WebPushSubscription::create(['endpoint' => $subscription->getEndpoint(), 'keys' => ['p256dh' => $subscription->getPublicKey(), 'auth' => $subscription->getAuthSecret()], 'contentEncoding' => 'aes128gcm']);
-                    $report = $push->sendOneNotification($recipient, $payload);
+                    $report = $this->delivery->send($subscription, $payload);
+                    $this->delivery->record($subscription, $report);
                     if ($report->isSubscriptionExpired()) {
-                        $this->em->remove($subscription);
-                        $this->logger->warning('Notification Web Push non envoyée : abonnement expiré.', $context + ['status' => 'expired_subscription']);
+                        $this->logger->warning('Notification Web Push non envoyée : abonnement expiré.', $deviceContext + ['status' => 'expired_subscription']);
                     } elseif (!$report->isSuccess()) {
-                        $this->logger->warning('Échec de livraison d’une notification Web Push.', $context + ['status' => 'delivery_failed']);
+                        $this->logger->warning('Échec de livraison d’une notification Web Push.', $deviceContext + ['status' => 'delivery_failed']);
                     } else {
-                        $this->logger->info('Notification Web Push envoyée.', $context + ['status' => 'sent']);
+                        $this->counter->recordAccepted();
+                        $this->logger->info('Notification Web Push envoyée.', $deviceContext + ['status' => 'sent']);
                     }
                 } catch (\Throwable $error) {
-                    $this->logger->warning('Échec de livraison d’une notification Web Push.', $context + [
+                    $subscription->recordResult('failed');
+                    $this->diagnostics->exception('collecte', 'envoi', $error);
+                    $this->logger->warning('Échec de livraison d’une notification Web Push.', $deviceContext + [
                         'status' => 'delivery_error',
-                        'error' => $error->getMessage(),
                     ]);
                 }
             }
