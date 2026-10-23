@@ -333,10 +333,31 @@ dialog [data-article-saved][aria-pressed="true"] svg { color: var(--accent); fil
     .article-list-image { height: 100%; min-height: 0; aspect-ratio: auto; }
 }
 
-.toast-stack { position: fixed; top: 1rem; right: 1rem; z-index: 100; display: grid; gap: .5rem; width: min(24rem, calc(100vw - 2rem)); pointer-events: none; }
-.toast { display: flex; align-items: start; justify-content: space-between; gap: 1rem; padding: 1rem; border: 1px solid var(--success); border-radius: .5rem; background: var(--surface); color: var(--foreground); box-shadow: 0 8px 24px #0003; pointer-events: auto; }
-.toast--error { border-color: var(--danger); }
-.toast button { font-size: 1.25rem; line-height: 1; cursor: pointer; }
+.toast-stack { position: fixed; top: max(1rem, env(safe-area-inset-top)); right: max(1rem, env(safe-area-inset-right)); z-index: 100; display: grid; gap: .75rem; width: min(24rem, calc(100vw - 2rem)); pointer-events: none; }
+.toast {
+    --toast-color: var(--success);
+    display: grid;
+    grid-template-columns: 2rem minmax(0, 1fr) 2.75rem;
+    align-items: center;
+    gap: .75rem;
+    padding: .75rem .5rem .75rem 1rem;
+    border: 1px solid var(--line);
+    border-inline-start: 3px solid var(--toast-color);
+    border-radius: .5rem;
+    background: var(--surface);
+    color: var(--foreground);
+    font-size: .925rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+    box-shadow: 0 12px 32px rgb(15 20 25 / 18%);
+    pointer-events: auto;
+}
+.toast::before { content: '✓'; display: grid; place-items: center; width: 2rem; height: 2rem; border: 1px solid currentColor; border-radius: 50%; color: var(--toast-color); font: 600 .95rem/1 var(--font-mono); }
+.toast--error { --toast-color: var(--danger); }
+.toast--error::before { content: '!'; }
+.toast button { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border-radius: .375rem; color: var(--muted); font-size: 1.25rem; line-height: 1; cursor: pointer; }
+.toast button:hover { background: var(--surface-muted); color: var(--foreground); }
+.toast button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 @media (prefers-reduced-motion: no-preference) {
     .toast { animation: toast-enter 180ms ease-out both; }
     .toast--closing { animation: toast-exit 150ms ease-in both; pointer-events: none; }
