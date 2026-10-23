@@ -29,3 +29,23 @@ test('zen counts use translated singular and plural messages', () => {
     assert.equal(context.formatCount(2, '%count% ungelesener Artikel', '%count% ungelesene Artikel'), '2 ungelesene Artikel');
     assert.equal(context.formatCount(0, '%count% article restant', '%count% articles restants'), '0 articles restants');
 });
+
+test('Zen requests native fullscreen only on mobile and safely ignores unsupported browsers', async () => {
+    const context = { document: { fullscreenEnabled: true, fullscreenElement: null, querySelector: () => null } };
+    vm.runInNewContext(fs.readFileSync('assets/controllers/zen.js', 'utf8') + '\nthis.requestFullscreen = requestZenFullscreen;', context);
+
+    let calls = 0;
+    const zen = { requestFullscreen: () => { calls += 1; return Promise.resolve(); } };
+    await context.requestFullscreen(zen, true);
+    assert.equal(calls, 1);
+
+    await context.requestFullscreen(zen, false);
+    assert.equal(calls, 1);
+    await context.requestFullscreen({}, true);
+    assert.equal(calls, 1);
+});
+
+test('the completed Zen state offers a visible way to close the reader', () => {
+    const template = fs.readFileSync('templates/article/index.html.twig', 'utf8');
+    assert.match(template, /data-zen-complete[\\s\\S]*data-zen-complete-close/);
+});

@@ -5,6 +5,11 @@ const classifyZenGesture = (dx, dy) => {
 
 const formatZenCount = (count, singular, plural) => (count === 1 ? singular : plural).replace('%count%', String(count));
 
+const requestZenFullscreen = (element, isMobile) => {
+    if (!isMobile || !document.fullscreenEnabled || document.fullscreenElement || typeof element?.requestFullscreen !== 'function') return Promise.resolve();
+    return Promise.resolve(element.requestFullscreen()).catch(() => {});
+};
+
 const zen = document.querySelector('[data-zen-dialog]');
 if (zen) {
     const messages = JSON.parse(zen.dataset.messages);
@@ -34,6 +39,10 @@ if (zen) {
             remaining.textContent = formatZenCount(data.all.unread_count, messages.remainingOne, messages.remainingMany);
             open.setAttribute('aria-label', formatZenCount(data.all.unread_count, messages.openOne, messages.openMany));
         } catch (_) { count.textContent = '–'; remaining.textContent = messages.unavailable; }
+    };
+    const closeZen = () => {
+        if (document.fullscreenElement === zen) Promise.resolve(document.exitFullscreen?.()).catch(() => {});
+        zen.close();
     };
     const loadMore = async () => {
         const url = new URL('/api/articles', location.origin);
@@ -99,6 +108,7 @@ if (zen) {
     open.addEventListener('click', async () => {
         if (busy) return;
         zen.showModal();
+        requestZenFullscreen(zen, window.matchMedia('(max-width: 767px)').matches);
         refreshCount();
         guide.hidden = true;
         try { if (!localStorage.getItem('zunaflux-zen-guide')) guide.hidden = false; } catch (_) { guide.hidden = false; }
@@ -109,7 +119,8 @@ if (zen) {
         catch (error) { message.textContent = error.message || messages.loadArticles; }
         finally { busy = false; controls.forEach(button => { button.disabled = !article; }); previous.disabled = index <= 0; }
     });
-    zen.querySelector('[data-zen-close]').addEventListener('click', () => zen.close());
+    zen.querySelector('[data-zen-close]').addEventListener('click', closeZen);
+    zen.querySelector('[data-zen-complete-close]').addEventListener('click', closeZen);
     zen.querySelector('[data-zen-help]').addEventListener('click', () => { guide.hidden = false; });
     zen.querySelector('[data-zen-guide-close]').addEventListener('click', () => { guide.hidden = true; try { localStorage.setItem('zunaflux-zen-guide', '1'); } catch (_) {} });
     zen.addEventListener('close', () => { if (changed) document.dispatchEvent(new Event('zen-state-changed')); refreshCount(); });

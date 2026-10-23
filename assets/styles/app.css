@@ -278,6 +278,7 @@ dialog [data-article-saved][aria-pressed="true"] svg { color: var(--accent); fil
     .reading-dialog-header form button { padding-inline: .5rem; white-space: nowrap; }
 }
 @media (max-width: 767px) {
+    .reading-dialog-actions [data-article-previous], .reading-dialog-actions [data-article-next] { display: none; }
     .reading-intro { display: none; }
     main[data-read-mode-default] { padding-top: 1rem; padding-bottom: 2rem; }
     .reading-search-header { margin-block: .75rem; }
