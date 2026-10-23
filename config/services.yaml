@@ -34,3 +34,11 @@ services:
     App\Application\Notification\NotificationDiagnostics:
         arguments:
             $logger: '@monolog.logger.notification'
+
+    App\MessageHandler\CollectFeedHandler:
+        arguments:
+            $logger: '@monolog.logger.notification'
+
+    App\MessageHandler\NotifyFeedHandler:
+        arguments:
+            $logger: '@monolog.logger.notification'

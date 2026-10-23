@@ -35,14 +35,7 @@ final readonly class NotifyFeedHandler
 
     public function __invoke(NotifyFeedMessage $message): void
     {
-        if (!is_file($this->pushPrivateFile) || !is_readable($this->pushPrivateFile) || '' === $this->pushSubject) {
-            $this->logger->error('Notification Web Push non envoyée : configuration VAPID indisponible.', [
-                'article_count' => $message->count,
-                'status' => 'configuration_error',
-            ]);
-
-            return;
-        }
+        $configured = is_file($this->pushPrivateFile) && is_readable($this->pushPrivateFile) && '' !== $this->pushSubject;
         $feed = $this->em->getRepository(Feed::class)->find(Uuid::fromString($message->feedId));
         if (!$feed instanceof Feed || !in_array($message->kind, ['articles', 'error'], true)) return;
         foreach ($this->em->getRepository(Subscription::class)->findBy(['feed' => $feed, 'enabled' => true]) as $feedSubscription) {
@@ -52,20 +45,27 @@ final readonly class NotifyFeedHandler
             $body = 'articles' === $message->kind ? $this->messages->articles($message->count, $locale) : $this->messages->error($locale);
             $payload = json_encode(['body' => $body, 'tag' => 'zunaflux'], JSON_THROW_ON_ERROR);
             $context = [
+                'feed_id' => $message->feedId,
+                'kind' => $message->kind,
                 'article_count' => $message->count,
                 'user_email' => $user->getUserIdentifier(),
             ];
             $subscriptions = $this->em->getRepository(PushSubscription::class)->findBy(['user' => $user]);
-            $this->logger->info('Nouveaux articles détectés pour un utilisateur.', $context + ['status' => 'detected']);
+            $this->logger->info('Notification de collecte à traiter.', $context + ['status' => 'detected']);
 
             if ([] === $subscriptions) {
-                $this->logger->warning('Notification Web Push non envoyée : aucun appareil abonné.', $context + ['status' => 'no_push_subscription']);
+                $this->logger->warning('Notification Web Push non envoyée : aucun appareil abonné.', $context + ['status' => 'no_push_subscription', 'device_id' => null, 'device_label' => null]);
 
                 continue;
             }
 
             foreach ($subscriptions as $subscription) {
-                $deviceContext = $context + ['device_id' => (string) $subscription->getId()];
+                $deviceContext = $context + ['device_id' => (string) $subscription->getId(), 'device_label' => $subscription->getDeviceLabel()];
+                if (!$configured) {
+                    $this->logger->error('Notification Web Push non envoyée : configuration VAPID indisponible.', $deviceContext + ['status' => 'configuration_error']);
+
+                    continue;
+                }
                 if (!PushEndpoint::isAllowed($subscription->getEndpoint())) {
                     $subscription->recordResult('failed');
                     $this->logger->warning('Notification Web Push non envoyée : point de terminaison non autorisé.', $deviceContext + ['status' => 'unsupported_endpoint']);

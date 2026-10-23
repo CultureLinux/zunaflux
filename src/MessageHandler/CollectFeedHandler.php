@@ -7,6 +7,8 @@ namespace App\MessageHandler;
 use App\Application\Feed\CollectFeed;
 use App\Entity\Feed;
 use App\Entity\FeedIncident;
+use App\Entity\PushSubscription;
+use App\Entity\Subscription;
 use App\Message\CollectFeedMessage;
 use App\Message\NotifyFeedMessage;
 use Doctrine\ORM\EntityManagerInterface;
@@ -35,10 +37,32 @@ final readonly class CollectFeedHandler
             throw $error;
         }
         if ($new > 0) $this->queueNotification(new NotifyFeedMessage($message->feedId, 'articles', $new));
+        else $this->logNotQueued($feed, 0, 'no_new_articles');
     }
 
     private function queueNotification(NotifyFeedMessage $message): void
     {
-        try { $this->bus->dispatch($message); } catch (\Throwable) { $this->logger->error('Impossible de placer une notification de collecte en file.'); }
+        try { $this->bus->dispatch($message); } catch (\Throwable) {
+            $this->logger->error('Impossible de placer une notification de collecte en file.', ['feed_id' => $message->feedId, 'kind' => $message->kind, 'article_count' => $message->count, 'status' => 'queue_error']);
+            $feed = $this->entityManager->getRepository(Feed::class)->find(Uuid::fromString($message->feedId));
+            if ($feed instanceof Feed) $this->logNotQueued($feed, $message->count, 'queue_error', $message->kind);
+        }
+    }
+
+    private function logNotQueued(Feed $feed, int $count, string $status, string $kind = 'articles'): void
+    {
+        try {
+            foreach ($this->entityManager->getRepository(Subscription::class)->findBy(['feed' => $feed, 'enabled' => true]) as $feedSubscription) {
+                $user = $feedSubscription->getUser();
+                $context = ['feed_id' => (string) $feed->getId(), 'kind' => $kind, 'article_count' => $count, 'user_email' => $user->getUserIdentifier(), 'status' => $status];
+                $devices = $this->entityManager->getRepository(PushSubscription::class)->findBy(['user' => $user]);
+                if ([] === $devices) $this->logger->info('Notification de collecte non mise en file.', $context + ['device_id' => null, 'device_label' => null]);
+                foreach ($devices as $device) {
+                    $this->logger->info('Notification de collecte non mise en file.', $context + ['device_id' => (string) $device->getId(), 'device_label' => $device->getDeviceLabel()]);
+                }
+            }
+        } catch (\Throwable) {
+            $this->logger->error('Impossible de tracer les notifications non mises en file.', ['feed_id' => (string) $feed->getId(), 'kind' => $kind, 'article_count' => $count, 'status' => 'trace_error']);
+        }
     }
 }

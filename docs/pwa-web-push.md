@@ -6,6 +6,8 @@ La configuration utilise une paire VAPID stable, dont la clé privée reste hors
 
 La collecte produit une notification groupée pour les nouveaux articles d'un flux et signale le début d'une panne, sans répéter l'alerte à chaque tentative. Les envois sont asynchrones et ne doivent pas faire échouer la collecte. Les abonnements expirés sont supprimés. Les notifications évitent d'exposer des contenus sensibles sur l'écran verrouillé.
 
+Le journal `var/log/notification_prod.log` retrace les décisions de collecte et les résultats d'envoi : identifiant du flux, type, nombre de nouveaux articles, adresse de l'utilisateur, identifiant et libellé de l'appareil, et statut. `no_new_articles` signifie qu'aucune notification n'a été mise en file ; `sent` signifie que le service Web Push a accepté l'envoi, pas que l'appareil l'a affiché. Les statuts `no_push_subscription`, `configuration_error`, `queue_error`, `unsupported_endpoint`, `expired_subscription`, `delivery_failed` et `delivery_error` indiquent les causes d'absence d'envoi ou d'échec. `detected` indique seulement que le traitement de notification a commencé. Le journal contient des adresses personnelles : limiter son accès et définir une durée de conservation adaptée. Les points de livraison et les clés ne sont pas journalisés.
+
 La validation Linux comprend les tests métier et fonctionnels, la migration MariaDB, l'installation sur Android et la réception après fermeture de l'application. Les opérations sur la base et l'environnement sont soumises à l'approbation du développeur.
 
 ## Configuration
