@@ -46,7 +46,36 @@ final class SecurityControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('form[action="/login"] input[name="_csrf_token"]');
+        self::assertSelectorExists('form[action="/login"] input[name="_remember_me"][type="checkbox"]');
         self::assertSelectorTextContains('h1', 'Bienvenue dans Zunaflux');
+    }
+
+    public function testRememberMeSetsASevenDayHttpOnlyCookie(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $user = new User('remember-'.bin2hex(random_bytes(8)).'@example.test');
+        $hasher = static::getContainer()->get(\Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface::class);
+        $user->setPasswordHash($hasher->hashPassword($user, 'a-secure-password'));
+        $em->persist($user);
+        $em->flush();
+        try {
+            $page = $client->request('GET', '/login');
+            $client->submit($page->selectButton('Se connecter')->form(), ['_username' => $user->getUserIdentifier(), '_password' => 'a-secure-password', '_remember_me' => '1']);
+            $cookie = $client->getCookieJar()->get('REMEMBERME');
+            self::assertNotNull($cookie);
+            self::assertTrue($cookie->isHttpOnly());
+            $expires = (int) $cookie->getExpiresTime();
+            self::assertGreaterThanOrEqual(time() + 604790, $expires);
+            self::assertLessThanOrEqual(time() + 604810, $expires);
+            foreach ($client->getCookieJar()->all() as $otherCookie) {
+                if ('REMEMBERME' !== $otherCookie->getName()) $client->getCookieJar()->expire($otherCookie->getName(), $otherCookie->getPath(), $otherCookie->getDomain());
+            }
+            $client->request('GET', '/articles');
+            self::assertResponseIsSuccessful();
+        } finally {
+            $em->getConnection()->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
+        }
     }
 
     /** Removing account creation, CSRF protection or password hashing must make this contract fail. */

@@ -317,5 +317,6 @@
   "Test accepté par le service de notifications. Vérifiez l’appareil.": "Test accepted by the notification service. Check the device.",
   "Cet abonnement a expiré. Réactivez les notifications sur cet appareil.": "This subscription has expired. Enable notifications again on this device.",
   "Le service de notifications a refusé le test.": "The notification service rejected the test.",
-  "Impossible d’envoyer le test à cet appareil.": "Unable to send the test to this device."
+  "Impossible d’envoyer le test à cet appareil.": "Unable to send the test to this device.",
+  "Rester connecté pendant 7 jours": "Stay signed in for 7 days"
 }

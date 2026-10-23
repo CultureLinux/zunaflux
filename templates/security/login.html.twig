@@ -19,6 +19,7 @@
                 <label class="block text-sm font-medium text-foreground" for="password">{{ "Mot de passe"|trans }}</label>
                 <input class="mt-2 w-full border border-line bg-background px-4 py-3 text-foreground outline-none transition focus:border-accent focus:ring-1 focus:ring-accent" id="password" name="_password" type="password" autocomplete="current-password" required>
                 <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+                <label class="flex items-center gap-3 text-sm text-foreground"><input type="checkbox" name="_remember_me" value="1">{{ 'Rester connecté pendant 7 jours'|trans }}</label>
                 <button class="w-full bg-accent px-4 py-3 text-sm font-bold uppercase tracking-[.16em] text-accent-foreground transition hover:bg-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-surface" type="submit">{{ "Se connecter"|trans }}</button>
             </form>
             <p class="mt-7 border-t border-line pt-5 text-center text-sm text-muted">{{ "Nouveau dans Zunaflux ?"|trans }} <a class="font-semibold text-accent underline decoration-accent underline-offset-4 hover:text-accent" href="{{ path('app_register') }}">{{ "Créer un compte"|trans }}</a></p>

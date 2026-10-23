@@ -317,5 +317,6 @@
   "Test accepté par le service de notifications. Vérifiez l’appareil.": "Test vom Benachrichtigungsdienst angenommen. Prüfen Sie das Gerät.",
   "Cet abonnement a expiré. Réactivez les notifications sur cet appareil.": "Dieses Abonnement ist abgelaufen. Aktivieren Sie die Benachrichtigungen erneut.",
   "Le service de notifications a refusé le test.": "Der Benachrichtigungsdienst hat den Test abgelehnt.",
-  "Impossible d’envoyer le test à cet appareil.": "Der Test konnte nicht an dieses Gerät gesendet werden."
+  "Impossible d’envoyer le test à cet appareil.": "Der Test konnte nicht an dieses Gerät gesendet werden.",
+  "Rester connecté pendant 7 jours": "7 Tage angemeldet bleiben"
 }
