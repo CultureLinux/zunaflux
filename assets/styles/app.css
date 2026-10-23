@@ -234,6 +234,10 @@ dialog [data-article-saved][aria-pressed="true"] svg { color: var(--accent); fil
 
 .reading-search-controls { display: flex; align-items: center; gap: .5rem; }
 .reading-search-controls [data-article-search] { min-width: 0; }
+.reading-search-field { position: relative; min-width: 0; flex: 1; }
+.reading-search-field input { padding-right: 3rem; }
+.reading-search-field input::-webkit-search-cancel-button { display: none; }
+.reading-search-field [data-clear-search] { position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 2.75rem; height: 2.75rem; color: var(--accent); font-size: 1.25rem; }
 @media (max-width: 639px) {
     .reading-search-controls { flex-wrap: wrap; }
     .reading-search-controls [data-article-search] { flex-basis: 100%; }
@@ -265,6 +269,14 @@ dialog [data-article-saved][aria-pressed="true"] svg { color: var(--accent); fil
 [data-article-actions][hidden] { display: none; }
 .reading-search-button { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; }
 .reading-search-button svg { display: none; }
+@media (max-width: 639px) {
+    .reading-dialog-header { flex-wrap: nowrap; gap: .25rem; }
+    .reading-dialog-header .reading-dialog-actions { flex: 1; min-width: 0; flex-wrap: nowrap; gap: .125rem; }
+    .reading-dialog-header .reading-dialog-actions > button,
+    .reading-dialog-header .reading-dialog-actions > a { flex: 1 1 0; min-width: 0; width: auto; }
+    .reading-dialog-header form { flex: none; }
+    .reading-dialog-header form button { padding-inline: .5rem; white-space: nowrap; }
+}
 @media (max-width: 767px) {
     .reading-intro { display: none; }
     main[data-read-mode-default] { padding-top: 1rem; padding-bottom: 2rem; }
@@ -272,7 +284,7 @@ dialog [data-article-saved][aria-pressed="true"] svg { color: var(--accent); fil
     .reading-search-controls { flex-wrap: nowrap; }
     .reading-search-controls [data-article-search] { flex-basis: auto; flex-wrap: nowrap; }
     .reading-search-controls [data-read-filter] { width: 7.5rem; flex: none; }
-    .reading-search-controls [data-article-search] input { width: 0; }
+    .reading-search-controls [data-article-search] input { width: 100%; }
     .reading-search-button { width: 2.75rem; height: 2.75rem; padding: 0; flex: none; }
     .reading-search-button svg { display: block; }
     .reading-search-button span { display: none; }
@@ -310,6 +322,7 @@ dialog [data-article-saved][aria-pressed="true"] svg { color: var(--accent); fil
 .zen-header, .zen-actions { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .5rem 1rem; background: var(--surface); }
 .zen-header button, .zen-actions button { min-width: 2.75rem; min-height: 2.75rem; color: var(--accent); font-size: 1.3rem; }
 .zen-content { flex: 1; min-height: 0; overflow-y: auto; padding: 1.5rem; overscroll-behavior: contain; touch-action: pan-y pinch-zoom; }
+[data-zen-link][hidden] { display: none; }
 .zen-actions { padding-bottom: max(.5rem, env(safe-area-inset-bottom)); }
 .zen-open { position: relative; min-width: 3rem; }
 .zen-count { position: absolute; top: .05rem; left: 55%; display: inline-flex; min-width: 1.2rem; min-height: 1.2rem; align-items: center; justify-content: center; padding: .1rem .3rem; border-radius: 999px; background: var(--accent); color: var(--accent-foreground); font-size: .65rem; font-weight: 700; line-height: 1; }

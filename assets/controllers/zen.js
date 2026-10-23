@@ -13,6 +13,7 @@ if (zen) {
     const remaining = zen.querySelector('[data-zen-remaining]');
     const content = zen.querySelector('[data-zen-content]');
     const title = zen.querySelector('[data-zen-title]');
+    const original = zen.querySelector('[data-zen-link]');
     const source = zen.querySelector('[data-zen-source]');
     const body = zen.querySelector('[data-zen-body]');
     const message = zen.querySelector('[data-zen-message]');
@@ -51,6 +52,8 @@ if (zen) {
         article = await response.json();
         finished = false; complete.hidden = true; title.hidden = false; body.hidden = false; message.classList.remove('sr-only');
         title.textContent = article.title;
+        original.hidden = true;
+        try { const url = new URL(article.url); if (['http:', 'https:'].includes(url.protocol)) { original.href = url.href; original.hidden = false; } } catch (_) { /* Invalid links are not shown. */ }
         source.textContent = article.source || messages.untitled;
         body.innerHTML = article.safeHtml;
         content.scrollTop = 0;
@@ -81,7 +84,7 @@ if (zen) {
                 if (!article.isRead) await update({ isRead: true });
                 if (index + 1 >= items.length && hasMore) await loadMore();
                 if (index + 1 < items.length) { index++; await show(); }
-                else { finished = true; complete.hidden = false; title.hidden = true; source.textContent = ''; body.hidden = true; message.classList.add('sr-only'); message.textContent = messages.complete; content.scrollTop = 0; }
+                else { finished = true; complete.hidden = false; title.hidden = true; original.hidden = true; source.textContent = ''; body.hidden = true; message.classList.add('sr-only'); message.textContent = messages.complete; content.scrollTop = 0; }
             } else if (action === 'previous' && finished) { await show(); }
             else if (action === 'previous' && index > 0) { index--; await show(); }
             else if (action === 'favorite') { await update({ isFavorite: !article.isFavorite }); favorite.setAttribute('aria-pressed', String(article.isFavorite)); favorite.textContent = article.isFavorite ? '★' : '☆'; message.textContent = article.isFavorite ? messages.favorited : messages.unfavorited; }
@@ -100,7 +103,7 @@ if (zen) {
         guide.hidden = true;
         try { if (!localStorage.getItem('zunaflux-zen-guide')) guide.hidden = false; } catch (_) { guide.hidden = false; }
         items = []; cursor = null; hasMore = false; index = -1; article = null; changed = false; finished = false; complete.hidden = true; title.hidden = false; body.hidden = false; message.classList.remove('sr-only');
-        title.textContent = messages.title; source.textContent = ''; body.replaceChildren(); message.textContent = messages.loading;
+        title.textContent = messages.title; original.hidden = true; source.textContent = ''; body.replaceChildren(); message.textContent = messages.loading;
         busy = true; controls.forEach(button => { button.disabled = true; });
         try { await loadMore(); if (items.length) { index = 0; await show(); } else message.textContent = messages.empty; }
         catch (error) { message.textContent = error.message || messages.loadArticles; }

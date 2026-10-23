@@ -218,7 +218,10 @@ final class ArticleControllerTest extends WebTestCase
         $feed = new Feed('https://example.test/'.bin2hex(random_bytes(8)).'/feed.xml');
         $article = new Article($feed, new ParsedFeedItem('article-1', 'Article privé&#58; veille', null, '<p>J&#8217;ai découvert &amp; testé [&#8230;]</p>', null, null));
         $subscription = new Subscription($user, $feed);
+        $category = new \App\Entity\Category($user, 'Actualités');
+        $subscription->assignCategory($category);
         $entityManager->persist($user);
+        $entityManager->persist($category);
         $entityManager->persist($feed);
         $entityManager->persist($article);
         $entityManager->persist($subscription);
@@ -233,8 +236,14 @@ final class ArticleControllerTest extends WebTestCase
             $payload = json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
             self::assertContains('Article privé: veille', array_column($payload['items'], 'title'));
             self::assertSame((string) $subscription->getId(), $payload['items'][0]['subscriptionId']);
+            self::assertSame((string) $category->getId(), $payload['items'][0]['categoryId']);
+            self::assertSame('Actualités', $payload['items'][0]['categoryName']);
             self::assertSame('J’ai découvert & testé […]', $payload['items'][0]['summary']);
             $client->request('GET', '/api/articles?subscription='.$subscription->getId());
+            self::assertResponseIsSuccessful();
+            $filtered = json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+            self::assertSame(['Article privé: veille'], array_column($filtered['items'], 'title'));
+            $client->request('GET', '/api/articles?category='.$category->getId());
             self::assertResponseIsSuccessful();
             $filtered = json_decode($client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
             self::assertSame(['Article privé: veille'], array_column($filtered['items'], 'title'));

@@ -26,6 +26,12 @@ test('the search header contains the read filter before the search input', () =>
     assert.equal((template.match(/data-read-filter/g) || []).length, 1);
 });
 
+test('the search field provides an accessible clear button', () => {
+    const template = fs.readFileSync('templates/article/index.html.twig', 'utf8');
+    assert.match(template, /data-clear-search/);
+    assert.match(template, /aria-label="{{ 'Effacer la recherche'\|trans }}"/);
+});
+
 test('the article list has one column on desktop while keeping the mobile layout', () => {
     const script = fs.readFileSync('assets/controllers/article-list.js', 'utf8');
     const classes = script.match(/list\.className = '([^']+)'/)?.[1].split(' ') || [];

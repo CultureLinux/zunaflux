@@ -296,5 +296,9 @@
   "Notification de test envoyée. Vérifiez les notifications de cet appareil.": "Testbenachrichtigung gesendet. Prüfen Sie die Benachrichtigungen dieses Geräts.",
   "Échec du test. Vérifiez l’activation et la configuration des notifications.": "Test fehlgeschlagen. Prüfen Sie die Aktivierung und Konfiguration der Benachrichtigungen.",
   "Impossible de préparer les notifications sur cet appareil.": "Benachrichtigungen konnten auf diesem Gerät nicht eingerichtet werden.",
-  "Cet abonnement n’est plus enregistré et a pu expirer. Réactivez les notifications sur cet appareil.": "Dieses Abonnement ist nicht mehr registriert und möglicherweise abgelaufen. Aktivieren Sie die Benachrichtigungen auf diesem Gerät erneut."
+  "Cet abonnement n’est plus enregistré et a pu expirer. Réactivez les notifications sur cet appareil.": "Dieses Abonnement ist nicht mehr registriert und möglicherweise abgelaufen. Aktivieren Sie die Benachrichtigungen auf diesem Gerät erneut.",
+  "Effacer la recherche": "Suche löschen",
+  "Retirer des favoris": "Aus Favoriten entfernen",
+  "Retirer de la liste à lire plus tard": "Aus der Leseliste entfernen",
+  "Ouvrir l’article original": "Originalartikel öffnen"
 }

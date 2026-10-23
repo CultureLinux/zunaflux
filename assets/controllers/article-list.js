@@ -48,6 +48,8 @@ if (container) {
     const sourceFilter = document.querySelector('[data-source-filter]');
     const sourceFilterLabel = document.querySelector('[data-source-filter-label]');
     let subscriptionFilter = new URLSearchParams(location.search).get('subscription') || '';
+    let categoryFilter = new URLSearchParams(location.search).get('category') || '';
+    let selectedSearch = !!new URLSearchParams(location.search).get('filterName');
     let sourceName = '';
     const updateSourceFilter = () => {
         sourceFilter.hidden = !subscriptionFilter;
@@ -80,6 +82,8 @@ if (container) {
     const readMode = document.querySelector('[data-read-mode-default]')?.dataset.readModeDefault || 'on_preview';
     const searchForm = document.querySelector('[data-article-search]');
     const searchInput = searchForm?.querySelector('[name="q"]');
+    const clearSearch = searchForm?.querySelector('[data-clear-search]');
+    if (selectedSearch && searchInput) searchInput.value = new URLSearchParams(location.search).get('filterName');
     const readFilter = document.querySelector('[data-read-filter]');
     readFilter.value = viewFromParams(new URLSearchParams(location.search));
     const updateSources = () => {
@@ -137,6 +141,29 @@ if (container) {
         } finally {
             button.disabled = false;
         }
+    };
+
+    const removeReadingMarker = async (item, row, button, key) => {
+        const property = key === 'favorite' ? 'isFavorite' : 'isSaved';
+        button.disabled = true;
+        bulkError.hidden = true;
+        try {
+            const response = await fetch(`${endpoint}/bulk`, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': actions.dataset.csrfToken }, body: JSON.stringify({ ids: [item.id], [property]: false }) });
+            if (!response.ok || (await response.json()).skipped) throw new Error();
+            item[property] = false;
+            if (selectedArticle?.id === item.id) { selectedArticle[property] = false; setStateLabels(selectedArticle); }
+            if (readFilter.value === key) {
+                row.remove();
+                const index = loadedItems.indexOf(item);
+                if (index !== -1) loadedItems.splice(index, 1);
+                selectedIds.delete(String(item.id));
+            } else button.hidden = true;
+            updateSelection();
+            document.dispatchEvent(new Event('article-state-changed'));
+        } catch (_) {
+            bulkError.textContent = 'Impossible d’enregistrer cette action. Veuillez réessayer.';
+            bulkError.hidden = false;
+        } finally { button.disabled = false; }
     };
 
     const bulk = async (changes) => {
@@ -318,9 +345,10 @@ if (container) {
         loading = true;
         const url = new URL(endpoint, window.location.origin);
         if (cursor) url.searchParams.set('cursor', cursor);
-        if (searchInput?.value.trim()) url.searchParams.set('q', searchInput.value.trim());
+        if (!selectedSearch && searchInput?.value.trim()) url.searchParams.set('q', searchInput.value.trim());
         setViewParams(url.searchParams, readFilter.value);
         if (subscriptionFilter) url.searchParams.set('subscription', subscriptionFilter);
+        if (categoryFilter) url.searchParams.set('category', categoryFilter);
         if (!append) { selectedIds.clear(); updateSelection(); }
 
         return fetch(url, { headers: { Accept: 'application/json' }, signal: request.signal })
@@ -370,10 +398,17 @@ if (container) {
                 source.textContent = item.source || 'Source sans titre';
                 source.setAttribute('aria-label', `Filtrer sur ${source.textContent}`);
                 source.addEventListener('click', () => {
+                    clearTimeout(searchTimer);
                     subscriptionFilter = item.subscriptionId;
+                    categoryFilter = '';
+                    selectedSearch = true;
                     sourceName = item.source || 'Source sans titre';
+                    searchInput.value = sourceName;
                     const current = new URL(location.href);
                     current.searchParams.set('subscription', subscriptionFilter);
+                    current.searchParams.delete('category');
+                    current.searchParams.delete('q');
+                    current.searchParams.set('filterName', sourceName);
                     history.replaceState(null, '', current);
                     updateSourceFilter();
                     loadPage();
@@ -396,13 +431,14 @@ if (container) {
                 status.textContent = item.isRead ? '' : labels.unread;
                 metadata.append(status);
                 for (const [key, label, path] of [['favorite', labels.favorite, 'M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z'], ['saved', labels.saved, 'M6 3h12v18l-6-4-6 4V3Z']]) {
-                    const marker = document.createElement('span');
+                    const marker = document.createElement('button');
+                    marker.type = 'button';
                     marker.dataset[`reading${key === 'favorite' ? 'Favorite' : 'Saved'}`] = '';
                     marker.className = 'inline-flex items-center text-accent';
                     marker.hidden = !readingMarkers(item, labels).includes(label);
-                    marker.setAttribute('role', 'img');
-                    marker.setAttribute('aria-label', label);
-                    marker.title = label;
+                    marker.setAttribute('aria-label', key === 'favorite' ? container.dataset.removeFavoriteLabel : container.dataset.removeSavedLabel);
+                    marker.title = marker.getAttribute('aria-label');
+                    marker.addEventListener('click', () => removeReadingMarker(item, row, marker, key));
                     marker.innerHTML = `<svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${path}"/></svg>`;
                     metadata.append(marker);
                 }
@@ -433,10 +469,41 @@ if (container) {
                 selectLabel.append(select);
                 const header = document.createElement('div');
                 header.className = 'flex items-center justify-between gap-2';
+                const origins = document.createElement('div');
+                origins.className = 'min-w-0 flex flex-wrap items-center gap-2';
+                if (item.categoryId && item.categoryName) {
+                    const category = document.createElement('button');
+                    category.type = 'button';
+                    category.className = source.className;
+                    category.textContent = item.categoryName;
+                    category.setAttribute('aria-label', `Filtrer sur ${item.categoryName}`);
+                    category.addEventListener('click', () => {
+                        clearTimeout(searchTimer);
+                        subscriptionFilter = '';
+                        categoryFilter = item.categoryId;
+                        selectedSearch = true;
+                        sourceName = '';
+                        searchInput.value = item.categoryName;
+                        const current = new URL(location.href);
+                        current.searchParams.delete('subscription');
+                        current.searchParams.delete('q');
+                        current.searchParams.set('category', categoryFilter);
+                        current.searchParams.set('filterName', item.categoryName);
+                        history.replaceState(null, '', current);
+                        updateSourceFilter();
+                        loadPage();
+                    });
+                    const separator = document.createElement('span');
+                    separator.textContent = '/';
+                    separator.className = 'text-muted';
+                    separator.setAttribute('aria-hidden', 'true');
+                    origins.append(category, separator);
+                }
+                origins.append(source);
                 const controls = document.createElement('div');
                 controls.className = 'flex shrink-0 items-center';
                 controls.append(markRead, selectLabel);
-                header.append(source, controls);
+                header.append(origins, controls);
                 const body = document.createElement('div');
                 body.className = 'min-w-0';
                 body.append(header, metadata, openButton);
@@ -479,11 +546,30 @@ if (container) {
     });
     let searchTimer;
     searchInput?.addEventListener('input', () => {
+        if (selectedSearch) {
+            selectedSearch = false;
+            subscriptionFilter = ''; categoryFilter = ''; sourceName = '';
+            const current = new URL(location.href);
+            current.searchParams.delete('subscription'); current.searchParams.delete('category'); current.searchParams.delete('filterName'); current.searchParams.delete('q');
+            history.replaceState(null, '', current);
+            updateSourceFilter();
+        }
         clearTimeout(searchTimer);
         searchTimer = setTimeout(() => loadPage(), 300);
     });
     searchForm?.addEventListener('submit', (event) => { event.preventDefault(); clearTimeout(searchTimer); loadPage(); });
-    document.querySelector('[data-clear-source]').addEventListener('click', () => { subscriptionFilter = ''; sourceName = ''; const current = new URL(location.href); current.searchParams.delete('subscription'); history.replaceState(null, '', current); updateSourceFilter(); loadPage(); });
+    clearSearch?.addEventListener('click', () => {
+        clearTimeout(searchTimer);
+        searchInput.value = '';
+        selectedSearch = false; subscriptionFilter = ''; categoryFilter = ''; sourceName = '';
+        const current = new URL(location.href);
+        current.searchParams.delete('q'); current.searchParams.delete('subscription'); current.searchParams.delete('category'); current.searchParams.delete('filterName');
+        history.replaceState(null, '', current);
+        updateSourceFilter();
+        searchInput.focus();
+        loadPage();
+    });
+    document.querySelector('[data-clear-source]').addEventListener('click', () => { subscriptionFilter = ''; sourceName = ''; if (selectedSearch) { selectedSearch = false; searchInput.value = ''; } const current = new URL(location.href); current.searchParams.delete('subscription'); current.searchParams.delete('filterName'); history.replaceState(null, '', current); updateSourceFilter(); loadPage(); });
     readFilter.addEventListener('change', () => { const url = new URL(location.href); setViewParams(url.searchParams, readFilter.value); history.replaceState(null, '', url); updateSources(); loadPage(); });
 
     if (sentinel && 'IntersectionObserver' in window) {

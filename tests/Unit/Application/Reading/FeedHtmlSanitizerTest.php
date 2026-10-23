@@ -15,6 +15,7 @@ final class FeedHtmlSanitizerTest extends TestCase
 
         self::assertStringContainsString('<strong>lecteur</strong>', $html);
         self::assertStringContainsString('href="https://example.test/a"', $html);
+        self::assertStringContainsString('rel="noopener noreferrer" target="_blank"', $html);
     }
 
     public function testRemovesExecutableContentUnsafeUrlsAndRemoteResources(): void
