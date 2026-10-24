@@ -1,0 +1,23 @@
+[Unit]
+Description=Zunaflux Symfony Messenger worker
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=zunaflux
+Group=zunaflux
+WorkingDirectory=/home/zunaflux/zunaflux
+Environment=APP_ENV=prod
+Environment=APP_DEBUG=0
+ExecStart=/opt/remi/php85/root/usr/bin/php bin/console messenger:consume async --env=prod --no-interaction --time-limit=3600 --memory-limit=256M --failure-limit=10 -vv
+ExecReload=/opt/remi/php85/root/usr/bin/php bin/console messenger:stop-workers --env=prod --no-interaction
+Restart=always
+RestartSec=5
+TimeoutStopSec=60
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

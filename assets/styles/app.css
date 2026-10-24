@@ -20,6 +20,7 @@ input[type="checkbox"]:not([role="switch"]):focus-visible { outline: 2px solid v
 @media (max-width: 767px) { .site-header-logo { width: 2.5rem; height: 2.25rem; margin-right: .25rem; } .site-header-brand { font-size: 1.25rem; } }
 @media (min-width: 1024px) {
     .site-header { display: grid; grid-template-columns: max(12rem, calc((100vw - 96rem) / 2 + .5rem)) minmax(0, 1fr) auto; gap: 0; min-height: 3.5rem; }
+    .site-header-brand, .site-header-links > a, .site-header-account > a, .site-header-logout { display: inline-flex; align-items: center; min-height: 2.75rem; }
     .site-header-brand { white-space: nowrap; }
     .site-header-links { gap: .5rem; }
 }

@@ -78,6 +78,8 @@ php bin/console messenger:consume async --env=prod
 
 Configurez ce worker comme un service supervisé sur votre serveur. La durée de conservation des articles est réglable avec `ZUNAFLUX_RETENTION_MONTHS` ; sa valeur par défaut est de 12 mois.
 
+Un exemple prêt pour systemd est fourni dans [`docs/messenger-systemd.md`](docs/messenger-systemd.md).
+
 ## PWA et notifications
 
 L’installation sur l’écran d’accueil dépend du navigateur. Les notifications demandent HTTPS, une configuration VAPID, un worker Messenger et une activation par utilisateur et par appareil. Leur fonctionnement réel reste à vérifier sur les navigateurs et appareils ciblés.
