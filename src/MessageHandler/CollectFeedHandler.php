@@ -7,6 +7,7 @@ namespace App\MessageHandler;
 use App\Application\Feed\CollectFeed;
 use App\Entity\Feed;
 use App\Entity\FeedIncident;
+use App\Entity\FeedIncidentOccurrence;
 use App\Entity\PushSubscription;
 use App\Entity\Subscription;
 use App\Message\CollectFeedMessage;
@@ -32,10 +33,18 @@ final readonly class CollectFeedHandler
             $firstFailure = 0 === $feed->getFailureCount();
             $feed->recordFailure($error);
             $incident = $this->entityManager->getRepository(FeedIncident::class)->findOneBy(['feed' => $feed]);
-            if ($incident instanceof FeedIncident) $incident->report($error); else $this->entityManager->persist(new FeedIncident($feed, $error));
+            if ($incident instanceof FeedIncident) $incident->report($error); else { $incident = new FeedIncident($feed, $error); $this->entityManager->persist($incident); }
+            $this->entityManager->persist(new FeedIncidentOccurrence($incident, $error));
             $this->entityManager->flush();
             if ($firstFailure) $this->queueNotification(new NotifyFeedMessage($message->feedId, 'error'));
             $this->syncEntry($message, 'error', 0, (new \App\Application\Notification\IncidentMessage())->describe($error->getMessage())); throw $error;
+        }
+        $incident = $this->entityManager->getRepository(FeedIncident::class)->findOneBy(['feed' => $feed]);
+        if ($incident instanceof FeedIncident) {
+            $now = new \DateTimeImmutable();
+            if ($incident->shouldBeClearedAt($now)) $this->entityManager->remove($incident);
+            else $incident->markRecoveredAt($now);
+            $this->entityManager->flush();
         }
         $this->syncEntry($message, $new > 0 ? 'collected' : 'no_new_articles', $new);
         if ($new > 0) $this->queueNotification(new NotifyFeedMessage($message->feedId, 'articles', $new));

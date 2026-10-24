@@ -1,6 +1,10 @@
-<p class="mt-1 text-sm text-muted">
-    Première erreur : <time datetime="{{ incident.firstOccurredAt|date('c') }}">{{ incident.firstOccurredAt|date('d/m/Y à H:i', incidentTimezone) }}</time>
-    {% if incident.occurrences > 1 %}
-        · Dernière erreur : <time datetime="{{ incident.lastOccurredAt|date('c') }}">{{ incident.lastOccurredAt|date('d/m/Y à H:i', incidentTimezone) }}</time>
-    {% endif %}
-</p>
+{% set history = incidentHistory[incident.id ~ '']|default([]) %}
+{% if history is not empty %}
+    <ol class="mt-2 space-y-1 text-sm text-muted" aria-label="Historique des échecs">
+        {% for occurrence in history %}
+            <li><time datetime="{{ occurrence.occurredAt|date('c') }}">{{ occurrence.occurredAt|date('d/m/Y à H:i', incidentTimezone) }}</time> · {{ occurrence.message|incident_description }}</li>
+        {% endfor %}
+    </ol>
+{% else %}
+    <p class="mt-1 text-sm text-muted">Historique détaillé disponible pour les prochains échecs. Première erreur : <time datetime="{{ incident.firstOccurredAt|date('c') }}">{{ incident.firstOccurredAt|date('d/m/Y à H:i', incidentTimezone) }}</time>{% if incident.occurrences > 1 %} · Dernière erreur : <time datetime="{{ incident.lastOccurredAt|date('c') }}">{{ incident.lastOccurredAt|date('d/m/Y à H:i', incidentTimezone) }}</time>{% endif %}</p>
+{% endif %}
