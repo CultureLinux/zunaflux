@@ -7,7 +7,8 @@ document.querySelectorAll('[data-feed-sync-form]').forEach(form => {
         event.preventDefault();
         dialog.showModal(); log.textContent = 'Mise en file…';
         try {
-            const response = await fetch(form.action, {method: 'POST', headers: {Accept: 'application/json'}, body: new FormData(form, event.submitter)});
+            const csrfToken = form.querySelector('input[name="_token"]')?.value;
+            const response = await fetch(form.action, {method: 'POST', headers: {Accept: 'application/json', 'X-CSRF-Token': csrfToken}, body: new FormData(form, event.submitter)});
             if (!response.ok) throw {stage: 'lancement', status: response.status};
             const {runId} = await response.json();
             const poll = async () => {
