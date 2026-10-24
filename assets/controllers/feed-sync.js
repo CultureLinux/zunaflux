@@ -8,11 +8,11 @@ document.querySelectorAll('[data-feed-sync-form]').forEach(form => {
         dialog.showModal(); log.textContent = 'Mise en file…';
         try {
             const response = await fetch(form.action, {method: 'POST', headers: {Accept: 'application/json'}, body: new FormData(form, event.submitter)});
-            if (!response.ok) throw new Error();
+            if (!response.ok) throw {stage: 'lancement', status: response.status};
             const {runId} = await response.json();
             const poll = async () => {
                 const status = await fetch(`/admin/feed-sync/${runId}`);
-                if (!status.ok) throw new Error();
+                if (!status.ok) throw {stage: 'suivi', status: status.status};
                 const result = await status.json();
                 const labels = {pending: ['◌', 'En attente du worker', 'text-muted'], running: ['↻', 'Collecte en cours', 'text-accent'], collected: ['✓', 'Article(s) ajouté(s)', 'text-success'], no_new_articles: ['–', 'Aucun nouvel article', 'text-muted'], error: ['✕', 'Erreur', 'text-danger']};
                 log.replaceChildren();
@@ -26,6 +26,12 @@ document.querySelectorAll('[data-feed-sync-form]').forEach(form => {
                 if (!result.complete) window.setTimeout(poll, 1000);
             };
             await poll();
-        } catch (_) { log.textContent = 'Impossible de lancer ou suivre la synchronisation.'; }
+        } catch (error) {
+            if (error && ['lancement', 'suivi'].includes(error.stage)) {
+                log.textContent = `Le ${error.stage} a échoué (HTTP ${error.status}).`;
+                return;
+            }
+            log.textContent = 'Impossible de joindre le serveur pour lancer ou suivre la synchronisation.';
+        }
     });
 });
