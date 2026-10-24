@@ -19,7 +19,13 @@ final class CollectFeedsCommand extends Command
     public function __construct(private readonly EntityManagerInterface $entityManager, private readonly MessageBusInterface $messageBus) { parent::__construct(); }
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $count = 0; foreach ($this->entityManager->getRepository(Feed::class)->findAll() as $feed) { $this->messageBus->dispatch(new CollectFeedMessage($feed->getId()->toRfc4122())); ++$count; }
+        $count = 0;
+        $now = new \DateTimeImmutable();
+        foreach ($this->entityManager->getRepository(Feed::class)->findAll() as $feed) {
+            if (!$feed->isCollectionDue($now)) continue;
+            $this->messageBus->dispatch(new CollectFeedMessage($feed->getId()->toRfc4122()));
+            ++$count;
+        }
         $output->writeln(sprintf('%d feed(s) queued.', $count)); return Command::SUCCESS;
     }
 }

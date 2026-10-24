@@ -32,4 +32,36 @@ final class FeedTest extends TestCase
         self::assertSame('"version-42"', $feed->getEtag());
         self::assertSame('Sun, 19 Oct 2026 08:00:00 GMT', $feed->getLastModified());
     }
+
+    public function testItDefersCollectionWithAnExponentialBackoffAfterFailures(): void
+    {
+        $feed = new Feed('https://example.test/feed.xml');
+        $now = new \DateTimeImmutable('2026-10-24 12:00:00');
+
+        self::assertTrue($feed->isCollectionDue($now));
+
+        $feed->recordFailure(new \RuntimeException('First failure'), $now);
+        self::assertFalse($feed->isCollectionDue($now->modify('+59 minutes')));
+        self::assertTrue($feed->isCollectionDue($now->modify('+1 hour')));
+
+        $feed->recordFailure(new \RuntimeException('Second failure'), $now->modify('+1 hour'));
+        self::assertFalse($feed->isCollectionDue($now->modify('+2 hours 59 minutes')));
+        self::assertTrue($feed->isCollectionDue($now->modify('+3 hours')));
+    }
+
+    public function testItCapsCollectionBackoffAndClearsItAfterASuccess(): void
+    {
+        $feed = new Feed('https://example.test/feed.xml');
+        $now = new \DateTimeImmutable('2026-10-24 12:00:00');
+
+        for ($i = 0; $i < 8; ++$i) {
+            $feed->recordFailure(new \RuntimeException('Failure'), $now);
+        }
+
+        self::assertFalse($feed->isCollectionDue($now->modify('+23 hours 59 minutes')));
+        self::assertTrue($feed->isCollectionDue($now->modify('+24 hours')));
+
+        $feed->recordSuccess();
+        self::assertTrue($feed->isCollectionDue($now));
+    }
 }

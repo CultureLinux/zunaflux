@@ -25,6 +25,7 @@ final readonly class CollectFeedHandler
     {
         $feed = $this->entityManager->getRepository(Feed::class)->find(Uuid::fromString($message->feedId));
         if (!$feed instanceof Feed) return;
+        $this->syncEntry($message, 'running');
         try {
             $new = $this->collectFeed->collect($feed);
         } catch (\Throwable $error) {
@@ -34,11 +35,13 @@ final readonly class CollectFeedHandler
             if ($incident instanceof FeedIncident) $incident->report($error); else $this->entityManager->persist(new FeedIncident($feed, $error));
             $this->entityManager->flush();
             if ($firstFailure) $this->queueNotification(new NotifyFeedMessage($message->feedId, 'error'));
-            throw $error;
+            $this->syncEntry($message, 'error', 0, (new \App\Application\Notification\IncidentMessage())->describe($error->getMessage())); throw $error;
         }
+        $this->syncEntry($message, $new > 0 ? 'collected' : 'no_new_articles', $new);
         if ($new > 0) $this->queueNotification(new NotifyFeedMessage($message->feedId, 'articles', $new));
         else $this->logNotQueued($feed, 0, 'no_new_articles');
     }
+    private function syncEntry(CollectFeedMessage $message, string $status, int $articles = 0, ?string $detail = null): void { if (null === $message->syncRunId) return; try { $this->entityManager->getConnection()->executeStatement('UPDATE feed_sync_run_entry SET status = ?, new_articles = ?, detail = ?, finished_at = CASE WHEN ? IN (\'collected\',\'no_new_articles\',\'error\') THEN NOW() ELSE NULL END WHERE run_id = ? AND feed_id = ?', [$status, $articles, $detail, $status, \Symfony\Component\Uid\Uuid::fromString($message->syncRunId)->toBinary(), \Symfony\Component\Uid\Uuid::fromString($message->feedId)->toBinary()]); } catch (\Throwable) {} }
 
     private function queueNotification(NotifyFeedMessage $message): void
     {

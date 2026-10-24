@@ -20,7 +20,7 @@ final readonly class FeedFetcher
             $ips = $this->urlSafetyValidator->assertAllowed($currentUrl);
             $curl = curl_init($currentUrl);
             if (false === $curl) throw new \RuntimeException('Unable to initialise HTTP client.');
-            $headers = ['Accept: application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9', 'User-Agent: Zunaflux/1.0'];
+            $headers = ['Accept: application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9', 'User-Agent: Zunaflux/1.0 (+https://zunaflux.clinux.fr/contact)'];
             if ($etag) $headers[] = 'If-None-Match: '.$etag;
             if ($lastModified) $headers[] = 'If-Modified-Since: '.$lastModified;
             $host = (string) parse_url($currentUrl, PHP_URL_HOST);

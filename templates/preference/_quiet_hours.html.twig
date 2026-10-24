@@ -1,0 +1,6 @@
+<section class="mt-6 border border-line bg-surface p-6" aria-labelledby="quiet-hours-title">
+    <h2 id="quiet-hours-title" class="font-serif text-2xl">Silence nocturne</h2>
+    <p class="mt-2 text-sm text-muted">Aucune notification n’est envoyée pendant cette plage, selon votre fuseau horaire. Laissez les deux horaires vides pour la désactiver.</p>
+    <label class="mt-4 flex flex-wrap items-center justify-between gap-3">De <input class="min-w-32 border border-line bg-background px-3 py-2" type="time" name="quiet_start" value="{{ preference.quietStart }}"></label>
+    <label class="mt-3 flex flex-wrap items-center justify-between gap-3">À <input class="min-w-32 border border-line bg-background px-3 py-2" type="time" name="quiet_end" value="{{ preference.quietEnd }}"></label>
+</section>

@@ -34,6 +34,7 @@ security:
     access_control:
         - { path: ^/login$, roles: PUBLIC_ACCESS }
         - { path: ^/register$, roles: PUBLIC_ACCESS }
+        - { path: ^/contact$, roles: PUBLIC_ACCESS }
         - { path: ^/(articles|api/articles), roles: ROLE_USER }
         - { path: ^/api/statistics, roles: ROLE_USER }
         - { path: ^/subscriptions, roles: ROLE_USER }

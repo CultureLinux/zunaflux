@@ -45,6 +45,7 @@ final class Feed
     #[ORM\Column(name: 'last_success_at', nullable: true)] private ?\DateTimeImmutable $lastSuccessAt = null;
     #[ORM\Column(name: 'failure_count')] private int $failureCount = 0;
     #[ORM\Column(name: 'last_error', length: 255, nullable: true)] private ?string $lastError = null;
+    #[ORM\Column(name: 'next_collection_at', nullable: true)] private ?\DateTimeImmutable $nextCollectionAt = null;
 
     public function __construct(string $url)
     {
@@ -95,8 +96,15 @@ final class Feed
     {
         return $this->lastModified;
     }
-    public function recordSuccess(): void { $this->lastSuccessAt = new \DateTimeImmutable(); $this->failureCount = 0; $this->lastError = null; }
-    public function recordFailure(\Throwable $error): void { ++$this->failureCount; $this->lastError = mb_substr($error->getMessage(), 0, 255); }
+    public function recordSuccess(): void { $this->lastSuccessAt = new \DateTimeImmutable(); $this->failureCount = 0; $this->lastError = null; $this->nextCollectionAt = null; }
+    public function recordFailure(\Throwable $error, ?\DateTimeImmutable $now = null): void
+    {
+        ++$this->failureCount;
+        $this->lastError = mb_substr($error->getMessage(), 0, 255);
+        $delayHours = min(2 ** ($this->failureCount - 1), 24);
+        $this->nextCollectionAt = ($now ?? new \DateTimeImmutable())->modify('+'.$delayHours.' hours');
+    }
+    public function isCollectionDue(\DateTimeImmutable $now): bool { return null === $this->nextCollectionAt || $this->nextCollectionAt <= $now; }
     public function getFailureCount(): int { return $this->failureCount; }
     public function getLastError(): ?string { return $this->lastError; }
 
