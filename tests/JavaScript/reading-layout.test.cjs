@@ -87,6 +87,14 @@ test('article sharing copies the article URL when native sharing is unavailable'
     assert.deepEqual(copied, ['https://example.test/article']);
 });
 
+test('copying an article link announces success through the shared toast system', () => {
+    const script = fs.readFileSync('assets/controllers/article-list.js', 'utf8');
+    const template = fs.readFileSync('templates/article/index.html.twig', 'utf8');
+
+    assert.match(script, /new CustomEvent\('zunaflux:toast'/);
+    assert.doesNotMatch(template, /data-article-share-status/);
+});
+
 test('share controls stay visible and the modal article uses its available width', () => {
     const actions = fs.readFileSync('templates/article/_actions.html.twig', 'utf8');
     const template = fs.readFileSync('templates/article/index.html.twig', 'utf8');

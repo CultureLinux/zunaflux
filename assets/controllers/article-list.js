@@ -56,7 +56,6 @@ if (container) {
     const previousButtons = [...dialog.querySelectorAll('[data-article-previous]')];
     const nextButtons = [...dialog.querySelectorAll('[data-article-next]')];
     const dialogError = dialog.querySelector('[data-article-error]');
-    const shareStatus = dialog.querySelector('[data-article-share-status]');
     const moreButton = document.querySelector('[data-article-more]');
     const sentinel = document.querySelector('[data-article-sentinel]');
     const actions = document.querySelector('[data-article-actions]');
@@ -346,8 +345,7 @@ if (container) {
     shareButtons.forEach((button) => button.addEventListener('click', () => {
         void shareArticle(selectedArticle).then((result) => {
             if (result !== 'copied') return;
-            shareStatus.textContent = 'Lien copié.';
-            shareStatus.hidden = false;
+            window.dispatchEvent(new CustomEvent('zunaflux:toast', { detail: { type: 'success', message: 'Lien copié.' } }));
         });
     }));
     dialogLinks.forEach((link) => link.addEventListener('click', () => dialog.close()));

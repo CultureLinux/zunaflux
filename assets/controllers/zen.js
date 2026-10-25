@@ -141,7 +141,7 @@ if (zen) {
     next.addEventListener('click', () => act('next'));
     favorite.addEventListener('click', () => act('favorite'));
     save.addEventListener('click', () => act('save'));
-    share.addEventListener('click', () => { void shareZenArticle(article).then((result) => { if (result === 'copied') message.textContent = 'Lien copié.'; }); });
+    share.addEventListener('click', () => { void shareZenArticle(article).then((result) => { if (result === 'copied') window.dispatchEvent(new CustomEvent('zunaflux:toast', { detail: { type: 'success', message: 'Lien copié.' } })); }); });
     let start = null;
     content.addEventListener('touchstart', event => { start = event.touches.length === 1 ? [event.touches[0].clientX, event.touches[0].clientY] : null; }, { passive: true });
     content.addEventListener('touchend', event => { if (!start || event.changedTouches.length !== 1) { start = null; return; } const touch = event.changedTouches[0]; const action = classifyZenGesture(touch.clientX - start[0], touch.clientY - start[1]); start = null; if (action) act(action, true); }, { passive: true });

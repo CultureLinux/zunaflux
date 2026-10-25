@@ -31,3 +31,12 @@ test('a browser install prompt can be launched from the action', async () => {
     assert.equal(launched, true);
     assert.equal(state.prompt.hidden, true);
 });
+
+test('the installable app declares PNG icons for Android launchers and the Firefox shortcut', () => {
+    const base = fs.readFileSync('templates/base.html.twig', 'utf8');
+    const manifest = JSON.parse(fs.readFileSync('public/manifest.webmanifest', 'utf8'));
+
+    assert.match(base, /rel="icon"[^>]*icone-pwa-192\.png/);
+    assert.ok(manifest.icons.some((icon) => icon.src === '/images/icone-pwa-192.png' && icon.sizes === '192x192' && icon.type === 'image/png'));
+    assert.ok(manifest.icons.some((icon) => icon.src === '/images/icone-pwa-512.png' && icon.sizes === '512x512' && icon.type === 'image/png'));
+});
