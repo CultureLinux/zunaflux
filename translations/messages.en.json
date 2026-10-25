@@ -325,5 +325,17 @@
   "Cet abonnement a expiré. Réactivez les notifications sur cet appareil.": "This subscription has expired. Enable notifications again on this device.",
   "Le service de notifications a refusé le test.": "The notification service rejected the test.",
   "Impossible d’envoyer le test à cet appareil.": "Unable to send the test to this device.",
-  "Rester connecté pendant 7 jours": "Stay signed in for 7 days"
+  "Rester connecté pendant 7 jours": "Stay signed in for 7 days",
+  "Signaler un problème": "Report an issue",
+  "Vous avez rencontré un bug ou souhaitez proposer une amélioration ?": "Did you encounter a bug or want to suggest an improvement?",
+  "Ouvrir une issue GitHub": "Open a GitHub issue",
+  "Contact": "Contact",
+  "Une question ou un retour sur Zunaflux ?": "Have a question or feedback about Zunaflux?",
+  "Nous écrire": "Contact us",
+  "Aucun article ne correspond à vos critères.": "No articles match your criteria.",
+  "Silence nocturne": "Quiet hours",
+  "Aucune notification n’est envoyée pendant cette plage, dans votre fuseau horaire. Laissez les deux horaires vides pour la désactiver.": "No notifications are sent during this period in your time zone. Leave both times empty to disable it.",
+  "De": "From",
+  "À": "To",
+  "Enregistrer le silence nocturne": "Save quiet hours"
 }

@@ -22,6 +22,7 @@ final class AboutControllerTest extends WebTestCase
             $client->request('GET', '/about');
             self::assertResponseIsSuccessful();
             self::assertSelectorExists('a[href="https://github.com/CultureLinux/zunaflux"]');
+            self::assertSelectorExists('a[href="https://github.com/CultureLinux/zunaflux/issues"]');
             self::assertSelectorExists('a[href="https://ko-fi.com/culturelinux"]');
         } finally {
             $em->getConnection()->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);

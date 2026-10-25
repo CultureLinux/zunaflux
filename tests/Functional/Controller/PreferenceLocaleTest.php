@@ -29,6 +29,8 @@ final class PreferenceLocaleTest extends WebTestCase
             $crawler = $client->followRedirect();
             self::assertSame('de', $crawler->filter('html')->attr('lang'));
             self::assertStringContainsString('Einstellungen', $crawler->filter('h1')->text());
+            self::assertSelectorTextContains('body', 'Nachtruhe');
+            self::assertSelectorTextContains('body', 'Nachtruhe speichern');
             $crawler = $client->request('GET', '/subscriptions');
             self::assertSame('de', $crawler->filter('html')->attr('lang'));
             self::assertSelectorTextContains('label[for="site_url"]', 'Feeds einer Website entdecken');
@@ -37,6 +39,8 @@ final class PreferenceLocaleTest extends WebTestCase
             self::assertStringContainsString('FreshRSS-kompatibel', $crawler->filter('body')->text());
             $client->request('GET', '/about');
             self::assertSelectorTextContains('body', 'Sie können CultureLinux auf Ko-fi unterstützen.');
+            self::assertSelectorTextContains('body', 'Sie haben einen Fehler gefunden oder möchten eine Verbesserung vorschlagen?');
+            self::assertSelectorTextContains('body', 'Kontaktieren Sie uns');
             $client->request('GET', '/admin');
             self::assertSelectorTextContains('h1', 'Konten und Status');
             $crawler = $client->request('GET', '/preferences');
@@ -49,6 +53,11 @@ final class PreferenceLocaleTest extends WebTestCase
             self::assertSelectorTextContains('label[for="category-search"]', 'Filter categories and feeds');
             $client->request('GET', '/about');
             self::assertSelectorTextContains('body', 'You can support CultureLinux on Ko-fi.');
+            self::assertSelectorTextContains('body', 'Did you encounter a bug or want to suggest an improvement?');
+            self::assertSelectorTextContains('body', 'Contact us');
+            $client->request('GET', '/preferences');
+            self::assertSelectorTextContains('body', 'Quiet hours');
+            self::assertSelectorTextContains('body', 'Save quiet hours');
             $client->request('GET', '/admin');
             self::assertSelectorTextContains('h1', 'Accounts & health');
         } finally {

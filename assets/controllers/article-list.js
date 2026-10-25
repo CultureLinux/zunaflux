@@ -6,6 +6,18 @@ const readingMarkers = (item, labels = { unread: 'Non lu', favorite: 'Favori', s
 
 const formatReadingDate = (date, locale) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
 
+const shareArticle = (article) => {
+    try {
+        const url = new URL(article.url);
+        if (!['http:', 'https:'].includes(url.protocol)) return Promise.resolve(false);
+        if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') return navigator.share({ title: article.title, url: url.href }).then(() => 'shared').catch(() => false);
+        if (typeof navigator !== 'undefined' && typeof navigator.clipboard?.writeText === 'function') return navigator.clipboard.writeText(url.href).then(() => 'copied').catch(() => false);
+        return Promise.resolve(false);
+    } catch (_) {
+        return Promise.resolve(false);
+    }
+};
+
 const viewFromParams = (params) => {
     if (params.get('favorite') === '1') return 'favorite';
     if (params.get('saved') === '1') return 'saved';
@@ -37,12 +49,14 @@ if (container) {
     const dialogSource = dialog?.querySelector('[data-article-source]');
     const dialogSummary = dialog?.querySelector('[data-article-summary]');
     const dialogLinks = [...dialog.querySelectorAll('[data-article-link]')];
+    const shareButtons = [...dialog.querySelectorAll('[data-article-share]')];
     const readButtons = [...dialog.querySelectorAll('[data-article-read]')];
     const favoriteButtons = [...dialog.querySelectorAll('[data-article-favorite]')];
     const savedButtons = [...dialog.querySelectorAll('[data-article-saved]')];
     const previousButtons = [...dialog.querySelectorAll('[data-article-previous]')];
     const nextButtons = [...dialog.querySelectorAll('[data-article-next]')];
     const dialogError = dialog.querySelector('[data-article-error]');
+    const shareStatus = dialog.querySelector('[data-article-share-status]');
     const moreButton = document.querySelector('[data-article-more]');
     const sentinel = document.querySelector('[data-article-sentinel]');
     const actions = document.querySelector('[data-article-actions]');
@@ -329,6 +343,13 @@ if (container) {
     readButtons.forEach((button) => button.addEventListener('click', () => performAction({ isRead: !selectedArticle.isRead })));
     favoriteButtons.forEach((button) => button.addEventListener('click', () => performAction({ isFavorite: !selectedArticle.isFavorite })));
     savedButtons.forEach((button) => button.addEventListener('click', () => performAction({ isSaved: !selectedArticle.isSaved })));
+    shareButtons.forEach((button) => button.addEventListener('click', () => {
+        void shareArticle(selectedArticle).then((result) => {
+            if (result !== 'copied') return;
+            shareStatus.textContent = 'Lien copié.';
+            shareStatus.hidden = false;
+        });
+    }));
     dialogLinks.forEach((link) => link.addEventListener('click', () => dialog.close()));
     dialog.addEventListener('close', () => {
         if (readFilter.value !== '') Promise.allSettled([...pendingStateUpdates]).then(() => loadPage());
@@ -378,7 +399,7 @@ if (container) {
             if (items.length === 0) {
                 const empty = document.createElement('p');
                 empty.className = 'border border-line bg-surface p-6 text-muted';
-                empty.textContent = readFilter.value === '0' ? 'Aucun article non lu pour le moment.' : 'Aucun article ne correspond à vos critères.';
+                empty.textContent = readFilter.value === '0' ? 'Aucun article non lu pour le moment.' : container.dataset.emptyFilteredLabel;
                 moreButton.hidden = true;
                 container.append(empty);
                 updateSelection();

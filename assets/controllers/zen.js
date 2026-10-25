@@ -10,6 +10,18 @@ const requestZenFullscreen = (element, isMobile) => {
     return Promise.resolve(element.requestFullscreen()).catch(() => {});
 };
 
+const shareZenArticle = (article) => {
+    try {
+        const url = new URL(article.url);
+        if (!['http:', 'https:'].includes(url.protocol)) return Promise.resolve(false);
+        if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') return navigator.share({ title: article.title, url: url.href }).then(() => 'shared').catch(() => false);
+        if (typeof navigator !== 'undefined' && typeof navigator.clipboard?.writeText === 'function') return navigator.clipboard.writeText(url.href).then(() => 'copied').catch(() => false);
+        return Promise.resolve(false);
+    } catch (_) {
+        return Promise.resolve(false);
+    }
+};
+
 const zen = document.querySelector('[data-zen-dialog]');
 if (zen) {
     const messages = JSON.parse(zen.dataset.messages);
@@ -28,7 +40,8 @@ if (zen) {
     const next = zen.querySelector('[data-zen-next]');
     const favorite = zen.querySelector('[data-zen-favorite]');
     const save = zen.querySelector('[data-zen-save]');
-    const controls = [previous, next, favorite, save];
+    const share = zen.querySelector('[data-zen-share]');
+    const controls = [previous, next, favorite, save, share];
     let items = [], cursor = null, hasMore = false, index = -1, article = null, busy = false, changed = false, finished = false;
     const refreshCount = async () => {
         try {
@@ -128,6 +141,7 @@ if (zen) {
     next.addEventListener('click', () => act('next'));
     favorite.addEventListener('click', () => act('favorite'));
     save.addEventListener('click', () => act('save'));
+    share.addEventListener('click', () => { void shareZenArticle(article).then((result) => { if (result === 'copied') message.textContent = 'Lien copié.'; }); });
     let start = null;
     content.addEventListener('touchstart', event => { start = event.touches.length === 1 ? [event.touches[0].clientX, event.touches[0].clientY] : null; }, { passive: true });
     content.addEventListener('touchend', event => { if (!start || event.changedTouches.length !== 1) { start = null; return; } const touch = event.changedTouches[0]; const action = classifyZenGesture(touch.clientX - start[0], touch.clientY - start[1]); start = null; if (action) act(action, true); }, { passive: true });

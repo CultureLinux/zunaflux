@@ -55,4 +55,13 @@
     {% endfor %}
 </section>
 <script src="{{ asset('push.js') }}" defer></script>
-<section class="mt-10 border border-line bg-surface p-6" aria-labelledby="quiet-hours-title"><h2 id="quiet-hours-title" class="font-serif text-2xl">Silence nocturne</h2><p class="mt-2 text-sm text-muted">Aucune notification n’est envoyée pendant cette plage, dans votre fuseau horaire. Laissez les deux horaires vides pour la désactiver.</p><form class="mt-4 grid gap-3 sm:grid-cols-2" method="post" action="{{ path('app_preferences_quiet_hours') }}"><label>De <input class="mt-1 w-full border border-line bg-background px-3 py-2" type="time" name="quiet_start" value="{{ preference.quietStart }}"></label><label>À <input class="mt-1 w-full border border-line bg-background px-3 py-2" type="time" name="quiet_end" value="{{ preference.quietEnd }}"></label><input type="hidden" name="_token" value="{{ csrf_token('quiet-hours') }}"><button class="min-h-11 border border-accent px-4 text-accent sm:col-span-2" type="submit">Enregistrer le silence nocturne</button></form></section>
+<section class="mt-10 border border-line bg-surface p-6" aria-labelledby="quiet-hours-title">
+    <h2 id="quiet-hours-title" class="font-serif text-2xl">{{ 'Silence nocturne'|trans }}</h2>
+    <p class="mt-2 text-sm text-muted">{{ 'Aucune notification n’est envoyée pendant cette plage, dans votre fuseau horaire. Laissez les deux horaires vides pour la désactiver.'|trans }}</p>
+    <form class="mt-4 grid gap-3 sm:grid-cols-2" method="post" action="{{ path('app_preferences_quiet_hours') }}">
+        <label>{{ 'De'|trans }} <input class="mt-1 w-full border border-line bg-background px-3 py-2" type="time" name="quiet_start" value="{{ preference.quietStart }}"></label>
+        <label>{{ 'À'|trans }} <input class="mt-1 w-full border border-line bg-background px-3 py-2" type="time" name="quiet_end" value="{{ preference.quietEnd }}"></label>
+        <input type="hidden" name="_token" value="{{ csrf_token('quiet-hours') }}">
+        <button class="min-h-11 border border-accent px-4 text-accent sm:col-span-2" type="submit">{{ 'Enregistrer le silence nocturne'|trans }}</button>
+    </form>
+</section>
