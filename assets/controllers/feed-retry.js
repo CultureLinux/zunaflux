@@ -18,6 +18,11 @@ document.querySelectorAll('[data-feed-retry-form]').forEach(form => {
             const result = await response.json();
             if (!Array.isArray(result.logs)) throw new Error();
             log.textContent = result.logs.join('\n');
+            if (result.success === true) {
+                dialog.close();
+                form.closest('li')?.remove();
+                window.dispatchEvent(new CustomEvent('zunaflux:toast', { detail: { type: 'success', message: dialog.dataset.success } }));
+            }
         } catch (_) {
             log.textContent = dialog.dataset.error;
         } finally {

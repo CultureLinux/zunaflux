@@ -59,8 +59,10 @@ final class AdminController extends AbstractController
    $logs = ['Vérification de l’adresse et collecte du flux…'];
    try {
     $collect(new CollectFeedMessage((string)$incident->getFeed()->getId()));
+    $em->remove($incident);
+    $em->flush();
     $logs[] = 'Collecte terminée avec succès.';
-    $logs[] = 'L’incident reste ouvert jusqu’à son acquittement.';
+    $logs[] = 'L’incident a été supprimé.';
     return $this->json(['success' => true, 'logs' => $logs]);
    } catch (\Throwable $error) {
     $logs[] = $incidentMessage->describe($error->getMessage());

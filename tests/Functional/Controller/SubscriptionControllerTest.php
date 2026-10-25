@@ -12,6 +12,84 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class SubscriptionControllerTest extends WebTestCase
 {
+    public function testOwnerCanStartAndReadASubscriptionRefreshButAnotherUserCannot(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $owner = new User('refresh-owner-'.bin2hex(random_bytes(8)).'@example.test');
+        $other = new User('refresh-other-'.bin2hex(random_bytes(8)).'@example.test');
+        $feed = new Feed('https://example.test/'.bin2hex(random_bytes(8)).'/refresh');
+        $subscription = new Subscription($owner, $feed);
+        foreach ([$owner, $other, $feed, $subscription] as $entity) $em->persist($entity);
+        $em->flush();
+
+        try {
+            $client->loginUser($owner);
+            $page = $client->request('GET', '/subscriptions');
+            $token = $page->filter('[data-subscription-refresh-form] input[name="_token"]')->attr('value');
+            $url = '/subscriptions/'.$subscription->getId().'/refresh';
+            $client->request('POST', $url, ['_token' => 'invalid'], server: ['HTTP_ACCEPT' => 'application/json']);
+            self::assertResponseStatusCodeSame(403);
+
+            $client->loginUser($other);
+            $client->request('POST', $url, ['_token' => $token], server: ['HTTP_ACCEPT' => 'application/json']);
+            self::assertResponseStatusCodeSame(403);
+
+            $client->loginUser($owner);
+            $client->request('POST', $url, ['_token' => $token], server: ['HTTP_ACCEPT' => 'application/json']);
+            self::assertResponseStatusCodeSame(202);
+            $result = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+            self::assertIsString($result['runId']);
+
+            $client->request('GET', $url.'/'.$result['runId']);
+            self::assertResponseIsSuccessful();
+            self::assertSame(1, count(json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR)['entries']));
+        } finally {
+            $connection = $em->getConnection();
+            $connection->executeStatement('DELETE FROM feed_sync_run');
+            $connection->executeStatement('DELETE FROM app_user WHERE id IN (?, ?)', [$owner->getId()->toBinary(), $other->getId()->toBinary()]);
+            $connection->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);
+        }
+    }
+
+    public function testOwnerCanRefreshAllFeedsInOneCategory(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $owner = new User('category-refresh-owner-'.bin2hex(random_bytes(8)).'@example.test');
+        $other = new User('category-refresh-other-'.bin2hex(random_bytes(8)).'@example.test');
+        $category = new \App\Entity\Category($owner, 'Refresh');
+        $first = new Feed('https://example.test/'.bin2hex(random_bytes(8)).'/first');
+        $second = new Feed('https://example.test/'.bin2hex(random_bytes(8)).'/second');
+        $firstSubscription = new Subscription($owner, $first); $firstSubscription->assignCategory($category);
+        $secondSubscription = new Subscription($owner, $second); $secondSubscription->assignCategory($category);
+        foreach ([$owner, $other, $category, $first, $second, $firstSubscription, $secondSubscription] as $entity) $em->persist($entity);
+        $em->flush();
+
+        try {
+            $client->loginUser($owner);
+            $page = $client->request('GET', '/subscriptions');
+            $token = $page->filter('[data-category-refresh-form] input[name="_token"]')->attr('value');
+            $url = '/categories/'.$category->getId().'/refresh';
+            $client->loginUser($other);
+            $client->request('POST', $url, ['_token' => $token], server: ['HTTP_ACCEPT' => 'application/json']);
+            self::assertResponseStatusCodeSame(403);
+
+            $client->loginUser($owner);
+            $client->request('POST', $url, ['_token' => $token], server: ['HTTP_ACCEPT' => 'application/json']);
+            self::assertResponseStatusCodeSame(202);
+            $runId = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR)['runId'];
+            $client->request('GET', $url.'/'.$runId);
+            self::assertResponseIsSuccessful();
+            self::assertCount(2, json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR)['entries']);
+        } finally {
+            $connection = $em->getConnection();
+            $connection->executeStatement('DELETE FROM feed_sync_run');
+            $connection->executeStatement('DELETE FROM app_user WHERE id IN (?, ?)', [$owner->getId()->toBinary(), $other->getId()->toBinary()]);
+            $connection->executeStatement('DELETE FROM feed WHERE id IN (?, ?)', [$first->getId()->toBinary(), $second->getId()->toBinary()]);
+        }
+    }
+
     public function testMovingSubscriptionChecksOwnershipAndCsrf(): void
     {
         $client = static::createClient();
@@ -594,6 +672,8 @@ final class SubscriptionControllerTest extends WebTestCase
             self::assertSelectorExists('button[data-open-delete="edit-subscription-'.$subscription->getId().'"]');
             self::assertSelectorExists('dialog#edit-subscription-'.$subscription->getId().' form[action="/subscriptions/'.$subscription->getId().'/update"]');
             self::assertSelectorExists('dialog#edit-subscription-'.$subscription->getId().' button[data-open-delete="delete-'.$subscription->getId().'"]');
+            self::assertSelectorExists('dialog#edit-subscription-'.$subscription->getId().' [data-edit-subscription-close]');
+            self::assertSelectorExists('dialog#edit-subscription-'.$subscription->getId().' button[data-open-delete="delete-'.$subscription->getId().'"] svg');
             $form = $crawler->filter('form[action="/subscriptions/'.$subscription->getId().'/update"]')->form();
             $client->submit($form, ['feed_url' => $newUrl, 'custom_title' => 'Nouvelle source', 'category_id' => '', 'enabled' => '1']);
             self::assertResponseRedirects('/subscriptions');

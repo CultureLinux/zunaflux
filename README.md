@@ -4,6 +4,8 @@
 
 Zunaflux est un lecteur RSS et Atom auto-hébergé pour retrouver ses sources dans un espace de lecture personnel, sur ordinateur comme sur mobile.
 
+Disponible en : 🇫🇷 Français · 🇬🇧 English · 🇩🇪 Deutsch
+
 <a href="https://ko-fi.com/E1E31E9X8Y" target="_blank"><img height="36" style="border:0px;height:36px;" src="https://storage.ko-fi.com/cdn/kofi5.png?v=6" border="0" alt="Donate" /></a>
 
 ![Illustration de la salle de lecture Zunaflux](public/images/lecture-editoriale.png)

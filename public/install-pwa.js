@@ -5,26 +5,28 @@
     const dismiss = prompt.querySelector('[data-pwa-install-dismiss]');
     const help = prompt.querySelector('[data-pwa-install-help]');
     let deferred;
+    const dismissDuration = 30 * 24 * 60 * 60 * 1000;
     let dismissed = false;
-    try { dismissed = sessionStorage.getItem('zunaflux-install-dismissed') === '1'; } catch (_) {}
+    try {
+        const dismissedAt = Number(localStorage.getItem('zunaflux-install-dismissed-at'));
+        dismissed = Number.isFinite(dismissedAt) && dismissedAt > 0 && Date.now() - dismissedAt < dismissDuration;
+    } catch (_) {}
     dismiss.addEventListener('click', () => {
         prompt.hidden = true;
         dismissed = true;
-        try { sessionStorage.setItem('zunaflux-install-dismissed', '1'); } catch (_) {}
+        try { localStorage.setItem('zunaflux-install-dismissed-at', String(Date.now())); } catch (_) {}
     });
     window.addEventListener('beforeinstallprompt', event => {
         event.preventDefault();
         deferred = event;
         action.hidden = false;
-        action.textContent = 'Installer';
-        help.textContent = 'Retrouvez votre lecteur parmi vos applications.';
+        action.textContent = prompt.dataset.installLabel;
+        help.textContent = prompt.dataset.defaultHelp;
         if (!dismissed) prompt.hidden = false;
     });
     action.addEventListener('click', async () => {
         if (!deferred) {
-            help.textContent = /iPhone|iPad|iPod/i.test(navigator.userAgent)
-                ? 'Dans Safari, touchez Partager puis « Sur l’écran d’accueil ».'
-                : 'Ouvrez le menu de votre navigateur puis choisissez « Installer l’application » ou « Ajouter à l’écran d’accueil ».';
+            help.textContent = /iPhone|iPad|iPod/i.test(navigator.userAgent) ? prompt.dataset.helpIos : prompt.dataset.helpGeneric;
             return;
         }
         await deferred.prompt();
@@ -33,13 +35,13 @@
     });
     window.addEventListener('appinstalled', () => { prompt.hidden = true; });
     if (/Android/i.test(navigator.userAgent) && !dismissed) {
-        help.textContent = 'Votre navigateur permet d’ajouter Zunaflux à votre écran d’accueil.';
-        action.textContent = 'Comment installer';
+        help.textContent = prompt.dataset.helpAndroid;
+        action.textContent = prompt.dataset.helpAction;
         prompt.hidden = false;
     }
     if (/iPhone|iPad|iPod/i.test(navigator.userAgent) && !dismissed) {
-        help.textContent = 'Ajoutez Zunaflux à votre écran d’accueil depuis Safari.';
-        action.textContent = 'Comment installer';
+        help.textContent = prompt.dataset.helpIos;
+        action.textContent = prompt.dataset.helpAction;
         prompt.hidden = false;
     }
 })();

@@ -3,24 +3,31 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
 
-function setup() {
+function setup({ dismissedAt = null } = {}) {
     const callbacks = {};
     const action = { hidden: false, textContent: '', addEventListener: (_, fn) => { callbacks.action = fn; } };
     const dismiss = { addEventListener: (_, fn) => { callbacks.dismiss = fn; } };
     const help = { textContent: '' };
-    const prompt = { hidden: true, querySelector: selector => selector.includes('action') ? action : selector.includes('dismiss') ? dismiss : help };
+    const prompt = { hidden: true, dataset: { installLabel: 'Install', defaultHelp: 'Find your reader among your apps.', helpAndroid: 'Add Zunaflux from your browser.', helpIos: 'Add Zunaflux from Safari.', helpGeneric: 'Open your browser menu to install.', helpAction: 'How to install' }, querySelector: selector => selector.includes('action') ? action : selector.includes('dismiss') ? dismiss : help };
     const events = {};
-    const context = { document: { querySelector: () => prompt }, navigator: { userAgent: 'Android Firefox' }, window: { matchMedia: () => ({ matches: false }), addEventListener: (name, fn) => { events[name] = fn; } }, sessionStorage: { getItem: () => null, setItem() {} } };
+    const localStorage = new Map(dismissedAt === null ? [] : [['zunaflux-install-dismissed-at', dismissedAt]]);
+    const context = { document: { querySelector: () => prompt }, navigator: { userAgent: 'Android Firefox' }, window: { matchMedia: () => ({ matches: false }), addEventListener: (name, fn) => { events[name] = fn; } }, sessionStorage: { getItem: () => null, setItem() {} }, localStorage: { getItem: key => localStorage.get(key) || null, setItem: (key, value) => localStorage.set(key, value) } };
     vm.runInNewContext(fs.readFileSync('public/install-pwa.js', 'utf8'), context);
     return { action, prompt, help, events, callbacks };
 }
+
+test('a recent dismissal suppresses the install invitation for 30 days', () => {
+    const state = setup({ dismissedAt: String(Date.now()) });
+
+    assert.equal(state.prompt.hidden, true);
+});
 
 test('Android without an install prompt offers a visible help action', async () => {
     const state = setup();
     assert.equal(state.prompt.hidden, false);
     assert.equal(state.action.hidden, false);
     await state.callbacks.action();
-    assert.match(state.help.textContent, /menu|écran d’accueil/i);
+    assert.equal(state.help.textContent, 'Open your browser menu to install.');
 });
 
 test('a browser install prompt can be launched from the action', async () => {

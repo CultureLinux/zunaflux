@@ -48,7 +48,7 @@
                 </div>
             </nav>
         {% endif %}
-        <aside class="mx-auto mt-4 max-w-6xl border border-line bg-surface p-4" data-pwa-install hidden aria-label="Installer Zunaflux">
+        <aside class="mx-auto mt-4 max-w-6xl border border-line bg-surface p-4" data-pwa-install hidden aria-label="{{ 'Installer Zunaflux sur votre écran d’accueil'|trans }}" data-install-label="{{ 'Installer'|trans }}" data-help-action="{{ 'Comment installer'|trans }}" data-default-help="{{ 'Retrouvez votre lecteur parmi vos applications.'|trans }}" data-help-android="{{ 'Votre navigateur permet d’ajouter Zunaflux à votre écran d’accueil.'|trans }}" data-help-ios="{{ 'Ajoutez Zunaflux à votre écran d’accueil depuis Safari.'|trans }}" data-help-generic="{{ 'Ouvrez le menu de votre navigateur puis choisissez « Installer l’application » ou « Ajouter à l’écran d’accueil ».'|trans }}">
             <p class="font-semibold">{{ "Installer Zunaflux sur votre écran d’accueil"|trans }}</p>
             <p class="mt-1 text-sm text-muted" data-pwa-install-help>{{ "Retrouvez votre lecteur parmi vos applications."|trans }}</p>
             <div class="mt-3 flex flex-wrap gap-3"><button class="min-h-11 border border-accent px-4 text-accent" type="button" data-pwa-install-action>{{ "Installer"|trans }}</button><button class="min-h-11 px-4 text-muted" type="button" data-pwa-install-dismiss>{{ "Plus tard"|trans }}</button></div>
