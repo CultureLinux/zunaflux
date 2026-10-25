@@ -114,6 +114,38 @@ final class SubscriptionController extends AbstractController
         ]);
     }
 
+    #[Route('/subscriptions/refresh', name: 'app_subscriptions_refresh_start', methods: ['POST'])]
+    public function refreshAll(Request $request, EntityManagerInterface $entityManager, MessageBusInterface $messageBus): Response
+    {
+        $user = $this->currentUser();
+        $csrfToken = $request->headers->get('X-CSRF-Token') ?? $request->request->getString('_token');
+        if (!$this->isCsrfTokenValid('subscriptions-refresh', $csrfToken)) throw $this->createAccessDeniedException();
+
+        $run = Uuid::v7();
+        $connection = $entityManager->getConnection();
+        $connection->insert('feed_sync_run', ['id' => $run->toBinary(), 'created_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s')]);
+        foreach ($entityManager->getRepository(Subscription::class)->findBy(['user' => $user]) as $subscription) {
+            $connection->insert('feed_sync_run_entry', ['run_id' => $run->toBinary(), 'feed_id' => $subscription->getFeed()->getId()->toBinary(), 'status' => 'pending', 'new_articles' => 0]);
+            $messageBus->dispatch(new CollectFeedMessage((string) $subscription->getFeed()->getId(), (string) $run));
+        }
+
+        return $this->json(['runId' => (string) $run], Response::HTTP_ACCEPTED);
+    }
+
+    #[Route('/subscriptions/refresh/{runId}', name: 'app_subscriptions_refresh_status', methods: ['GET'])]
+    public function refreshAllStatus(string $runId, EntityManagerInterface $entityManager): Response
+    {
+        $user = $this->currentUser();
+        try { $run = Uuid::fromString($runId); } catch (\InvalidArgumentException) { throw $this->createNotFoundException(); }
+
+        $rows = $entityManager->getConnection()->fetchAllAssociative(
+            'SELECT f.title, f.canonical_url, e.status, e.new_articles, e.detail FROM feed_sync_run_entry e INNER JOIN feed f ON f.id = e.feed_id INNER JOIN subscription s ON s.feed_id = f.id WHERE e.run_id = ? AND s.user_id = ? ORDER BY f.title, f.canonical_url',
+            [$run->toBinary(), $user->getId()->toBinary()],
+        );
+
+        return $this->json(['entries' => $rows, 'complete' => !array_filter($rows, static fn (array $row): bool => in_array($row['status'], ['pending', 'running'], true))]);
+    }
+
     #[Route('/subscriptions/{id}/category', name: 'app_subscription_move', methods: ['POST'])]
     public function moveCategory(string $id, Request $request, EntityManagerInterface $entityManager): RedirectResponse
     {

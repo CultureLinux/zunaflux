@@ -1,4 +1,4 @@
-document.querySelectorAll('[data-subscription-refresh-form], [data-category-refresh-form]').forEach(form => {
+document.querySelectorAll('[data-subscription-refresh-form], [data-category-refresh-form], [data-all-subscriptions-refresh-form]').forEach(form => {
     const dialog = document.getElementById(form.dataset.subscriptionRefreshDialog);
     if (!(dialog instanceof HTMLDialogElement)) return;
 

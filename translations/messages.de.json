@@ -371,5 +371,7 @@
   "Comment installer": "Installation erklären",
   "Votre navigateur permet d’ajouter Zunaflux à votre écran d’accueil.": "Mit Ihrem Browser können Sie Zunaflux zum Startbildschirm hinzufügen.",
   "Ajoutez Zunaflux à votre écran d’accueil depuis Safari.": "Fügen Sie Zunaflux über Safari zum Startbildschirm hinzu.",
-  "Ouvrez le menu de votre navigateur puis choisissez « Installer l’application » ou « Ajouter à l’écran d’accueil ».": "Öffnen Sie das Browsermenü und wählen Sie „App installieren“ oder „Zum Startbildschirm hinzufügen“ aus."
+  "Ouvrez le menu de votre navigateur puis choisissez « Installer l’application » ou « Ajouter à l’écran d’accueil ».": "Öffnen Sie das Browsermenü und wählen Sie „App installieren“ oder „Zum Startbildschirm hinzufügen“ aus.",
+  "Rafraîchir toutes les sources": "Alle Quellen aktualisieren",
+  "Rafraîchissement de toutes les sources": "Aktualisierung aller Quellen"
 }

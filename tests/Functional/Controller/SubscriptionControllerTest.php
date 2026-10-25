@@ -90,6 +90,34 @@ final class SubscriptionControllerTest extends WebTestCase
         }
     }
 
+    public function testUserCanRefreshAllOwnedSubscriptions(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $user = new User('all-refresh-owner-'.bin2hex(random_bytes(8)).'@example.test');
+        $first = new Feed('https://example.test/'.bin2hex(random_bytes(8)).'/first');
+        $second = new Feed('https://example.test/'.bin2hex(random_bytes(8)).'/second');
+        foreach ([$user, $first, $second, new Subscription($user, $first), new Subscription($user, $second)] as $entity) $em->persist($entity);
+        $em->flush();
+
+        try {
+            $client->loginUser($user);
+            $page = $client->request('GET', '/subscriptions');
+            $token = $page->filter('[data-all-subscriptions-refresh-form] input[name="_token"]')->attr('value');
+            $client->request('POST', '/subscriptions/refresh', ['_token' => $token], server: ['HTTP_ACCEPT' => 'application/json']);
+            self::assertResponseStatusCodeSame(202);
+            $runId = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR)['runId'];
+            $client->request('GET', '/subscriptions/refresh/'.$runId);
+            self::assertResponseIsSuccessful();
+            self::assertCount(2, json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR)['entries']);
+        } finally {
+            $connection = $em->getConnection();
+            $connection->executeStatement('DELETE FROM feed_sync_run');
+            $connection->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
+            $connection->executeStatement('DELETE FROM feed WHERE id IN (?, ?)', [$first->getId()->toBinary(), $second->getId()->toBinary()]);
+        }
+    }
+
     public function testMovingSubscriptionChecksOwnershipAndCsrf(): void
     {
         $client = static::createClient();
