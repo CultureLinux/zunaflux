@@ -42,3 +42,7 @@ services:
     App\MessageHandler\NotifyFeedHandler:
         arguments:
             $logger: '@monolog.logger.notification'
+
+    App\Application\FeedExplorer\FeedCatalog:
+        arguments:
+            $projectDir: '%kernel.project_dir%'

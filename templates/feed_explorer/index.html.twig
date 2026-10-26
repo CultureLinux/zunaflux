@@ -1,0 +1,85 @@
+{% extends 'base.html.twig' %}
+
+{% set category_labels = {
+    actualites: 'Actualités', culture: 'Culture', cybersecurite: 'Cybersécurité', developpement: 'Développement',
+    economie: 'Économie', informatique: 'Informatique', loisirs: 'Loisirs', politique: 'Politique', sante: 'Santé',
+    science: 'Science', sport: 'Sport', technologie: 'Technologie'
+} %}
+{% set languages = {
+    fr: { flag: '🇫🇷', label: 'Français' },
+    en: { flag: '🇬🇧', label: 'Anglais' },
+    de: { flag: '🇩🇪', label: 'Allemand' }
+} %}
+
+{% block title %}{{ 'Explorer les sources'|trans }} · Zunaflux{% endblock %}
+
+{% block body %}
+    <main class="mx-auto max-w-6xl px-4 py-10">
+        <header class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+                <h1 class="font-serif text-4xl">{{ 'Explorer les sources'|trans }}</h1>
+                <p class="mt-2 text-muted">{{ 'Sélection éditoriale en français, anglais et allemand.'|trans }}</p>
+            </div>
+            <nav class="flex items-center gap-2" aria-label="{{ 'Filtrer les sources par langue'|trans }}">
+                <a class="inline-flex min-h-11 min-w-11 items-center justify-center rounded border border-line text-accent hover:border-accent hover:bg-accent-soft focus-visible:ring-2 focus-visible:ring-accent" href="{{ path('app_feed_explorer', active_category is null ? {} : {category: active_category}) }}" data-language-reset aria-label="{{ 'Afficher toutes les langues'|trans }}" title="{{ 'Afficher toutes les langues'|trans }}"{% if active_language is null %} aria-current="page"{% endif %}>
+                    <svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.3 2.5 3.5 5.5 3.5 9S14.3 18.5 12 21M12 3C9.7 5.5 8.5 8.5 8.5 12s1.2 6.5 3.5 9"/></svg>
+                </a>
+                {% for code, language in languages %}
+                    {% if active_language is null or active_language == code %}
+                        <a class="inline-flex min-h-11 min-w-11 items-center justify-center rounded border border-line text-xl hover:border-accent hover:bg-accent-soft focus-visible:ring-2 focus-visible:ring-accent" href="{{ active_language == code ? path('app_feed_explorer', active_category is null ? {} : {category: active_category}) : path('app_feed_explorer', active_category is null ? {language: code} : {language: code, category: active_category}) }}" data-language-filter="{{ code }}" aria-label="{{ 'Filtrer les sources en %language%'|trans({'%language%': language.label|trans}) }}"{% if active_language == code %} aria-current="page"{% endif %}>
+                            <span aria-hidden="true">{{ language.flag }}</span>
+                        </a>
+                    {% endif %}
+                {% endfor %}
+            </nav>
+        </header>
+
+        <nav class="mt-6 flex flex-wrap items-center gap-2" aria-label="{{ 'Catégories de sources'|trans }}">
+            {% for category, feeds in category_groups %}
+                {% set category_label = category_labels[category]|default(category|replace({'_': ' '})|title) %}
+                <a class="border border-line px-3 py-2 text-accent hover:bg-accent-soft focus-visible:ring-2 focus-visible:ring-accent{% if active_category == category %} bg-accent-soft{% endif %}" href="{{ active_category == category ? path('app_feed_explorer', active_language is null ? {} : {language: active_language}) : path('app_feed_explorer', active_language is null ? {category: category} : {language: active_language, category: category}) }}" data-category-filter="{{ category }}"{% if active_category == category %} aria-current="page"{% endif %}>{{ category_label|trans }} <span aria-label="{{ '%count% sources'|trans({'%count%': feeds|length}) }}">({{ feeds|length }})</span></a>
+            {% endfor %}
+            {% if active_category is not null %}
+                <a class="inline-flex min-h-11 min-w-11 items-center justify-center border border-line text-muted hover:border-accent hover:text-accent focus-visible:ring-2 focus-visible:ring-accent" href="{{ path('app_feed_explorer', active_language is null ? {} : {language: active_language}) }}" data-category-filter-reset aria-label="{{ 'Retirer le filtre de catégorie'|trans }}" title="{{ 'Retirer le filtre de catégorie'|trans }}"><svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg></a>
+            {% endif %}
+        </nav>
+
+        {% for category, feeds in groups %}
+            {% set category_label = category_labels[category]|default(category|replace({'_': ' '})|title) %}
+            <section class="mt-10" id="{{ category }}" data-feed-category="{{ category }}">
+                <h2 class="font-serif text-2xl">{{ category_label|trans }}</h2>
+                <div class="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {% for feed in feeds %}
+                        {% set language = languages[feed.language]|default({flag: '🏳️', label: feed.language|upper}) %}
+                        <article class="flex flex-col border border-line bg-surface p-4">
+                            <div class="flex items-center gap-3">
+                                {% if feed.logo_status == 'downloaded' %}
+                                    <img class="h-10 w-10" src="{{ asset(feed.logo) }}" alt="">
+                                {% endif %}
+                                <div class="min-w-0">
+                                    <p class="text-sm text-muted" data-feed-language="{{ feed.language }}"><span aria-hidden="true">{{ language.flag }}</span><span class="sr-only">{{ language.label|trans }}</span></p>
+                                    <h3 class="truncate font-semibold" title="{{ feed.name }}">{{ feed.name }}</h3>
+                                </div>
+                                <button class="ml-auto inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center border border-accent text-accent hover:bg-accent hover:text-accent-foreground" type="button" data-feed-add data-open-delete="add-{{ feed.id }}" aria-label="{{ 'Ajouter le flux : %name%'|trans({'%name%': feed.name}) }}" title="{{ 'Ajouter le flux : %name%'|trans({'%name%': feed.name}) }}">
+                                    <svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                                </button>
+                            </div>
+                            <p class="mt-3 break-all text-xs text-muted">{{ feed.url }}</p>
+                            <dialog id="add-{{ feed.id }}" class="m-auto w-full max-w-lg border border-line bg-surface p-6 text-foreground">
+                                <h3 class="font-serif text-2xl">{{ 'Ajouter le flux : %name%'|trans({'%name%': feed.name}) }}</h3>
+                                <form class="mt-4 grid gap-3" method="post">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('feed-explorer') }}">
+                                    <input type="hidden" name="feed" value="{{ feed.id }}">
+                                    <label>{{ 'Catégorie'|trans }}<select class="mt-1 w-full border border-line bg-background p-2" name="category"><option value="">{{ 'Sans catégorie'|trans }}</option>{% for own in categories %}<option value="{{ own.id }}">{{ own.name }}</option>{% endfor %}<option value="new">{{ 'Créer une catégorie'|trans }}</option></select></label>
+                                    <label>{{ 'Nouvelle catégorie'|trans }}<input class="mt-1 w-full border border-line bg-background p-2" name="new_category" maxlength="100"></label>
+                                    <div class="flex gap-3"><button class="border border-accent px-3 py-2 text-accent">{{ 'Ajouter'|trans }}</button><button type="submit" formmethod="dialog" formnovalidate class="border border-line px-3 py-2">{{ 'Annuler'|trans }}</button></div>
+                                </form>
+                            </dialog>
+                        </article>
+                    {% endfor %}
+                </div>
+            </section>
+        {% endfor %}
+    </main>
+    <script type="module" src="{{ asset('controllers/subscription-page.js') }}"></script>
+{% endblock %}

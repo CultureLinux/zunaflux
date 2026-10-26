@@ -12,6 +12,7 @@ use App\Application\Notification\PushDelivery;
 use App\Entity\Feed;
 use App\Entity\PushSubscription;
 use App\Entity\Subscription;
+use App\Entity\User;
 use App\Entity\UserPreference;
 use App\Message\NotifyFeedMessage;
 use Doctrine\ORM\EntityManagerInterface;
@@ -38,8 +39,17 @@ final readonly class NotifyFeedHandler
         $configured = is_file($this->pushPrivateFile) && is_readable($this->pushPrivateFile) && '' !== $this->pushSubject;
         $feed = $this->em->getRepository(Feed::class)->find(Uuid::fromString($message->feedId));
         if (!$feed instanceof Feed || !in_array($message->kind, ['articles', 'error'], true)) return;
+        $recipients = [];
         foreach ($this->em->getRepository(Subscription::class)->findBy(['feed' => $feed, 'enabled' => true]) as $feedSubscription) {
             $user = $feedSubscription->getUser();
+            $recipients[(string) $user->getId()] = $user;
+        }
+        if ('error' === $message->kind) {
+            foreach ($this->em->getRepository(User::class)->findBy(['status' => 'active']) as $user) {
+                if ($user->isAdmin()) $recipients[(string) $user->getId()] = $user;
+            }
+        }
+        foreach ($recipients as $user) {
             $preference = $this->em->getRepository(UserPreference::class)->findOneBy(['user' => $user]);
             if ($preference instanceof UserPreference && !$preference->allowsPushAt(new \DateTimeImmutable())) continue;
             if ('articles' === $message->kind && (int) $this->em->getConnection()->fetchOne('SELECT COUNT(*) FROM article a INNER JOIN subscription s ON s.feed_id=a.feed_id AND s.user_id=? AND s.enabled=1 LEFT JOIN article_state st ON st.article_id=a.id AND st.user_id=s.user_id WHERE st.id IS NULL OR st.is_read=0', [$user->getId()->toBinary()]) > $message->count) continue;
