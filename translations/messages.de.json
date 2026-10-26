@@ -397,5 +397,17 @@
   "Ajoutez Zunaflux à votre écran d’accueil depuis Safari.": "Fügen Sie Zunaflux über Safari zum Startbildschirm hinzu.",
   "Ouvrez le menu de votre navigateur puis choisissez « Installer l’application » ou « Ajouter à l’écran d’accueil ».": "Öffnen Sie das Browsermenü und wählen Sie „App installieren“ oder „Zum Startbildschirm hinzufügen“ aus.",
   "Rafraîchir toutes les sources": "Alle Quellen aktualisieren",
-  "Rafraîchissement de toutes les sources": "Aktualisierung aller Quellen"
+  "Rafraîchissement de toutes les sources": "Aktualisierung aller Quellen",
+  "Accès refusé.": "Zugriff verweigert.",
+  "Ce compte est désactivé.": "Dieses Konto ist deaktiviert.",
+  "Clés invalides.": "Ungültige Schlüssel.",
+  "Données invalides.": "Ungültige Daten.",
+  "Jeton de formulaire invalide.": "Ungültiges Formular-Token.",
+  "La notification n’a pas pu être envoyée.": "Die Benachrichtigung konnte nicht gesendet werden.",
+  "Le mot de passe doit contenir au moins 12 caractères.": "Das Passwort muss mindestens 12 Zeichen enthalten.",
+  "Menu": "Menü",
+  "Notifications non configurées.": "Benachrichtigungen sind nicht konfiguriert.",
+  "Saisissez une adresse e-mail valide.": "Geben Sie eine gültige E-Mail-Adresse ein.",
+  "Un compte existe déjà pour cette adresse e-mail.": "Für diese E-Mail-Adresse existiert bereits ein Konto.",
+  "Votre compte est créé. Vous pouvez maintenant vous connecter.": "Ihr Konto wurde erstellt. Sie können sich jetzt anmelden."
 }
