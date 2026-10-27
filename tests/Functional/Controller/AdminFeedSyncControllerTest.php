@@ -21,7 +21,8 @@ final class AdminFeedSyncControllerTest extends WebTestCase
 
         try {
             $client->loginUser($admin);
-            $token = static::getContainer()->get('security.csrf.token_manager')->getToken('admin-feed-sync')->getValue();
+            $crawler = $client->request('GET', '/admin');
+            $token = $crawler->filter('form[data-feed-sync-form] input[name="_token"]')->attr('value');
 
             $client->request('POST', '/admin/feed-sync', ['scope' => 'all'], server: [
                 'HTTP_ACCEPT' => 'application/json',

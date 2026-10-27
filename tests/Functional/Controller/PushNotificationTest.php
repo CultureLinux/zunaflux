@@ -150,7 +150,18 @@ final class PushNotificationTest extends WebTestCase
             $client->loginUser($other);
             $client->request('GET', '/preferences');
             self::assertSelectorNotExists('[data-push-device]');
-            $token = static::getContainer()->get('security.csrf.token_manager')->getToken('push-device-'.$first->getId())->getValue();
+            $session = $client->getSession();
+            self::assertNotNull($session);
+            $request = new \Symfony\Component\HttpFoundation\Request();
+            $request->setSession($session);
+            $requestStack = static::getContainer()->get('request_stack');
+            $requestStack->push($request);
+            try {
+                $token = static::getContainer()->get('security.csrf.token_manager')->getToken('push-device-'.$first->getId())->getValue();
+            } finally {
+                $requestStack->pop();
+                $session->save();
+            }
             $client->request('POST', '/preferences/push-device/'.$first->getId().'/delete', ['_token' => $token]);
             self::assertResponseStatusCodeSame(404);
             self::assertSame(2, (int) $em->getConnection()->fetchOne('SELECT COUNT(*) FROM push_subscription WHERE user_id = ?', [$owner->getId()->toBinary()]));
