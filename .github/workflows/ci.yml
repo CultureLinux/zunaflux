@@ -15,6 +15,17 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-24.04
+    env:
+      APP_ENV: test
+      APP_SECRET: ci-test-secret
+      APP_TIMEZONE: Europe/Paris
+      DATABASE_URL: mysql://zunaflux_test:zunaflux_test@127.0.0.1:3306/zunaflux_test?serverVersion=mariadb-10.11.0&charset=utf8mb4
+      MAILER_DSN: null://null
+      MESSENGER_TRANSPORT_DSN: doctrine://default?queue_name=async
+      ZUNAFLUX_PAGE_SIZE: 30
+      ZUNAFLUX_MAX_SUBSCRIPTIONS: 100
+      ZUNAFLUX_PUBLIC_REGISTRATION: 1
+      ZUNAFLUX_MEDIA_STORAGE: var/media
     services:
       mariadb:
         image: mariadb:10.11
@@ -31,15 +42,17 @@ jobs:
           --health-timeout=5s
           --health-retries=5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.5'
           extensions: ctype, iconv, mbstring, pdo_mysql, xml, dom, curl, intl
           coverage: none
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
+      - name: Prepare Symfony test environment
+        run: touch .env
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
       - name: Validate Composer manifest
@@ -72,7 +85,7 @@ jobs:
     outputs:
       enabled: ${{ steps.detect.outputs.enabled }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - id: detect
         run: |
           if test -f Dockerfile && test -f tests/Container/docker-image-smoke.sh && test -f tests/Container/compose-config.sh; then
@@ -86,7 +99,7 @@ jobs:
     if: ${{ needs.detect-docker.outputs.enabled == 'true' }}
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build production image without publishing
         run: docker build --tag clinuxfr/zunaflux:ci-${{ github.sha }} .
       - name: Verify image and Compose topology
