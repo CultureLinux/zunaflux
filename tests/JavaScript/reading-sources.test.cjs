@@ -13,7 +13,7 @@ test('source visibility and links follow the selected reading state', () => {
         return { dataset: { unread: String(unread), read: String(read) }, hidden: false, link, querySelector: () => link };
     });
     const filter = { value: '0' };
-    const context = { document: { querySelectorAll: () => rows }, readFilter: filter, URL };
+    const context = { document: { querySelectorAll: () => rows }, readFilter: filter, categoryFilter: '', URL };
     vm.runInNewContext(source.slice(0, source.indexOf('const container =')) + source.slice(start, end) + '\nthis.refresh = updateSources;', context);
     context.refresh();
     assert.deepEqual(rows.map(row => row.hidden), [false, true, true]);

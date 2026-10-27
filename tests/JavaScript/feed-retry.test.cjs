@@ -41,5 +41,9 @@ test('a successful retry removes its incident and announces the recovered feed',
     assert.equal(log.textContent, 'Fetch succeeded.');
     assert.equal(closed, true);
     assert.equal(removed, true);
-    assert.deepEqual(events, [{ type: 'zunaflux:toast', detail: { type: 'success', message: 'The feed is working again.' } }]);
+    assert.equal(events.length, 1);
+    assert.ok(events[0] instanceof context.CustomEvent);
+    assert.equal(events[0].type, 'zunaflux:toast');
+    assert.equal(events[0].detail.type, 'success');
+    assert.equal(events[0].detail.message, 'The feed is working again.');
 });

@@ -47,5 +47,5 @@ test('Zen requests native fullscreen only on mobile and safely ignores unsupport
 
 test('the completed Zen state offers a visible way to close the reader', () => {
     const template = fs.readFileSync('templates/article/index.html.twig', 'utf8');
-    assert.match(template, /data-zen-complete[\\s\\S]*data-zen-complete-close/);
+    assert.match(template, /data-zen-complete[\s\S]*data-zen-complete-close/);
 });
