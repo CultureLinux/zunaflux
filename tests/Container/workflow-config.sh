@@ -10,7 +10,7 @@ grep -Fq 'workflow_call:' "$workflow"
 grep -Fq 'main' "$workflow"
 grep -Fq "'v*'" "$workflow"
 grep -Fq 'mariadb:10.11' "$workflow"
-grep -Fq 'php bin/phpunit' "$workflow"
+grep -Fq 'php vendor/bin/phpunit' "$workflow"
 grep -Fq 'tests/JavaScript' "$workflow"
 
 if grep -Eq 'docker/(login|build-push)-action|docker login|docker push' "$workflow"; then

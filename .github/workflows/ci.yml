@@ -72,7 +72,7 @@ jobs:
         env:
           APP_ENV: test
           DATABASE_URL: mysql://zunaflux_test:zunaflux_test@127.0.0.1:3306/zunaflux_test?serverVersion=mariadb-10.11.0&charset=utf8mb4
-        run: php bin/phpunit
+        run: php vendor/bin/phpunit
       - name: Run JavaScript tests
         run: for test_file in tests/JavaScript/*.test.cjs; do node "$test_file"; done
       - name: Build production frontend assets
