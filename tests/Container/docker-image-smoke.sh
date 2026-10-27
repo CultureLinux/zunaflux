@@ -17,3 +17,5 @@ docker run --rm --entrypoint php \
     -e APP_SECRET=container-smoke-secret \
     -e DATABASE_URL='mysql://zunaflux:change-me@database:3306/zunaflux?serverVersion=mariadb-10.11.0&charset=utf8mb4' \
     "$image" bin/console about --env=prod --no-debug
+
+docker run --rm --entrypoint frankenphp "$image" validate --config /etc/frankenphp/Caddyfile --adapter caddyfile

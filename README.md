@@ -44,7 +44,7 @@ Zunaflux propose également une installation sur l’écran d’accueil depuis u
 
 ## Installer Zunaflux
 
-Zunaflux s’adresse aux personnes qui souhaitent héberger leur propre lecteur. L’installation ci-dessous vise un serveur Linux avec Nginx et PHP-FPM ; adaptez les chemins et les commandes PHP à votre environnement.
+Zunaflux s’adresse aux personnes qui souhaitent héberger leur propre lecteur. Pour Docker, suivez le [guide Docker Compose](docs/docker.md) : FrankenPHP sert directement l’application et ses fichiers statiques. L’installation manuelle ci-dessous nécessite PHP et un serveur web ; adaptez les chemins et les commandes PHP à votre environnement.
 
 ### Prérequis
 

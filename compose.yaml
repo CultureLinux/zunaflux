@@ -47,6 +47,14 @@ services:
   app:
     image: clinuxfr/zunaflux:${ZUNAFLUX_IMAGE_TAG:-latest}
     restart: unless-stopped
+    ports:
+      - "${ZUNAFLUX_HTTP_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "php", "-r", "$$c = curl_init('http://127.0.0.1:8080/'); curl_setopt_array($$c, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 3]); curl_exec($$c); $$s = curl_getinfo($$c, CURLINFO_RESPONSE_CODE); exit($$s >= 200 && $$s < 400 ? 0 : 1);"]
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
     environment: *zunaflux-environment
     volumes:
       - media-data:/app/var/media
@@ -54,27 +62,6 @@ services:
       database:
         condition: service_healthy
       migrations:
-        condition: service_completed_successfully
-
-  assets:
-    image: clinuxfr/zunaflux:${ZUNAFLUX_IMAGE_TAG:-latest}
-    user: "0:0"
-    command: ["/bin/sh", "-ec", "find /public-assets -mindepth 1 -maxdepth 1 -exec rm -rf {} +; cp -a /app/public/. /public-assets/"]
-    volumes:
-      - public-assets:/public-assets
-
-  web:
-    image: nginx:1.27-alpine
-    restart: unless-stopped
-    ports:
-      - "${ZUNAFLUX_HTTP_PORT:-8080}:8080"
-    volumes:
-      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-      - public-assets:/srv/public:ro
-    depends_on:
-      app:
-        condition: service_started
-      assets:
         condition: service_completed_successfully
 
   worker:
@@ -108,4 +95,3 @@ services:
 volumes:
   database-data:
   media-data:
-  public-assets:
