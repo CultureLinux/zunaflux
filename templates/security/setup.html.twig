@@ -1,0 +1,29 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Initialiser Zunaflux{% endblock %}
+
+{% block body %}
+    <main class="relative isolate grid min-h-screen place-items-center overflow-hidden px-6 py-12">
+        <section class="w-full max-w-md border border-line bg-surface p-8 md:p-10">
+            <p class="font-mono text-xs uppercase tracking-[.35em] text-accent">Zunaflux / première installation</p>
+            <h1 class="mt-6 font-serif text-4xl leading-none text-foreground">Créez l’administrateur.</h1>
+            <p class="mt-4 text-sm leading-6 text-foreground">Ce premier compte administre votre espace de lecture. L’inscription publique reste désactivée.</p>
+
+            <form method="post" action="{{ path('app_setup') }}" class="mt-8 space-y-5">
+                <div>
+                    <label class="block text-sm font-medium text-foreground" for="email">{{ 'Adresse e-mail'|trans }}</label>
+                    <input class="mt-2 w-full border border-line bg-background px-4 py-3 text-foreground outline-none transition focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent" id="email" name="email" type="email" value="{{ data.email|default('') }}" autocomplete="email" required autofocus aria-describedby="{{ errors.email is defined ? 'email-error' : '' }}">
+                    {% if errors.email is defined %}<p class="mt-2 text-sm text-danger" id="email-error">{{ errors.email|trans }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-foreground" for="password">{{ 'Mot de passe'|trans }}</label>
+                    <input class="mt-2 w-full border border-line bg-background px-4 py-3 text-foreground outline-none transition focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent" id="password" name="password" type="password" autocomplete="new-password" minlength="12" required aria-describedby="password-hint{{ errors.password is defined ? ' password-error' : '' }}">
+                    <p class="mt-2 text-xs text-muted" id="password-hint">{{ '12 caractères minimum.'|trans }}</p>
+                    {% if errors.password is defined %}<p class="mt-2 text-sm text-danger" id="password-error">{{ errors.password|trans }}</p>{% endif %}
+                </div>
+                <input type="hidden" name="_token" value="{{ csrf_token('initial-setup') }}">
+                <button class="w-full min-h-11 bg-accent px-4 py-3 text-sm font-bold uppercase tracking-[.16em] text-accent-foreground transition hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface" type="submit">Créer l’administrateur</button>
+            </form>
+        </section>
+    </main>
+{% endblock %}

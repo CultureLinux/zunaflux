@@ -132,6 +132,10 @@ L’installation sur l’écran d’accueil dépend du navigateur. Zunaflux est 
 
 Consultez [la documentation PWA et Web Push](docs/pwa-web-push.md) pour la configuration des clés, les limites actuelles et les points à valider.
 
+## Docker Compose
+
+L'image de production est publiée sur Docker Hub sous `clinuxfr/zunaflux`. Elle est construite et publiée exclusivement par GitHub Actions. Consultez [le guide Docker Compose](docs/docker.md) pour préparer l'environnement, démarrer les services et appliquer explicitement les migrations.
+
 ## Développement
 
 Le projet utilise Symfony 8.1, PHP 8.5, Doctrine, Twig, Tailwind CSS et MariaDB 10.11. Pour installer les dépendances de développement, utilisez `php85 /usr/bin/composer install` sans l’option `--no-dev`.

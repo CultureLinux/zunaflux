@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Application\Installation\CreateInitialAdministrator;
 use App\Entity\User;
 use App\Application\Administration\RegistrationLimit;
 use App\Repository\UserRepository;
@@ -17,6 +18,47 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 final class SecurityController extends AbstractController
 {
+    #[Route('/setup', name: 'app_setup', methods: ['GET', 'POST'])]
+    public function setup(
+        Request $request,
+        CreateInitialAdministrator $initialAdministrator,
+    ): Response {
+        if (!$initialAdministrator->isRequired()) {
+            throw $this->createNotFoundException();
+        }
+
+        if ($request->isMethod('GET')) {
+            return $this->render('security/setup.html.twig', ['data' => [], 'errors' => []]);
+        }
+
+        if (!$this->isCsrfTokenValid('initial-setup', $request->request->getString('_token'))) {
+            throw $this->createAccessDeniedException('Jeton de formulaire invalide.');
+        }
+
+        $data = [
+            'email' => trim($request->request->getString('email')),
+        ];
+        $password = $request->request->getString('password');
+        $errors = [];
+        if (filter_var($data['email'], FILTER_VALIDATE_EMAIL) === false) {
+            $errors['email'] = 'Saisissez une adresse e-mail valide.';
+        }
+        if (mb_strlen($password) < 12) {
+            $errors['password'] = 'Le mot de passe doit contenir au moins 12 caractères.';
+        }
+        if ([] !== $errors) {
+            return $this->render('security/setup.html.twig', ['data' => $data, 'errors' => $errors], new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY));
+        }
+
+        if (!$initialAdministrator->create($data['email'], $password)) {
+            throw $this->createNotFoundException();
+        }
+
+        $this->addFlash('success', 'Administrateur créé. Vous pouvez maintenant vous connecter.');
+
+        return $this->redirectToRoute('app_login');
+    }
+
     #[Route('/login', name: 'app_login', methods: ['GET', 'POST'])]
     public function login(AuthenticationUtils $authenticationUtils): Response
     {

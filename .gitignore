@@ -1,6 +1,7 @@
 /.env
 /.env.local
 /.env.*.local
+/docker/.env
 /vendor/
 /var/
 /public/assets/

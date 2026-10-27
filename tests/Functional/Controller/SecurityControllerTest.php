@@ -11,6 +11,38 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class SecurityControllerTest extends WebTestCase
 {
+    public function testInitialSetupCreatesTheFirstAdministrator(): void
+    {
+        $client = static::createClient();
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $connection = $entityManager->getConnection();
+        self::assertSame(0, (int) $connection->fetchOne('SELECT COUNT(*) FROM app_user'));
+
+        $crawler = $client->request('GET', '/setup');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('form[action="/setup"] input[name="_token"]');
+        self::assertSelectorExists('label[for="email"]');
+        self::assertSelectorExists('label[for="password"]');
+
+        $email = 'initial-admin@example.test';
+        $client->submit($crawler->selectButton('Créer l’administrateur')->form(), [
+            'email' => $email,
+            'password' => 'a-secure-password',
+        ]);
+
+        self::assertResponseRedirects('/login');
+        $user = static::getContainer()->get(UserRepository::class)->findOneBy(['emailNormalized' => $email]);
+        self::assertNotNull($user);
+        self::assertTrue($user->isAdmin());
+        self::assertNotSame('a-secure-password', $user->getPassword());
+
+        $client->request('GET', '/setup');
+        self::assertResponseStatusCodeSame(404);
+
+        $connection->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
+    }
+
     public function testRegistrationIsBlockedAtConfiguredAccountLimit(): void
     {
         $client = static::createClient();

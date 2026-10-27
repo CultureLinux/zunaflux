@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-24.04
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_DATABASE: zunaflux_test
+          MARIADB_USER: zunaflux_test
+          MARIADB_PASSWORD: zunaflux_test
+          MARIADB_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: ctype, iconv, mbstring, pdo_mysql, xml, dom, curl, intl
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Validate Composer manifest
+        run: composer validate --strict
+      - name: Check PHP syntax
+        run: find src tests migrations public bin -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Validate Symfony configuration
+        run: |
+          php bin/console lint:container
+          php bin/console lint:twig templates/
+      - name: Apply test migrations
+        env:
+          APP_ENV: test
+          DATABASE_URL: mysql://zunaflux_test:zunaflux_test@127.0.0.1:3306/zunaflux_test?serverVersion=mariadb-10.11.0&charset=utf8mb4
+        run: php bin/console doctrine:migrations:migrate --no-interaction
+      - name: Run PHPUnit
+        env:
+          APP_ENV: test
+          DATABASE_URL: mysql://zunaflux_test:zunaflux_test@127.0.0.1:3306/zunaflux_test?serverVersion=mariadb-10.11.0&charset=utf8mb4
+        run: php bin/phpunit
+      - name: Run JavaScript tests
+        run: for test_file in tests/JavaScript/*.test.cjs; do node "$test_file"; done
+      - name: Build production frontend assets
+        run: |
+          APP_ENV=prod php bin/console tailwind:build --minify --env=prod
+          APP_ENV=prod php bin/console asset-map:compile --env=prod
+
+  detect-docker:
+    runs-on: ubuntu-24.04
+    outputs:
+      enabled: ${{ steps.detect.outputs.enabled }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: detect
+        run: |
+          if test -f Dockerfile && test -f tests/Container/docker-image-smoke.sh && test -f tests/Container/compose-config.sh; then
+            echo 'enabled=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'enabled=false' >> "$GITHUB_OUTPUT"
+          fi
+
+  docker-build:
+    needs: detect-docker
+    if: ${{ needs.detect-docker.outputs.enabled == 'true' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build production image without publishing
+        run: docker build --tag clinuxfr/zunaflux:ci-${{ github.sha }} .
+      - name: Verify image and Compose topology
+        run: |
+          sh tests/Container/docker-image-smoke.sh clinuxfr/zunaflux:ci-${{ github.sha }}
+          sh tests/Container/compose-config.sh
