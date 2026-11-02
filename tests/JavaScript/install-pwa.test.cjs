@@ -3,15 +3,15 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
 
-function setup({ dismissedAt = null } = {}) {
+function setup({ dismissedAt = null, userAgent = 'Android Firefox' } = {}) {
     const callbacks = {};
     const action = { hidden: false, textContent: '', addEventListener: (_, fn) => { callbacks.action = fn; } };
     const dismiss = { addEventListener: (_, fn) => { callbacks.dismiss = fn; } };
     const help = { textContent: '' };
-    const prompt = { hidden: true, dataset: { installLabel: 'Install', defaultHelp: 'Find your reader among your apps.', helpAndroid: 'Add Zunaflux from your browser.', helpIos: 'Add Zunaflux from Safari.', helpGeneric: 'Open your browser menu to install.', helpAction: 'How to install' }, querySelector: selector => selector.includes('action') ? action : selector.includes('dismiss') ? dismiss : help };
+    const prompt = { hidden: true, dataset: { installLabel: 'Install', defaultHelp: 'Find your reader among your apps.', helpAndroid: 'Add Zunaflux from your browser.', helpFirefox: 'In Firefox, open the menu then install.', helpIos: 'Add Zunaflux from Safari.', helpGeneric: 'Open your browser menu to install.', helpAction: 'How to install' }, querySelector: selector => selector.includes('action') ? action : selector.includes('dismiss') ? dismiss : help };
     const events = {};
     const localStorage = new Map(dismissedAt === null ? [] : [['zunaflux-install-dismissed-at', dismissedAt]]);
-    const context = { document: { querySelector: () => prompt }, navigator: { userAgent: 'Android Firefox' }, window: { matchMedia: () => ({ matches: false }), addEventListener: (name, fn) => { events[name] = fn; } }, sessionStorage: { getItem: () => null, setItem() {} }, localStorage: { getItem: key => localStorage.get(key) || null, setItem: (key, value) => localStorage.set(key, value) } };
+    const context = { document: { querySelector: () => prompt }, navigator: { userAgent }, window: { matchMedia: () => ({ matches: false }), addEventListener: (name, fn) => { events[name] = fn; } }, sessionStorage: { getItem: () => null, setItem() {} }, localStorage: { getItem: key => localStorage.get(key) || null, setItem: (key, value) => localStorage.set(key, value) } };
     vm.runInNewContext(fs.readFileSync('public/install-pwa.js', 'utf8'), context);
     return { action, prompt, help, events, callbacks };
 }
@@ -23,11 +23,19 @@ test('a recent dismissal suppresses the install invitation for 30 days', () => {
 });
 
 test('Android without an install prompt offers a visible help action', async () => {
-    const state = setup();
+    const state = setup({ userAgent: 'Android Chrome' });
     assert.equal(state.prompt.hidden, false);
     assert.equal(state.action.hidden, false);
     await state.callbacks.action();
     assert.equal(state.help.textContent, 'Open your browser menu to install.');
+});
+
+test('Firefox Android shows its manual installation path without a misleading action', () => {
+    const state = setup();
+
+    assert.equal(state.prompt.hidden, false);
+    assert.equal(state.action.hidden, true);
+    assert.equal(state.help.textContent, 'In Firefox, open the menu then install.');
 });
 
 test('a browser install prompt can be launched from the action', async () => {
