@@ -48,7 +48,7 @@ Zunaflux s’adresse aux personnes qui souhaitent héberger leur propre lecteur.
 
 ### Prérequis
 
-- PHP 8.5 et ses extensions `ctype`, `iconv`, `mbstring`, `pdo_mysql`, `xml`, `dom`, `curl`, `intl` et `openssl` ;
+- PHP 8.5 et ses extensions `ctype`, `iconv`, `mbstring`, `pdo_mysql`, `xml`, `dom`, `curl`, `intl`, `openssl` et `sodium` ;
 - Composer 2 et MariaDB 10.11 ;
 - un serveur web configuré pour servir le répertoire `public/` ;
 - HTTPS pour l’installation PWA et les notifications.

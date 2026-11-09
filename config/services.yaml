@@ -11,6 +11,8 @@ parameters:
     app.push_public_file: '%env(default:app.push_empty:ZUNAFLUX_VAPID_PUBLIC_FILE)%'
     app.push_private_file: '%env(default:app.push_empty:ZUNAFLUX_VAPID_PRIVATE_FILE)%'
     app.push_subject: '%env(default:app.push_empty:ZUNAFLUX_VAPID_SUBJECT)%'
+    app.mastodon_token_key: '%env(default:app.push_empty:ZUNAFLUX_MASTODON_TOKEN_KEY)%'
+    app.public_base_url: '%env(default:app.push_empty:ZUNAFLUX_PUBLIC_BASE_URL)%'
 
 services:
     _defaults:
@@ -23,6 +25,8 @@ services:
             $pushPrivateFile: '%app.push_private_file%'
             $pushSubject: '%app.push_subject%'
             $registrationLimitEnv: '%app.registration_limit%'
+            $encodedKey: '%app.mastodon_token_key%'
+            $publicBaseUrl: '%app.public_base_url%'
 
     App\:
         resource: '../src/'
