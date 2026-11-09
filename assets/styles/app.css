@@ -179,6 +179,10 @@ dialog [data-article-saved][aria-pressed="true"] svg { color: var(--accent); fil
 }
 
 @layer components {
+    .preference-tabs { display: flex; gap: .5rem; overflow-x: auto; padding-bottom: .25rem; scrollbar-width: thin; }
+    .preference-tabs button { flex: 0 0 auto; min-height: 2.75rem; padding: .5rem 1rem; border: 1px solid transparent; border-radius: .5rem; color: var(--muted); font-weight: 600; }
+    .preference-tabs button:hover, .preference-tabs button[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+    .preference-tab-panel[hidden] { display: none; }
     .preference-switch { display: flex; align-items: center; justify-content: space-between; gap: 1rem; cursor: pointer; }
     .preference-switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
     .preference-switch-track { flex: none; position: relative; width: 3rem; height: 1.75rem; border-radius: 999px; background: var(--line); transition: background-color 180ms ease; }

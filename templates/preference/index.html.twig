@@ -6,7 +6,14 @@
     <main class="mx-auto min-h-screen max-w-3xl px-6 py-16">
         <p class="font-mono text-xs uppercase tracking-[.25em] text-accent">{{ 'Votre espace'|trans }}</p>
         <h1 class="mt-4 font-serif text-5xl text-foreground">{{ 'Préférences'|trans }}</h1>
-        <form class="mt-10 grid gap-6 border border-line bg-surface p-6" method="post">
+        <nav class="preference-tabs mt-8" data-preference-tabs role="tablist" aria-label="{{ 'Sections des préférences'|trans }}">
+            <button id="preference-tab-general" type="button" role="tab" aria-selected="true" aria-controls="preference-general" data-preference-tab="general">{{ 'Général'|trans }}</button>
+            <button id="preference-tab-notifications" type="button" role="tab" tabindex="-1" aria-selected="false" aria-controls="preference-notifications" data-preference-tab="notifications">{{ 'Notifications'|trans }}</button>
+            <button id="preference-tab-mastodon" type="button" role="tab" tabindex="-1" aria-selected="false" aria-controls="preference-mastodon" data-preference-tab="mastodon">Mastodon</button>
+            <button id="preference-tab-data" type="button" role="tab" tabindex="-1" aria-selected="false" aria-controls="preference-data" data-preference-tab="data">{{ 'Données'|trans }}</button>
+        </nav>
+        <div id="preference-general" class="preference-tab-panel" role="tabpanel" aria-labelledby="preference-tab-general" data-preference-panel="general">
+        <form class="mt-6 grid gap-6 border border-line bg-surface p-6" method="post">
             <label class="flex flex-wrap items-center justify-between gap-3">{{ 'Langue'|trans }} <select class="min-w-40 max-w-full px-3 py-2" name="locale"><option value="fr" {{ preference.locale == 'fr' ? 'selected' }}>Français</option><option value="en" {{ preference.locale == 'en' ? 'selected' }}>English</option><option value="de" {{ preference.locale == 'de' ? 'selected' }}>Deutsch</option></select></label>
             <label class="flex flex-wrap items-center justify-between gap-3">{{ 'Thème'|trans }} <select class="min-w-40 max-w-full px-3 py-2" name="theme"><option value="system" {{ preference.theme == 'system' ? 'selected' }}>{{ 'Système'|trans }}</option><option value="light" {{ preference.theme == 'light' ? 'selected' }}>{{ 'Clair'|trans }}</option><option value="dark" {{ preference.theme == 'dark' ? 'selected' }}>{{ 'Sombre'|trans }}</option></select></label>
             <label class="flex flex-wrap items-center justify-between gap-3">{{ 'Densité'|trans }} <select class="min-w-40 max-w-full px-3 py-2" name="density"><option value="comfortable" {{ preference.density == 'comfortable' ? 'selected' }}>{{ 'Confortable'|trans }}</option><option value="compact" {{ preference.density == 'compact' ? 'selected' }}>{{ 'Compacte'|trans }}</option></select></label>
@@ -19,7 +26,37 @@
             <button class="inline-flex items-center justify-center gap-2 border border-accent px-4 py-3 text-accent hover:bg-accent-soft"><svg aria-hidden="true" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h12l4 4v14H3V3h2Zm2 0v6h9V3M7 21v-8h10v8"/></svg><span>{{ 'Enregistrer'|trans }}</span></button>
         </form>
         <script src="{{ asset('preference-accent.js') }}" defer></script>
+        </div>
+        <div id="preference-notifications" class="preference-tab-panel" role="tabpanel" aria-labelledby="preference-tab-notifications" data-preference-panel="notifications">
         {% include 'preference/_notifications.html.twig' %}
-        <section class="mt-10 border border-line bg-surface p-6"><h2 class="font-serif text-2xl text-foreground">{{ 'Vos données'|trans }}</h2><p class="mt-2 text-sm text-muted">{{ 'Téléchargement direct, sans archive conservée sur le serveur.'|trans }}</p><div class="mt-4 flex flex-wrap gap-3"><form method="post" action="{{ path('app_account_export') }}"><input type="hidden" name="_token" value="{{ csrf_token('account-export') }}"><button class="inline-flex items-center gap-2 border border-accent px-4 py-2 text-accent hover:bg-accent-soft"><svg aria-hidden="true" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m-4-4 4 4 4-4M4 17v3h16v-3"/></svg><span>{{ 'Exporter l’archive'|trans }}</span></button></form><form method="post" action="{{ path('app_opml_export') }}"><input type="hidden" name="_token" value="{{ csrf_token('opml-export') }}"><button class="inline-flex items-center gap-2 border border-line px-4 py-2 text-accent hover:border-accent hover:bg-accent-soft"><svg aria-hidden="true" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m-4-4 4 4 4-4M4 17v3h16v-3"/></svg><span>{{ 'Exporter OPML'|trans }}</span></button></form></div></section>
+        </div>
+        <div id="preference-mastodon" class="preference-tab-panel" role="tabpanel" aria-labelledby="preference-tab-mastodon" data-preference-panel="mastodon">
+        <section class="mt-6 border border-line bg-surface p-6" aria-labelledby="mastodon-heading">
+            <p class="font-mono text-xs uppercase tracking-[.25em] text-accent">Mastodon</p>
+            <h2 id="mastodon-heading" class="mt-2 font-serif text-2xl text-foreground">{{ 'Compte Mastodon'|trans }}</h2>
+            {% if mastodon_account %}
+                <p class="mt-2 text-sm text-muted">{{ 'Connecté en tant que'|trans }} <strong class="text-foreground">{{ mastodon_account.displayName }}</strong> <span aria-hidden="true">·</span> <span>{{ mastodon_account.acct }}</span></p>
+                <p class="mt-1 break-words text-sm text-muted">{{ mastodon_account.instanceUrl }}</p>
+                <form class="mt-4" method="post" action="{{ path('app_mastodon_disconnect') }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('mastodon-disconnect') }}">
+                    <button class="inline-flex min-h-11 items-center justify-center border border-line px-4 py-2 text-foreground hover:border-accent hover:bg-accent-soft" type="submit">{{ 'Déconnecter Mastodon'|trans }}</button>
+                </form>
+            {% else %}
+                <p class="mt-2 text-sm text-muted">{{ 'Connectez un compte pour publier depuis Zunaflux lorsque cette fonctionnalité sera activée.'|trans }}</p>
+                <form class="mt-4 flex flex-wrap items-end gap-3" method="post" action="{{ path('app_mastodon_connect') }}">
+                    <label class="grid min-w-64 flex-1 gap-1" for="mastodon-instance-url">
+                        <span class="text-sm text-foreground">{{ 'Adresse de votre instance'|trans }}</span>
+                        <input id="mastodon-instance-url" class="min-h-11 border border-line bg-background px-3 py-2 text-foreground" type="url" name="instance_url" inputmode="url" autocomplete="url" placeholder="https://mastodon.social" required>
+                    </label>
+                    <input type="hidden" name="_token" value="{{ csrf_token('mastodon-connect') }}">
+                    <button class="inline-flex min-h-11 items-center justify-center border border-accent px-4 py-2 text-accent hover:bg-accent-soft" type="submit">{{ 'Connecter Mastodon'|trans }}</button>
+                </form>
+            {% endif %}
+        </section>
+        </div>
+        <div id="preference-data" class="preference-tab-panel" role="tabpanel" aria-labelledby="preference-tab-data" data-preference-panel="data">
+        <section class="mt-6 border border-line bg-surface p-6"><h2 class="font-serif text-2xl text-foreground">{{ 'Vos données'|trans }}</h2><p class="mt-2 text-sm text-muted">{{ 'Téléchargement direct, sans archive conservée sur le serveur.'|trans }}</p><div class="mt-4 flex flex-wrap gap-3"><form method="post" action="{{ path('app_account_export') }}"><input type="hidden" name="_token" value="{{ csrf_token('account-export') }}"><button class="inline-flex items-center gap-2 border border-accent px-4 py-2 text-accent hover:bg-accent-soft"><svg aria-hidden="true" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m-4-4 4 4 4-4M4 17v3h16v-3"/></svg><span>{{ 'Exporter l’archive'|trans }}</span></button></form><form method="post" action="{{ path('app_opml_export') }}"><input type="hidden" name="_token" value="{{ csrf_token('opml-export') }}"><button class="inline-flex items-center gap-2 border border-line px-4 py-2 text-accent hover:border-accent hover:bg-accent-soft"><svg aria-hidden="true" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m-4-4 4 4 4-4M4 17v3h16v-3"/></svg><span>{{ 'Exporter OPML'|trans }}</span></button></form></div></section>
+        </div>
+        <script src="{{ asset('preference-tabs.js') }}" defer></script>
     </main>
 {% endblock %}

@@ -1,4 +1,4 @@
-<section class="mt-10 border border-line bg-surface p-6" data-push-notifications data-messages="{{ {
+<section class="mt-6 border border-line bg-surface p-6" data-push-notifications data-messages="{{ {
     unavailable: 'Les notifications ne sont pas disponibles sur cet appareil ou ce serveur.'|trans,
     disabledHelp: 'Notifications désactivées sur cet appareil. L’autorisation du navigateur ne suffit pas : activez-les ici.'|trans,
     enabled: 'Notifications activées pour ce compte sur cet appareil.'|trans,
@@ -55,7 +55,7 @@
     {% endfor %}
 </section>
 <script src="{{ asset('push.js') }}" defer></script>
-<section class="mt-10 border border-line bg-surface p-6" aria-labelledby="quiet-hours-title">
+<section class="mt-6 border border-line bg-surface p-6" aria-labelledby="quiet-hours-title">
     <h2 id="quiet-hours-title" class="font-serif text-2xl">{{ 'Silence nocturne'|trans }}</h2>
     <p class="mt-2 text-sm text-muted">{{ 'Aucune notification n’est envoyée pendant cette plage, dans votre fuseau horaire. Laissez les deux horaires vides pour la désactiver.'|trans }}</p>
     <form class="mt-4 grid gap-3 sm:grid-cols-2" method="post" action="{{ path('app_preferences_quiet_hours') }}">
