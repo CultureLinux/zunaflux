@@ -5,7 +5,7 @@ const vm = require('node:vm');
 
 const loadComposer = () => {
     const context = { window: { addEventListener: () => {} }, document: { querySelector: () => null }, URL };
-    vm.runInNewContext(fs.readFileSync('assets/controllers/mastodon-share.js', 'utf8') + '\nthis.defaultMastodonStatus = defaultMastodonStatus; this.hasDirectRecipient = hasDirectRecipient;', context);
+    vm.runInNewContext(fs.readFileSync('assets/controllers/mastodon-share.js', 'utf8') + '\nthis.defaultMastodonStatus = defaultMastodonStatus; this.hasDirectRecipient = hasDirectRecipient; this.mastodonPublicationError = mastodonPublicationError;', context);
     return context;
 };
 
@@ -21,6 +21,15 @@ test('direct visibility requires a Mastodon recipient mention before submission'
 
     assert.equal(composer.hasDirectRecipient('Bonjour @alice@mastodon.example'), true);
     assert.equal(composer.hasDirectRecipient('Bonjour'), false);
+});
+
+test('a redirected Mastodon publication request tells the user to reconnect', () => {
+    const composer = loadComposer();
+
+    assert.equal(
+        composer.mastodonPublicationError({ redirected: true, url: 'https://zunaflux.example/login', status: 200 }, {}),
+        'Votre session a expiré. Reconnectez-vous puis réessayez.',
+    );
 });
 
 test('the share dialog exposes editable status, visibility choices and inline feedback', () => {

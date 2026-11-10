@@ -11,6 +11,7 @@ use App\Entity\MastodonAccount;
 use App\Entity\Subscription;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -21,7 +22,7 @@ use Symfony\Component\Uid\Uuid;
 final class MastodonStatusController extends AbstractController
 {
     #[Route('/api/articles/{id}/mastodon-status', name: 'app_api_article_mastodon_status', methods: ['POST'])]
-    public function publish(string $id, Request $request, EntityManagerInterface $entityManager, MastodonOAuthService $mastodon): JsonResponse
+    public function publish(string $id, Request $request, EntityManagerInterface $entityManager, MastodonOAuthService $mastodon, LoggerInterface $logger): JsonResponse
     {
         $user = $this->currentUser();
         $article = $this->accessibleArticle($id, $entityManager, $user);
@@ -45,6 +46,12 @@ final class MastodonStatusController extends AbstractController
         } catch (\InvalidArgumentException $exception) {
             return $this->json(['error' => $exception->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (MastodonApiException $exception) {
+            $logger->error('Mastodon publication rejected.', [
+                'article_id' => (string) $article->getId(),
+                'user_id' => (string) $user->getId(),
+                'http_status' => $exception->getStatusCode(),
+                'reason' => $exception->getMessage(),
+            ]);
             if (Response::HTTP_UNAUTHORIZED === $exception->getStatusCode()) {
                 $entityManager->remove($account);
                 $entityManager->flush();
@@ -54,6 +61,13 @@ final class MastodonStatusController extends AbstractController
 
             return $this->json(['error' => 'Mastodon a refusé la publication.'], Response::HTTP_BAD_GATEWAY);
         } catch (\RuntimeException $exception) {
+            $logger->error('Mastodon publication failed.', [
+                'article_id' => (string) $article->getId(),
+                'user_id' => (string) $user->getId(),
+                'exception_class' => $exception::class,
+                'reason' => $exception->getMessage(),
+            ]);
+
             return $this->json(['error' => $exception->getMessage()], Response::HTTP_BAD_GATEWAY);
         }
     }
