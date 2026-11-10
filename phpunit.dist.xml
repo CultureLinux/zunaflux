@@ -9,5 +9,6 @@
         <server name="KERNEL_CLASS" value="App\Kernel"/>
         <server name="APP_ENV" value="test" force="true"/>
         <server name="SHELL_VERBOSITY" value="-1"/>
+        <server name="ZUNAFLUX_MASTODON_TOKEN_KEY" value="YWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWE=" force="true"/>
     </php>
 </phpunit>

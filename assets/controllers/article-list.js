@@ -50,6 +50,7 @@ if (container) {
     const dialogSummary = dialog?.querySelector('[data-article-summary]');
     const dialogLinks = [...dialog.querySelectorAll('[data-article-link]')];
     const shareButtons = [...dialog.querySelectorAll('[data-article-share]')];
+    const mastodonShareButtons = [...dialog.querySelectorAll('[data-article-mastodon-share]')];
     const readButtons = [...dialog.querySelectorAll('[data-article-read]')];
     const favoriteButtons = [...dialog.querySelectorAll('[data-article-favorite]')];
     const savedButtons = [...dialog.querySelectorAll('[data-article-saved]')];
@@ -347,6 +348,9 @@ if (container) {
             if (result !== 'copied') return;
             window.dispatchEvent(new CustomEvent('zunaflux:toast', { detail: { type: 'success', message: 'Lien copié.' } }));
         });
+    }));
+    mastodonShareButtons.forEach((button) => button.addEventListener('click', () => {
+        if (selectedArticle) window.dispatchEvent(new CustomEvent('zunaflux:mastodon-share', { detail: selectedArticle }));
     }));
     dialogLinks.forEach((link) => link.addEventListener('click', () => dialog.close()));
     dialog.addEventListener('close', () => {

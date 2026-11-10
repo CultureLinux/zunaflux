@@ -8,6 +8,7 @@ use App\Application\Reading\ArticleStateService;
 use App\Application\Reading\FeedHtmlSanitizer;
 use App\Entity\Article;
 use App\Entity\ArticleState;
+use App\Entity\MastodonAccount;
 use App\Entity\Subscription;
 use App\Entity\User;
 use App\Entity\UserPreference;
@@ -43,7 +44,7 @@ final class ArticleController extends AbstractController
             foreach ($counts as $count) $readingCounts[(string) Uuid::fromBinary($count['id'])] = ['unread' => (int) $count['unread'], 'read' => (int) $count['total'] - (int) $count['unread']];
         }
 
-        return $this->render('article/index.html.twig', ['preference' => $preference, 'readingSubscriptions' => $subscriptions, 'readingCounts' => $readingCounts]);
+        return $this->render('article/index.html.twig', ['preference' => $preference, 'readingSubscriptions' => $subscriptions, 'readingCounts' => $readingCounts, 'mastodonConnected' => null !== $entityManager->getRepository(MastodonAccount::class)->findOneBy(['user' => $user])]);
     }
 
     #[Route('/subscriptions/{id}/mark-read', name: 'app_subscription_mark_read', methods: ['POST'])]

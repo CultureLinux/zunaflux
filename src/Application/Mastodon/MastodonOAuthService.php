@@ -44,4 +44,26 @@ final class MastodonOAuthService
         if (!$account instanceof MastodonAccount) { $account = new MastodonAccount($user, $instance->origin(), $profile['id'], $profile['acct'], $profile['display_name'], isset($profile['avatar_static']) && is_string($profile['avatar_static']) ? $profile['avatar_static'] : null, $encrypted); $this->em->persist($account); } else { $account->replace($instance->origin(), $profile['id'], $profile['acct'], $profile['display_name'], isset($profile['avatar_static']) && is_string($profile['avatar_static']) ? $profile['avatar_static'] : null, $encrypted); }
         $this->em->flush(); return $account;
     }
+
+    public function publish(MastodonAccount $account, string $status, string $visibility): string
+    {
+        $status = trim($status);
+        if ('' === $status || mb_strlen($status) > 500) {
+            throw new \InvalidArgumentException('Le message Mastodon doit contenir entre 1 et 500 caractères.');
+        }
+        if (!in_array($visibility, ['public', 'unlisted', 'private', 'direct'], true)) {
+            throw new \InvalidArgumentException('La visibilité Mastodon est invalide.');
+        }
+        if ('direct' === $visibility && 1 !== preg_match('/@[\p{L}\p{N}_.-]+(?:@[\p{L}\p{N}.-]+)?/u', $status)) {
+            throw new \InvalidArgumentException('Un message direct doit mentionner au moins un destinataire.');
+        }
+
+        $instance = MastodonInstance::fromInput($account->getInstanceUrl());
+        $result = $this->client->request($instance, 'POST', '/api/v1/statuses', ['status' => $status, 'visibility' => $visibility], $this->cipher->decrypt($account->getAccessTokenEncrypted()));
+        if (!isset($result['url']) || !is_string($result['url']) || !filter_var($result['url'], FILTER_VALIDATE_URL) || !in_array(parse_url($result['url'], PHP_URL_SCHEME), ['http', 'https'], true)) {
+            throw new \RuntimeException('Mastodon n’a pas renvoyé l’URL de la publication.');
+        }
+
+        return $result['url'];
+    }
 }

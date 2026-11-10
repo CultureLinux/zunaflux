@@ -41,6 +41,7 @@ if (zen) {
     const favorite = zen.querySelector('[data-zen-favorite]');
     const save = zen.querySelector('[data-zen-save]');
     const share = zen.querySelector('[data-zen-share]');
+    const mastodonShare = zen.querySelector('[data-zen-mastodon-share]');
     const controls = [previous, next, favorite, save, share];
     let items = [], cursor = null, hasMore = false, index = -1, article = null, busy = false, changed = false, finished = false;
     const refreshCount = async () => {
@@ -142,6 +143,7 @@ if (zen) {
     favorite.addEventListener('click', () => act('favorite'));
     save.addEventListener('click', () => act('save'));
     share.addEventListener('click', () => { void shareZenArticle(article).then((result) => { if (result === 'copied') window.dispatchEvent(new CustomEvent('zunaflux:toast', { detail: { type: 'success', message: 'Lien copié.' } })); }); });
+    mastodonShare?.addEventListener('click', () => { if (article) window.dispatchEvent(new CustomEvent('zunaflux:mastodon-share', { detail: article })); });
     let start = null;
     content.addEventListener('touchstart', event => { start = event.touches.length === 1 ? [event.touches[0].clientX, event.touches[0].clientY] : null; }, { passive: true });
     content.addEventListener('touchend', event => { if (!start || event.changedTouches.length !== 1) { start = null; return; } const touch = event.changedTouches[0]; const action = classifyZenGesture(touch.clientX - start[0], touch.clientY - start[1]); start = null; if (action) act(action, true); }, { passive: true });

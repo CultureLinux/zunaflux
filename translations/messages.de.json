@@ -410,5 +410,17 @@
   "Notifications non configurées.": "Benachrichtigungen sind nicht konfiguriert.",
   "Saisissez une adresse e-mail valide.": "Geben Sie eine gültige E-Mail-Adresse ein.",
   "Un compte existe déjà pour cette adresse e-mail.": "Für diese E-Mail-Adresse existiert bereits ein Konto.",
-  "Votre compte est créé. Vous pouvez maintenant vous connecter.": "Ihr Konto wurde erstellt. Sie können sich jetzt anmelden."
+  "Votre compte est créé. Vous pouvez maintenant vous connecter.": "Ihr Konto wurde erstellt. Sie können sich jetzt anmelden.",
+  "Publier sur Mastodon": "Auf Mastodon veröffentlichen",
+  "Vérifiez et modifiez votre message avant publication.": "Prüfen und bearbeiten Sie Ihre Nachricht vor der Veröffentlichung.",
+  "Message": "Nachricht",
+  "Visibilité": "Sichtbarkeit",
+  "Publique": "Öffentlich",
+  "Non listée": "Nicht gelistet",
+  "Abonnés uniquement": "Nur Follower",
+  "Directe": "Direkt",
+  "Un message direct doit mentionner au moins un destinataire, par exemple @nom@instance.": "Eine Direktnachricht muss mindestens einen Empfänger erwähnen, zum Beispiel @name@instanz.",
+  "Voir la publication sur Mastodon": "Beitrag auf Mastodon ansehen",
+  "Annuler": "Abbrechen",
+  "Publier": "Veröffentlichen"
 }
