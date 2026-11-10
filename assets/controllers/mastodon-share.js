@@ -59,7 +59,7 @@ if (dialog) {
         try {
             const response = await fetch(`/api/articles/${encodeURIComponent(article.id)}/mastodon-status`, {
                 method: 'POST',
-                headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': article.csrfToken },
+                headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': article.mastodonCsrfToken },
                 body: JSON.stringify({ status: status.value, visibility: visibility.value }),
             });
             const payload = await response.json().catch(() => ({}));

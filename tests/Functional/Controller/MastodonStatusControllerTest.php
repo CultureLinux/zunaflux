@@ -26,21 +26,12 @@ final class MastodonStatusControllerTest extends WebTestCase
 
         try {
             $client->loginUser($user);
-            $client->request('GET', '/articles');
-            $session = $client->getSession();
-            self::assertNotNull($session);
-            $request = new \Symfony\Component\HttpFoundation\Request();
-            $request->setSession($session);
-            $requestStack = static::getContainer()->get('request_stack');
-            $requestStack->push($request);
-            try {
-                $csrfToken = static::getContainer()->get('security.csrf.token_manager')->getToken('mastodon-status-'.$article->getId())->getValue();
-            } finally {
-                $requestStack->pop();
-                $session->save();
-            }
+            $client->request('GET', '/api/articles/'.$article->getId());
+            self::assertResponseIsSuccessful();
+            $articlePayload = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+            self::assertIsString($articlePayload['mastodonCsrfToken'] ?? null);
 
-            $client->request('POST', '/api/articles/'.$article->getId().'/mastodon-status', server: ['CONTENT_TYPE' => 'application/json', 'HTTP_X_CSRF_TOKEN' => $csrfToken], content: json_encode(['status' => 'Article à publier https://example.test/article', 'visibility' => 'public'], JSON_THROW_ON_ERROR));
+            $client->request('POST', '/api/articles/'.$article->getId().'/mastodon-status', server: ['CONTENT_TYPE' => 'application/json', 'HTTP_X_CSRF_TOKEN' => $articlePayload['mastodonCsrfToken']], content: json_encode(['status' => 'Article à publier https://example.test/article', 'visibility' => 'public'], JSON_THROW_ON_ERROR));
 
             self::assertResponseStatusCodeSame(409);
             self::assertJsonStringEqualsJsonString('{"error":"Connectez d’abord votre compte Mastodon."}', (string) $client->getResponse()->getContent());

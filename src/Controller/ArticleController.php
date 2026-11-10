@@ -145,6 +145,7 @@ final class ArticleController extends AbstractController
             'isFavorite' => $state?->isFavorite() ?? false,
             'isSaved' => $state?->isSaved() ?? false,
             'csrfToken' => $this->container->get('security.csrf.token_manager')->getToken('article-state-'.$article->getId())->getValue(),
+            'mastodonCsrfToken' => $this->container->get('security.csrf.token_manager')->getToken('mastodon-status-'.$article->getId())->getValue(),
         ]);
     }
 
