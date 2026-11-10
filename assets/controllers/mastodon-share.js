@@ -10,6 +10,14 @@ const defaultMastodonStatus = (article) => {
 
 const hasDirectRecipient = (status) => /@[\p{L}\p{N}_.-]+(?:@[\p{L}\p{N}.-]+)?/u.test(status);
 
+const mastodonPublicationError = (response, payload) => {
+    if (response.redirected && new URL(response.url).pathname === '/login') {
+        return 'Votre session a expiré. Reconnectez-vous puis réessayez.';
+    }
+
+    return payload.error || 'La publication Mastodon a échoué.';
+};
+
 const dialog = document.querySelector('[data-mastodon-share-dialog]');
 
 if (dialog) {
@@ -55,7 +63,7 @@ if (dialog) {
                 body: JSON.stringify({ status: status.value, visibility: visibility.value }),
             });
             const payload = await response.json().catch(() => ({}));
-            if (!response.ok || typeof payload.url !== 'string') throw new Error(payload.error || 'La publication Mastodon a échoué.');
+            if (!response.ok || typeof payload.url !== 'string') throw new Error(mastodonPublicationError(response, payload));
             const url = new URL(payload.url);
             if (!['http:', 'https:'].includes(url.protocol)) throw new Error('Mastodon a renvoyé une URL invalide.');
             link.href = url.href; success.hidden = false;
