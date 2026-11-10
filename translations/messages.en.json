@@ -409,5 +409,17 @@
   "Notifications non configurées.": "Notifications are not configured.",
   "Saisissez une adresse e-mail valide.": "Enter a valid email address.",
   "Un compte existe déjà pour cette adresse e-mail.": "An account already exists for this email address.",
-  "Votre compte est créé. Vous pouvez maintenant vous connecter.": "Your account has been created. You can now sign in."
+  "Votre compte est créé. Vous pouvez maintenant vous connecter.": "Your account has been created. You can now sign in.",
+  "Publier sur Mastodon": "Post to Mastodon",
+  "Vérifiez et modifiez votre message avant publication.": "Review and edit your message before posting.",
+  "Message": "Message",
+  "Visibilité": "Visibility",
+  "Publique": "Public",
+  "Non listée": "Unlisted",
+  "Abonnés uniquement": "Followers only",
+  "Directe": "Direct",
+  "Un message direct doit mentionner au moins un destinataire, par exemple @nom@instance.": "A direct message must mention at least one recipient, for example @name@instance.",
+  "Voir la publication sur Mastodon": "View the post on Mastodon",
+  "Annuler": "Cancel",
+  "Publier": "Post"
 }

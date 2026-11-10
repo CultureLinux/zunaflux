@@ -27,7 +27,7 @@ class MastodonHttpClient
             if (false === $body) throw new \RuntimeException('La connexion à Mastodon a échoué.');
         } finally { curl_close($curl); }
         try { $data = json_decode($body, true, 32, JSON_THROW_ON_ERROR); } catch (\JsonException) { throw new \RuntimeException('Réponse Mastodon invalide.'); }
-        if ($status < 200 || $status >= 300 || !is_array($data)) throw new \RuntimeException(401 === $status ? 'Le compte Mastodon doit être reconnecté.' : 'Mastodon a refusé la demande.');
+        if ($status < 200 || $status >= 300 || !is_array($data)) throw new MastodonApiException($status);
 
         return $data;
     }
