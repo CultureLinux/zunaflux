@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Controller;
 
+use App\Entity\User;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class ContactControllerTest extends WebTestCase
 {
     public function testVisitorCanOpenAndSubmitTheContactForm(): void
     {
-        $client = static::createClient();
+        $client = $this->authenticatedClient();
         $server = $this->server();
         $page = $client->request('GET', '/contact', server: $server);
 
@@ -34,7 +36,7 @@ final class ContactControllerTest extends WebTestCase
 
     public function testContactFormRejectsInvalidCsrfAndEmail(): void
     {
-        $client = static::createClient();
+        $client = $this->authenticatedClient();
 
         $client->request('POST', '/contact', [
             '_token' => 'invalid',
@@ -50,7 +52,7 @@ final class ContactControllerTest extends WebTestCase
 
     public function testContactFormRejectsAnInvalidReplyAddress(): void
     {
-        $client = static::createClient();
+        $client = $this->authenticatedClient();
         $server = $this->server();
         $page = $client->request('GET', '/contact', server: $server);
 
@@ -72,5 +74,17 @@ final class ContactControllerTest extends WebTestCase
         static::getContainer()->get('limiter.contact')->create($ip)->reset();
 
         return ['REMOTE_ADDR' => $ip];
+    }
+
+    private function authenticatedClient(): \Symfony\Bundle\FrameworkBundle\KernelBrowser
+    {
+        $client = static::createClient();
+        $user = new User('contact-'.bin2hex(random_bytes(8)).'@example.test');
+        $entityManager = static::getContainer()->get(EntityManagerInterface::class);
+        $entityManager->persist($user);
+        $entityManager->flush();
+        $client->loginUser($user);
+
+        return $client;
     }
 }
