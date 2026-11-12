@@ -17,7 +17,7 @@ final class FeedExplorerController extends AbstractController
  #[Route('/explorer',name:'app_feed_explorer',methods:['GET','POST'])]
  public function index(Request $r,FeedCatalog $catalog,SubscribeToFeed $subscribe,CreateCategory $create,EntityManagerInterface $em):Response
  {
-  $this->denyAccessUnlessGranted('ROLE_ADMIN');$user=$this->getUser();if(!$user instanceof User)throw $this->createAccessDeniedException();
+  $user=$this->getUser();if(!$user instanceof User)throw $this->createAccessDeniedException();
   if($r->isMethod('POST')){$this->add($r,$catalog,$subscribe,$create,$em,$user);return $this->redirectToRoute('app_feed_explorer');}
   $language=$r->query->getString('language');if(!in_array($language,['fr','en','de'],true))$language=null;
   $categoryGroups=$catalog->grouped($language);$category=$r->query->getString('category');if(!array_key_exists($category,$categoryGroups))$category=null;

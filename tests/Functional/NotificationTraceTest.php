@@ -64,7 +64,7 @@ final class NotificationTraceTest extends KernelTestCase
         }
     }
 
-    public function testFeedFailureAlsoNotifiesAnAdministratorWhoIsNotSubscribed(): void
+    public function testFeedFailureDoesNotNotifyAnAdministrator(): void
     {
         self::bootKernel();
         $container = self::getContainer();
@@ -94,10 +94,8 @@ final class NotificationTraceTest extends KernelTestCase
             );
             $handler(new NotifyFeedMessage((string) $feed->getId(), 'error'));
 
-            $entries = array_filter($logger->entries, static fn (array $entry): bool => ($entry['status'] ?? null) === 'configuration_error' && ($entry['device_id'] ?? null) === (string) $device->getId());
-            self::assertCount(1, $entries);
-            self::assertSame($administrator->getUserIdentifier(), array_values($entries)[0]['user_email']);
-            self::assertSame('error', array_values($entries)[0]['kind']);
+            $entries = array_filter($logger->entries, static fn (array $entry): bool => ($entry['device_id'] ?? null) === (string) $device->getId());
+            self::assertCount(0, $entries);
         } finally {
             $entityManager->getConnection()->executeStatement('DELETE FROM app_user WHERE id = ?', [$administrator->getId()->toBinary()]);
             $entityManager->getConnection()->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);

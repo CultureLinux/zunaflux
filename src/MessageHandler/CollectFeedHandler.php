@@ -30,13 +30,11 @@ final readonly class CollectFeedHandler
         try {
             $new = $this->collectFeed->collect($feed);
         } catch (\Throwable $error) {
-            $firstFailure = 0 === $feed->getFailureCount();
             $feed->recordFailure($error);
             $incident = $this->entityManager->getRepository(FeedIncident::class)->findOneBy(['feed' => $feed]);
             if ($incident instanceof FeedIncident) $incident->report($error); else { $incident = new FeedIncident($feed, $error); $this->entityManager->persist($incident); }
             $this->entityManager->persist(new FeedIncidentOccurrence($incident, $error));
             $this->entityManager->flush();
-            if ($firstFailure) $this->queueNotification(new NotifyFeedMessage($message->feedId, 'error'));
             $this->syncEntry($message, 'error', 0, (new \App\Application\Notification\IncidentMessage())->describe($error->getMessage())); throw $error;
         }
         $incident = $this->entityManager->getRepository(FeedIncident::class)->findOneBy(['feed' => $feed]);
