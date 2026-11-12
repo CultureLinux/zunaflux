@@ -10,6 +10,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class ContactControllerTest extends WebTestCase
 {
+    /** @var list<string> */
+    private array $createdUserIds = [];
     public function testVisitorCanOpenAndSubmitTheContactForm(): void
     {
         $client = $this->authenticatedClient();
@@ -83,8 +85,20 @@ final class ContactControllerTest extends WebTestCase
         $entityManager = static::getContainer()->get(EntityManagerInterface::class);
         $entityManager->persist($user);
         $entityManager->flush();
+        $this->createdUserIds[] = $user->getId()->toBinary();
         $client->loginUser($user);
 
         return $client;
+    }
+
+    protected function tearDown(): void
+    {
+        if ([] !== $this->createdUserIds) {
+            $connection = static::getContainer()->get(EntityManagerInterface::class)->getConnection();
+            foreach ($this->createdUserIds as $id) {
+                $connection->executeStatement('DELETE FROM app_user WHERE id = ?', [$id], [\Doctrine\DBAL\ParameterType::BINARY]);
+            }
+        }
+        parent::tearDown();
     }
 }
