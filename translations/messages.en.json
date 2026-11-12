@@ -421,5 +421,20 @@
   "Un message direct doit mentionner au moins un destinataire, par exemple @nom@instance.": "A direct message must mention at least one recipient, for example @name@instance.",
   "Voir la publication sur Mastodon": "View the post on Mastodon",
   "Annuler": "Cancel",
-  "Publier": "Post"
+  "Publier": "Post",
+  "Nous contacter": "Contact us",
+  "Une question ou un retour ? Écrivez-nous, nous répondrons à l’adresse indiquée.": "A question or feedback? Write to us and we will reply to the address provided.",
+  "Sujet": "Subject",
+  "10 à 5 000 caractères. N’ajoutez pas d’informations sensibles.": "10 to 5,000 characters. Do not include sensitive information.",
+  "Votre session a expiré. Rechargez la page puis réessayez.": "Your session has expired. Reload the page and try again.",
+  "Trop de messages ont été envoyés depuis cette connexion. Réessayez plus tard.": "Too many messages have been sent from this connection. Try again later.",
+  "Le message n’a pas pu être envoyé. Réessayez ultérieurement.": "The message could not be sent. Try again later.",
+  "Votre message a bien été envoyé.": "Your message has been sent.",
+  "Vous naviguez en tant que %user%.": "You are browsing as %user%.",
+  "Revenir à mon compte": "Return to my account",
+  "Se connecter en tant que": "Sign in as",
+  "Compte analysé": "Account to analyse",
+  "Tous les comptes": "All accounts",
+  "Afficher": "Show",
+  "Désactiver le silence nocturne": "Disable quiet hours"
 }

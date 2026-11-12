@@ -108,8 +108,11 @@ test('the desktop source list keeps only sources from the selected category', ()
     const context = { document: { querySelector: () => null } };
     vm.runInNewContext(fs.readFileSync('assets/controllers/article-list.js', 'utf8') + '\nthis.sourceIsVisible = isReadingSourceVisible;', context);
 
-    assert.equal(context.sourceIsVisible({ unread: 2, read: 1 }, 'favorite', 'science', 'science'), true);
-    assert.equal(context.sourceIsVisible({ unread: 2, read: 1 }, 'saved', 'culture', 'science'), false);
+    assert.equal(context.sourceIsVisible({ unread: 2, read: 1, favorite: 1, saved: 0 }, 'favorite', 'science', 'science'), true);
+    assert.equal(context.sourceIsVisible({ unread: 2, read: 1, favorite: 0, saved: 1 }, 'favorite', 'science', 'science'), true);
+    assert.equal(context.sourceIsVisible({ unread: 2, read: 1, favorite: 1, saved: 0 }, 'saved', 'culture', 'science'), false);
+    assert.equal(context.sourceIsVisible({ unread: 2, read: 1, favorite: 1, saved: 0 }, 'saved', 'science', 'science'), true);
+    assert.equal(context.sourceIsVisible({ unread: 0, read: 3, favorite: 1, saved: 1 }, 'favorite', 'science', 'science'), false);
     assert.equal(context.sourceIsVisible({ unread: 0, read: 0 }, '', 'science', 'science'), false);
 });
 

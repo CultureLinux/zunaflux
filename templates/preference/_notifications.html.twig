@@ -64,4 +64,5 @@
         <input type="hidden" name="_token" value="{{ csrf_token('quiet-hours') }}">
         <button class="min-h-11 border border-accent px-4 text-accent sm:col-span-2" type="submit">{{ 'Enregistrer le silence nocturne'|trans }}</button>
     </form>
+    {% if preference.quietStart or preference.quietEnd %}<form class="mt-3" method="post" action="{{ path('app_preferences_quiet_hours') }}"><input type="hidden" name="_token" value="{{ csrf_token('quiet-hours') }}"><input type="hidden" name="clear" value="1"><button class="min-h-11 border border-line px-4 text-danger hover:border-danger" type="submit">{{ 'Désactiver le silence nocturne'|trans }}</button></form>{% endif %}
 </section>

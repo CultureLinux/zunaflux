@@ -31,9 +31,9 @@ const setViewParams = (params, view) => {
     else params.set('read', view);
 };
 
-const isReadingSourceVisible = ({ unread, read }, view, sourceCategoryId, selectedCategoryId) => {
+const isReadingSourceVisible = ({ unread, read, favorite = 0, saved = 0 }, view, sourceCategoryId, selectedCategoryId) => {
     if (selectedCategoryId && sourceCategoryId !== selectedCategoryId) return false;
-    return (view === '0' ? unread : view === '1' ? read : unread + read) > 0;
+    return (view === '0' ? unread : view === '1' ? read : view === 'favorite' || view === 'saved' ? unread : unread + read) > 0;
 };
 
 const container = document.querySelector('[data-article-list]');
@@ -116,7 +116,9 @@ if (container) {
         document.querySelectorAll('[data-reading-source]').forEach((row) => {
             const unread = Number(row.dataset.unread);
             const read = Number(row.dataset.read);
-            row.hidden = !isReadingSourceVisible({ unread, read }, readFilter.value, row.dataset.categoryId || '', categoryFilter);
+            const favorite = Number(row.dataset.favorite);
+            const saved = Number(row.dataset.saved);
+            row.hidden = !isReadingSourceVisible({ unread, read, favorite, saved }, readFilter.value, row.dataset.categoryId || '', categoryFilter);
             const link = row.querySelector('[data-source-link]');
             const url = new URL(link.href);
             setViewParams(url.searchParams, readFilter.value);
@@ -138,6 +140,15 @@ if (container) {
         badge.setAttribute('aria-label', `${count} articles non lus`);
         const row = badge.closest('[data-reading-source]');
         if (row) { row.dataset.unread = String(count); row.dataset.read = String(Math.max(0, Number(row.dataset.read) + (isRead ? 1 : -1))); updateSources(); }
+    };
+    const updatePersonalCount = (item, property, active) => {
+        if (!item || item[property] === active) return;
+        const badge = document.querySelector(`[data-unread-subscription="${CSS.escape(String(item.subscriptionId))}"]`);
+        const row = badge?.closest('[data-reading-source]');
+        if (!row) return;
+        const key = property === 'isFavorite' ? 'favorite' : 'saved';
+        row.dataset[key] = String(Math.max(0, Number(row.dataset[key]) + (active ? 1 : -1)));
+        updateSources();
     };
 
     const markArticleRead = async (item, row, button) => {
@@ -176,6 +187,7 @@ if (container) {
         try {
             const response = await fetch(`${endpoint}/bulk`, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': actions.dataset.csrfToken }, body: JSON.stringify({ ids: [item.id], [property]: false }) });
             if (!response.ok || (await response.json()).skipped) throw new Error();
+            updatePersonalCount(item, property, false);
             item[property] = false;
             if (selectedArticle?.id === item.id) { selectedArticle[property] = false; setStateLabels(selectedArticle); }
             if (readFilter.value === key) {
@@ -215,6 +227,13 @@ if (container) {
                     updateUnreadCount(item, changes.isRead);
                     if (item) item.isRead = changes.isRead;
                 });
+                for (const property of ['isFavorite', 'isSaved']) {
+                    if (typeof changes[property] === 'boolean') batch.forEach((id) => {
+                        const item = loadedItems.find((entry) => String(entry.id) === String(id));
+                        updatePersonalCount(item, property, changes[property]);
+                        if (item) item[property] = changes[property];
+                    });
+                }
                 processed += batch.length;
             }
             selectedIds.clear();
@@ -262,6 +281,8 @@ if (container) {
         }).then((state) => {
             const item = loadedItems.find((entry) => entry.id === article.id);
             updateUnreadCount(item, state.isRead);
+            updatePersonalCount(item, 'isFavorite', state.isFavorite);
+            updatePersonalCount(item, 'isSaved', state.isSaved);
             if (item) Object.assign(item, state);
             const row = container.querySelector(`[data-article-row-id="${CSS.escape(String(article.id))}"]`);
             if (row) {

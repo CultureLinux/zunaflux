@@ -421,5 +421,20 @@
   "Un message direct doit mentionner au moins un destinataire, par exemple @nom@instance.": "Eine Direktnachricht muss mindestens einen Empfänger erwähnen, zum Beispiel @name@instanz.",
   "Voir la publication sur Mastodon": "Beitrag auf Mastodon ansehen",
   "Annuler": "Abbrechen",
-  "Publier": "Veröffentlichen"
+  "Publier": "Veröffentlichen",
+  "Nous contacter": "Kontaktieren Sie uns",
+  "Une question ou un retour ? Écrivez-nous, nous répondrons à l’adresse indiquée.": "Eine Frage oder Rückmeldung? Schreiben Sie uns, wir antworten an die angegebene Adresse.",
+  "Sujet": "Betreff",
+  "10 à 5 000 caractères. N’ajoutez pas d’informations sensibles.": "10 bis 5.000 Zeichen. Fügen Sie keine sensiblen Informationen hinzu.",
+  "Votre session a expiré. Rechargez la page puis réessayez.": "Ihre Sitzung ist abgelaufen. Laden Sie die Seite neu und versuchen Sie es erneut.",
+  "Trop de messages ont été envoyés depuis cette connexion. Réessayez plus tard.": "Von dieser Verbindung wurden zu viele Nachrichten gesendet. Versuchen Sie es später erneut.",
+  "Le message n’a pas pu être envoyé. Réessayez ultérieurement.": "Die Nachricht konnte nicht gesendet werden. Versuchen Sie es später erneut.",
+  "Votre message a bien été envoyé.": "Ihre Nachricht wurde gesendet.",
+  "Vous naviguez en tant que %user%.": "Sie navigieren als %user%.",
+  "Revenir à mon compte": "Zu meinem Konto zurückkehren",
+  "Se connecter en tant que": "Anmelden als",
+  "Compte analysé": "Analysiertes Konto",
+  "Tous les comptes": "Alle Konten",
+  "Afficher": "Anzeigen",
+  "Désactiver le silence nocturne": "Ruhezeiten deaktivieren"
 }

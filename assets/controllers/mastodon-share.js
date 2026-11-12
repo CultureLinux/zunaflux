@@ -40,6 +40,7 @@ if (dialog) {
         article = selectedArticle;
         status.value = defaultMastodonStatus(article);
         visibility.value = 'public';
+        submit.hidden = false;
         setError(''); success.hidden = true; link.removeAttribute('href');
         updateCount(); updateVisibilityHelp(); dialog.showModal(); status.focus();
     };
@@ -66,7 +67,7 @@ if (dialog) {
             if (!response.ok || typeof payload.url !== 'string') throw new Error(mastodonPublicationError(response, payload));
             const url = new URL(payload.url);
             if (!['http:', 'https:'].includes(url.protocol)) throw new Error('Mastodon a renvoyé une URL invalide.');
-            link.href = url.href; success.hidden = false;
+            link.href = url.href; success.hidden = false; submit.hidden = true;
         } catch (exception) {
             setError(exception.message || 'La publication Mastodon a échoué.');
         } finally {
