@@ -36,6 +36,10 @@ const isReadingSourceVisible = ({ unread, read, favorite = 0, saved = 0 }, view,
     return (view === '0' ? unread : view === '1' ? read : view === 'favorite' || view === 'saved' ? unread : unread + read) > 0;
 };
 
+const updateSourceMarkReadControls = (forms, subscriptionId, categoryId) => {
+    forms.forEach((form) => { form.hidden = categoryId ? form.dataset.categoryId !== categoryId : !subscriptionId || form.dataset.subscriptionId !== subscriptionId; });
+};
+
 const container = document.querySelector('[data-article-list]');
 
 if (container) {
@@ -66,6 +70,7 @@ if (container) {
     const bulkError = document.querySelector('[data-bulk-error]');
     const sourceFilter = document.querySelector('[data-source-filter]');
     const sourceFilterLabel = document.querySelector('[data-source-filter-label]');
+    const sourceMarkReadForms = document.querySelectorAll('[data-source-mark-read]');
     const categoryContext = document.querySelector('[data-reading-category-context]');
     let subscriptionFilter = new URLSearchParams(location.search).get('subscription') || '';
     let categoryFilter = new URLSearchParams(location.search).get('category') || '';
@@ -75,11 +80,16 @@ if (container) {
     const updateSourceFilter = () => {
         const categoryLabel = categoryName || 'Catégorie active';
         sourceFilter.hidden = !subscriptionFilter && !categoryFilter;
+        updateSourceMarkReadControls(sourceMarkReadForms, subscriptionFilter, categoryFilter);
         sourceFilterLabel.textContent = categoryFilter ? `Catégorie : ${categoryLabel}` : sourceName ? `Flux : ${sourceName}` : 'Filtre sur un flux actif';
         if (categoryContext) {
             categoryContext.hidden = !categoryFilter;
             categoryContext.textContent = categoryFilter ? `Catégorie : ${categoryLabel}` : '';
         }
+        document.querySelectorAll('[data-reading-category]').forEach((link) => {
+            if (link.dataset.readingCategory === categoryFilter) link.setAttribute('aria-current', 'page');
+            else link.removeAttribute('aria-current');
+        });
     };
     updateSourceFilter();
     const loadedItems = [];
@@ -113,6 +123,11 @@ if (container) {
     const readFilter = document.querySelector('[data-read-filter]');
     readFilter.value = viewFromParams(new URLSearchParams(location.search));
     const updateSources = () => {
+        document.querySelectorAll('[data-reading-category]').forEach((link) => {
+            const url = new URL(link.href);
+            setViewParams(url.searchParams, readFilter.value);
+            link.href = url.href;
+        });
         document.querySelectorAll('[data-reading-source]').forEach((row) => {
             const unread = Number(row.dataset.unread);
             const read = Number(row.dataset.read);
@@ -123,6 +138,11 @@ if (container) {
             const url = new URL(link.href);
             setViewParams(url.searchParams, readFilter.value);
             link.href = url.href;
+        });
+        document.querySelectorAll('[data-reading-category-group]').forEach((group) => {
+            const outsideCategory = categoryFilter && group.dataset.readingCategoryGroup !== categoryFilter;
+            const noUnread = readFilter.value === '0' && ![...group.querySelectorAll('[data-reading-source]')].some((row) => Number(row.dataset.unread) > 0);
+            group.hidden = !!outsideCategory || noUnread;
         });
     };
     updateSources();

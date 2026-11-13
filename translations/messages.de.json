@@ -436,5 +436,11 @@
   "Compte analysé": "Analysiertes Konto",
   "Tous les comptes": "Alle Konten",
   "Afficher": "Anzeigen",
-  "Désactiver le silence nocturne": "Ruhezeiten deaktivieren"
+  "Désactiver le silence nocturne": "Ruhezeiten deaktivieren",
+  "Marquer tous les articles de ce flux comme lus": "Alle Artikel dieses Feeds als gelesen markieren",
+  "Marquer tous les articles de cette catégorie comme lus": "Alle Artikel dieser Kategorie als gelesen markieren",
+  "%count% article non lu dans vos sources.": "%count% ungelesener Artikel in Ihren Quellen.",
+  "%count% articles non lus dans vos sources.": "%count% ungelesene Artikel in Ihren Quellen.",
+  "Catégories": "Kategorien",
+  "Aucune catégorie.": "Keine Kategorien."
 }

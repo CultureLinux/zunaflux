@@ -34,13 +34,17 @@ Zunaflux est un logiciel libre, open source et en développement actif. L'applic
 ## Votre veille, à votre façon
 
 - **Suivez vos sources** : ajoutez des flux RSS et Atom, organisez-les par catégories et importez ou exportez vos abonnements au format OPML.
+- **Découvrez des sources** : explorez le catalogue par langue et catégorie, ou recherchez les flux proposés par un site.
 - **Lisez à votre rythme** : retrouvez vos articles lus et non lus, marquez vos favoris et gardez des articles pour plus tard.
 - **Retrouvez l’essentiel** : recherchez dans vos articles et vos sources, enregistrez des filtres et appliquez des actions à plusieurs articles.
 - **Choisissez votre espace** : thème clair, sombre ou système, préférences de lecture et vue en colonnes sur ordinateur.
 - **Partagez une instance, pas votre lecture** : les flux et les articles sont mutualisés, tandis que les abonnements, favoris et états de lecture restent propres à chaque compte.
 - **Gardez la main** : exportez vos données et administrez les comptes, les sources et les incidents depuis votre instance.
+- **Partagez sur Mastodon** : connectez un compte dans les préférences pour publier un article, avec le texte et la visibilité de votre choix.
 
 Zunaflux propose également une installation sur l’écran d’accueil depuis un navigateur compatible. Les notifications Web Push pour les nouveaux articles et les erreurs de collecte sont en cours de validation sur appareil. L’application nécessite une connexion réseau pour lire les articles.
+
+Les préférences permettent notamment de choisir la langue, le thème, la présentation de lecture et une plage de silence pour les notifications. Les flux peuvent être rafraîchis individuellement, par catégorie ou ensemble. L’export de compte fournit une archive de données personnelles ; la réimportation complète des états de lecture ne fait pas partie du format actuel. Voir [le format d’export](docs/export-format-v1.md).
 
 ## Installer Zunaflux
 
@@ -62,6 +66,8 @@ cp .env.example .env.local
 ```
 
 Modifiez ensuite `.env.local` : définissez notamment une valeur aléatoire pour `APP_SECRET`, les identifiants MariaDB dans `DATABASE_URL`, et un transport mail adapté si nécessaire. Les exemples de ce fichier ne sont pas des secrets utilisables en production. Le fichier `.env.local` est ignoré par Git et doit rester privé.
+
+Sur une installation existante, conservez votre configuration et vos données : ne recopiez pas l’exemple par-dessus `.env.local`. Avant toute mise à jour, sauvegardez la base, les médias et la configuration comme indiqué ci-dessous.
 
 Par défaut, `.env.example` contient `ZUNAFLUX_PUBLIC_REGISTRATION=1`, ce qui autorise la création de comptes depuis `/register`. Pour une instance exposée sur Internet dont vous souhaitez contrôler les accès, définissez `ZUNAFLUX_PUBLIC_REGISTRATION=0` dans `.env.local` et créez chaque compte nécessaire avec `php85 bin/console app:user:create EMAIL MOT_DE_PASSE --env=prod`.
 
@@ -104,6 +110,17 @@ php85 bin/console messenger:consume async --env=prod
 Configurez ce worker comme un service supervisé sur votre serveur. La durée de conservation des articles est réglable avec `ZUNAFLUX_RETENTION_MONTHS` ; sa valeur par défaut est de 12 mois.
 
 Un exemple prêt pour systemd est fourni dans [`docs/messenger-systemd.md`](docs/messenger-systemd.md).
+
+### Partage Mastodon
+
+Pour connecter un compte Mastodon, configurez dans `.env.local` une origine HTTPS publique accessible à l’instance Mastodon et une clé privée stable :
+
+```dotenv
+ZUNAFLUX_PUBLIC_BASE_URL=https://rss.example.org
+ZUNAFLUX_MASTODON_TOKEN_KEY=cle-privee-base64-de-32-octets
+```
+
+La clé doit être une valeur aléatoire de 32 octets encodée en base64. Elle chiffre les jetons d’accès enregistrés : conservez-la avec vos sauvegardes de configuration, ne la publiez pas et ne la remplacez pas lors d’une mise à jour. Une clé perdue ou changée rend les jetons précédents illisibles ; les comptes concernés devront être reconnectés. Chaque utilisateur peut ensuite connecter son instance dans ses préférences et publier depuis un article.
 
 ## Sauvegarder et mettre à jour
 

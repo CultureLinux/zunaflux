@@ -5,11 +5,10 @@
     const dismiss = prompt.querySelector('[data-pwa-install-dismiss]');
     const help = prompt.querySelector('[data-pwa-install-help]');
     let deferred;
-    const dismissDuration = 30 * 24 * 60 * 60 * 1000;
     let dismissed = false;
     try {
         const dismissedAt = Number(localStorage.getItem('zunaflux-install-dismissed-at'));
-        dismissed = Number.isFinite(dismissedAt) && dismissedAt > 0 && Date.now() - dismissedAt < dismissDuration;
+        dismissed = Number.isFinite(dismissedAt) && dismissedAt > 0;
     } catch (_) {}
     dismiss.addEventListener('click', () => {
         prompt.hidden = true;

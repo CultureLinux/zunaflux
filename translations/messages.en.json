@@ -436,5 +436,11 @@
   "Compte analysé": "Account to analyse",
   "Tous les comptes": "All accounts",
   "Afficher": "Show",
-  "Désactiver le silence nocturne": "Disable quiet hours"
+  "Désactiver le silence nocturne": "Disable quiet hours",
+  "Marquer tous les articles de ce flux comme lus": "Mark all articles in this feed as read",
+  "Marquer tous les articles de cette catégorie comme lus": "Mark all articles in this category as read",
+  "%count% article non lu dans vos sources.": "%count% unread article in your sources.",
+  "%count% articles non lus dans vos sources.": "%count% unread articles in your sources.",
+  "Catégories": "Categories",
+  "Aucune catégorie.": "No categories."
 }

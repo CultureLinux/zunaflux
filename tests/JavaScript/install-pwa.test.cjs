@@ -3,22 +3,39 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
 
-function setup({ dismissedAt = null } = {}) {
+function setup({ dismissedAt = null, storage = null } = {}) {
     const callbacks = {};
     const action = { hidden: false, textContent: '', addEventListener: (_, fn) => { callbacks.action = fn; } };
     const dismiss = { addEventListener: (_, fn) => { callbacks.dismiss = fn; } };
     const help = { textContent: '' };
     const prompt = { hidden: true, dataset: { installLabel: 'Install', defaultHelp: 'Find your reader among your apps.', helpAndroid: 'Add Zunaflux from your browser.', helpIos: 'Add Zunaflux from Safari.', helpGeneric: 'Open your browser menu to install.', helpAction: 'How to install' }, querySelector: selector => selector.includes('action') ? action : selector.includes('dismiss') ? dismiss : help };
     const events = {};
-    const localStorage = new Map(dismissedAt === null ? [] : [['zunaflux-install-dismissed-at', dismissedAt]]);
+    const localStorage = storage || new Map(dismissedAt === null ? [] : [['zunaflux-install-dismissed-at', dismissedAt]]);
     const context = { document: { querySelector: () => prompt }, navigator: { userAgent: 'Android Firefox' }, window: { matchMedia: () => ({ matches: false }), addEventListener: (name, fn) => { events[name] = fn; } }, sessionStorage: { getItem: () => null, setItem() {} }, localStorage: { getItem: key => localStorage.get(key) || null, setItem: (key, value) => localStorage.set(key, value) } };
     vm.runInNewContext(fs.readFileSync('public/install-pwa.js', 'utf8'), context);
-    return { action, prompt, help, events, callbacks };
+    return { action, prompt, help, events, callbacks, localStorage };
 }
 
-test('a recent dismissal suppresses the install invitation for 30 days', () => {
+test('a recent dismissal suppresses the install invitation', () => {
     const state = setup({ dismissedAt: String(Date.now()) });
 
+    assert.equal(state.prompt.hidden, true);
+});
+
+test('dismissing the invitation keeps it hidden when the page is reopened', () => {
+    const firstVisit = setup();
+    firstVisit.callbacks.dismiss();
+    const nextVisit = setup({ storage: firstVisit.localStorage });
+
+    assert.equal(firstVisit.prompt.hidden, true);
+    assert.equal(nextVisit.prompt.hidden, true);
+});
+
+test('a previous dismissal continues to suppress the invitation after 30 days', () => {
+    const state = setup({ dismissedAt: '1' });
+
+    assert.equal(state.prompt.hidden, true);
+    state.events.beforeinstallprompt({ preventDefault() {} });
     assert.equal(state.prompt.hidden, true);
 });
 
