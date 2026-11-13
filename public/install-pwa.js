@@ -5,6 +5,8 @@
     const dismiss = prompt.querySelector('[data-pwa-install-dismiss]');
     const help = prompt.querySelector('[data-pwa-install-help]');
     let deferred;
+    const isFirefoxAndroid = /Android/i.test(navigator.userAgent) && /Firefox/i.test(navigator.userAgent);
+    const dismissDuration = 30 * 24 * 60 * 60 * 1000;
     let dismissed = false;
     try {
         const dismissedAt = Number(localStorage.getItem('zunaflux-install-dismissed-at'));
@@ -34,8 +36,9 @@
     });
     window.addEventListener('appinstalled', () => { prompt.hidden = true; });
     if (/Android/i.test(navigator.userAgent) && !dismissed) {
-        help.textContent = prompt.dataset.helpAndroid;
-        action.textContent = prompt.dataset.helpAction;
+        help.textContent = isFirefoxAndroid ? prompt.dataset.helpFirefox : prompt.dataset.helpAndroid;
+        action.hidden = isFirefoxAndroid;
+        action.textContent = isFirefoxAndroid ? '' : prompt.dataset.helpAction;
         prompt.hidden = false;
     }
     if (/iPhone|iPad|iPod/i.test(navigator.userAgent) && !dismissed) {

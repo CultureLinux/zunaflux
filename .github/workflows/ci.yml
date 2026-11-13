@@ -106,3 +106,5 @@ jobs:
         run: |
           sh tests/Container/docker-image-smoke.sh clinuxfr/zunaflux:ci-${{ github.sha }}
           sh tests/Container/compose-config.sh
+      - name: Test HTTP server and Compose startup
+        run: sh tests/Container/compose-smoke.sh ci-${{ github.sha }}

@@ -20,7 +20,7 @@ ZUNAFLUX_VAPID_PRIVATE_FILE=/chemin/vers/zunaflux-secrets/vapid-private.pem
 ZUNAFLUX_VAPID_SUBJECT=mailto:contact@example.com
 ```
 
-La clé privée et le répertoire qui la contient doivent être lisibles par le compte du worker Messenger ; le fichier public doit être lisible par PHP-FPM. Ne pas exposer la clé privée au serveur web et ne pas la versionner. Redémarrer le worker pour charger la configuration, après validation humaine. Les abonnements ne fonctionnent qu'une fois la migration appliquée.
+La clé privée et le répertoire qui la contient doivent être lisibles par le compte du worker Messenger ; le fichier public doit être lisible par le processus PHP de l’application. Ne pas exposer la clé privée au serveur web et ne pas la versionner. Redémarrer le worker pour charger la configuration, après validation humaine. Les abonnements ne fonctionnent qu'une fois la migration appliquée.
 
 ## État de validation
 
