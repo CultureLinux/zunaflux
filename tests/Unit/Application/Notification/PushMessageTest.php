@@ -31,4 +31,19 @@ final class PushMessageTest extends TestCase
         self::assertSame('This is a Zunaflux test notification.', $message->test('en'));
         self::assertSame('Dies ist eine Zunaflux-Testbenachrichtigung.', $message->test('de'));
     }
+
+    public function testUnreadSummaryUsesTheRecipientLanguage(): void
+    {
+        $translator = new Translator('fr');
+        $translator->addLoader('json', new JsonFileLoader());
+        foreach (['en', 'de'] as $locale) {
+            $translator->addResource('json', dirname(__DIR__, 4).'/translations/messages.'.$locale.'.json', $locale);
+        }
+        $message = new PushMessage($translator);
+
+        self::assertSame('1 article non lu dans vos sources.', $message->unread(1, 'fr'));
+        self::assertSame('12 articles non lus dans vos sources.', $message->unread(12, 'fr'));
+        self::assertSame('12 unread articles in your sources.', $message->unread(12, 'en'));
+        self::assertSame('12 ungelesene Artikel in Ihren Quellen.', $message->unread(12, 'de'));
+    }
 }

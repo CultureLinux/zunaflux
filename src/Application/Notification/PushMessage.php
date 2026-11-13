@@ -17,6 +17,13 @@ final readonly class PushMessage
         return $this->translator->trans($message, ['%count%' => $count], locale: $locale);
     }
 
+    public function unread(int $count, string $locale): string
+    {
+        $message = 1 === $count ? '%count% article non lu dans vos sources.' : '%count% articles non lus dans vos sources.';
+
+        return $this->translator->trans($message, ['%count%' => $count], locale: $locale);
+    }
+
     public function error(string $locale): string
     {
         return $this->translator->trans('Une source rencontre une erreur de synchronisation.', locale: $locale);

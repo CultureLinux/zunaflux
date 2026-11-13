@@ -10,7 +10,7 @@
     let dismissed = false;
     try {
         const dismissedAt = Number(localStorage.getItem('zunaflux-install-dismissed-at'));
-        dismissed = Number.isFinite(dismissedAt) && dismissedAt > 0 && Date.now() - dismissedAt < dismissDuration;
+        dismissed = Number.isFinite(dismissedAt) && dismissedAt > 0;
     } catch (_) {}
     dismiss.addEventListener('click', () => {
         prompt.hidden = true;

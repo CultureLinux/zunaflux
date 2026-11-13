@@ -20,16 +20,20 @@
 
             <div class="reading-sidebar-heading"><p>{{ "Sources"|trans }}</p><a href="{{ path('app_subscriptions') }}" aria-label="Gérer les sources">+</a></div>
             <nav class="reading-sidebar-nav" aria-label="Vos sources">
-                {% for subscription in readingSubscriptions %}
-                    {% set counts = readingCounts[subscription.id ~ '']|default({unread: 0, read: 0, favorite: 0, saved: 0}) %}
+                {% for category in readingCategories %}
+                    {% set categoryParameters = {category: category.id, filterName: category.name} %}
                     {% set currentRead = app.request.query.get('read', '0') %}
                     {% set currentView = app.request.query.get('favorite') == '1' ? 'favorite' : (app.request.query.get('saved') == '1' ? 'saved' : currentRead) %}
-                    {% set sourceParameters = {subscription: subscription.id} %}
-                    {% set sourceParameters = currentView == 'favorite' ? sourceParameters|merge({favorite: 1}) : (currentView == 'saved' ? sourceParameters|merge({saved: 1}) : sourceParameters|merge({read: currentRead})) %}
-                    <div class="reading-source-row" data-reading-source data-category-id="{{ subscription.category ? subscription.category.id : '' }}" data-unread="{{ counts.unread }}" data-read="{{ counts.read }}" data-favorite="{{ counts.favorite }}" data-saved="{{ counts.saved }}" {% if (currentView == '0' and counts.unread == 0) or (currentView == '1' and counts.read == 0) or ((currentView == 'favorite' or currentView == 'saved') and counts.unread == 0) or (currentView == '' and counts.unread + counts.read == 0) %}hidden{% endif %}>
-                        <a data-source-link href="{{ path('app_articles', sourceParameters) }}" {% if app.request.query.get('subscription') == subscription.id ~ '' %}aria-current="page"{% endif %}><span>{{ subscription.displayTitle }} {% if subscription.feed.lastError %}<svg data-feed-warning class="inline h-4 w-4 text-warning" role="img" aria-label="Erreur de collecte" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 2 21h20L12 3Zm0 6v5m0 3v1"/></svg>{% endif %}</span><span class="reading-unread-count" data-unread-subscription="{{ subscription.id }}" aria-label="{{ counts.unread }} articles non lus">{{ counts.unread }}</span></a>
-                        <form method="post" action="{{ path('app_subscription_mark_read', {id: subscription.id}) }}"><input type="hidden" name="_token" value="{{ csrf_token('mark-feed-read-' ~ subscription.id) }}"><button type="submit" class="reading-mark-feed" title="Marquer tous les articles de {{ subscription.displayTitle }} comme lus" aria-label="Marquer tous les articles de {{ subscription.displayTitle }} comme lus">✓</button></form>
+                    {% set categoryParameters = currentView == 'favorite' ? categoryParameters|merge({favorite: 1}) : (currentView == 'saved' ? categoryParameters|merge({saved: 1}) : categoryParameters|merge({read: currentRead})) %}
+                    <div data-reading-category-group="{{ category.id }}">
+                        <a class="reading-source-category" data-reading-category="{{ category.id }}" href="{{ path('app_articles', categoryParameters) }}" {% if app.request.query.get('category') == category.id ~ '' %}aria-current="page"{% endif %}>{{ category.name }}</a>
+                        {% for subscription in readingSubscriptions %}
+                            {% if subscription.category and subscription.category.id == category.id %}{% include 'article/_reading_source.html.twig' %}{% endif %}
+                        {% endfor %}
                     </div>
+                {% endfor %}
+                {% for subscription in readingSubscriptions %}
+                    {% if not subscription.category %}{% include 'article/_reading_source.html.twig' %}{% endif %}
                 {% else %}
                     <p class="text-sm text-muted">{{ "Aucune source active."|trans }}</p>
                 {% endfor %}
@@ -56,9 +60,10 @@
             {% endfor %}
         </section>
         </div>
-        <div class="mb-4 flex items-center gap-3" data-source-filter hidden><span class="text-sm text-muted" data-source-filter-label></span><button class="border border-line px-3 py-2 text-sm text-accent hover:bg-accent-soft" type="button" data-clear-source>Voir tous les flux</button></div>
+        <div class="mb-4 flex flex-wrap items-center gap-3" data-source-filter hidden><span class="text-sm text-muted" data-source-filter-label></span><button class="min-h-11 border border-line px-3 py-2 text-sm text-accent hover:bg-accent-soft" type="button" data-clear-source>Voir tous les flux</button>{% include 'article/_source_mark_read.html.twig' %}</div>
         <p class="mb-4 text-sm text-danger" data-bulk-error role="alert" hidden></p>
         <section data-article-list="{{ path('app_api_articles') }}" data-unread-label="{{ 'Non lu'|trans }}" data-favorite-label="{{ 'Favori'|trans }}" data-saved-label="{{ 'À lire plus tard'|trans }}" data-remove-favorite-label="{{ 'Retirer des favoris'|trans }}" data-remove-saved-label="{{ 'Retirer de la liste à lire plus tard'|trans }}" data-empty-filtered-label="{{ 'Aucun article ne correspond à vos critères.'|trans }}" aria-live="polite"><p class="border border-line bg-surface p-6 text-muted">{{ "Chargement des articles…"|trans }}</p></section><div data-article-sentinel aria-hidden="true"></div><button class="mt-6 border border-line px-5 py-3 text-sm text-foreground hover:border-accent" data-article-more hidden type="button">{{ "Charger les suivants"|trans }}</button>
+        <div class="mt-6">{% include 'article/_source_mark_read.html.twig' %}</div>
     </main>
     <dialog class="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-5xl overflow-y-auto border border-line bg-surface p-0 text-foreground backdrop:bg-background/80" data-article-dialog aria-labelledby="article-dialog-title">
         <article class="p-6 md:p-10">

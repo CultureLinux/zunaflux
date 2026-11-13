@@ -1,0 +1,16 @@
+{% for subscription in readingSubscriptions %}
+    <form method="post" action="{{ path('app_subscription_mark_read', {id: subscription.id}) }}" data-source-mark-read data-subscription-id="{{ subscription.id }}" hidden>
+        <input type="hidden" name="_token" value="{{ csrf_token('mark-feed-read-' ~ subscription.id) }}">
+        <button type="submit" class="flex h-12 w-12 items-center justify-center border border-accent bg-accent-soft text-accent hover:bg-accent hover:text-accent-foreground" aria-label="{{ 'Marquer tous les articles de ce flux comme lus'|trans }}" title="{{ 'Marquer tous les articles de ce flux comme lus'|trans }}">
+            <svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12s3-6 9-6 9 6 9 6-3 6-9 6-9-6-9-6Z"/><circle cx="12" cy="12" r="2.5"/></svg>
+        </button>
+    </form>
+{% endfor %}
+{% for category in readingCategories %}
+    <form method="post" action="{{ path('app_category_mark_read', {id: category.id}) }}" data-source-mark-read data-category-id="{{ category.id }}" hidden>
+        <input type="hidden" name="_token" value="{{ csrf_token('mark-category-read-' ~ category.id) }}">
+        <button type="submit" class="flex h-12 w-12 items-center justify-center border border-accent bg-accent-soft text-accent hover:bg-accent hover:text-accent-foreground" aria-label="{{ 'Marquer tous les articles de cette catégorie comme lus'|trans }}" title="{{ 'Marquer tous les articles de cette catégorie comme lus'|trans }}">
+            <svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12s3-6 9-6 9 6 9 6-3 6-9 6-9-6-9-6Z"/><circle cx="12" cy="12" r="2.5"/></svg>
+        </button>
+    </form>
+{% endfor %}

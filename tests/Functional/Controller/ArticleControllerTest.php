@@ -15,6 +15,69 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class ArticleControllerTest extends WebTestCase
 {
+    public function testCategoryMarkReadIsScopedToTheOwnerAndRequiresCsrf(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $owner = new User('category-owner-'.bin2hex(random_bytes(8)).'@example.test');
+        $other = new User('category-other-'.bin2hex(random_bytes(8)).'@example.test');
+        $category = new \App\Entity\Category($owner, 'Test');
+        $feed = new Feed('https://example.test/'.bin2hex(random_bytes(8)));
+        $article = new Article($feed, new ParsedFeedItem('one', 'Article', null, null, null, null));
+        $subscription = new Subscription($owner, $feed);
+        $subscription->assignCategory($category);
+        foreach ([$owner, $other, $category, $feed, $article, $subscription, new Subscription($other, $feed)] as $entity) $em->persist($entity);
+        $em->flush();
+        $path = '/categories/'.$category->getId().'/mark-read';
+
+        try {
+            $client->loginUser($owner);
+            $crawler = $client->request('GET', '/articles');
+            self::assertSelectorCount(2, 'form[data-category-id="'.$category->getId().'"]');
+            $token = $crawler->filter('form[data-category-id="'.$category->getId().'"] input[name="_token"]')->first()->attr('value');
+            $client->request('POST', $path, ['_token' => 'invalid']);
+            self::assertResponseStatusCodeSame(403);
+            $client->loginUser($other);
+            $client->request('POST', $path, ['_token' => $token]);
+            self::assertResponseStatusCodeSame(404);
+            $client->loginUser($owner);
+            $crawler = $client->request('GET', '/articles');
+            $token = $crawler->filter('form[data-category-id="'.$category->getId().'"] input[name="_token"]')->first()->attr('value');
+            $client->request('POST', $path, ['_token' => $token]);
+            self::assertResponseRedirects();
+            $em->clear();
+            $states = $em->getRepository(\App\Entity\ArticleState::class)->findAll();
+            $ownStates = array_filter($states, static fn ($state) => $state->getUser()->getId()->equals($owner->getId()) && $state->getArticle()->getId()->equals($article->getId()) && $state->isRead());
+            $otherStates = array_filter($states, static fn ($state) => $state->getUser()->getId()->equals($other->getId()) && $state->getArticle()->getId()->equals($article->getId()));
+            self::assertCount(1, $ownStates);
+            self::assertCount(0, $otherStates);
+        } finally {
+            $em->getConnection()->executeStatement('DELETE FROM app_user WHERE id IN (?, ?)', [$owner->getId()->toBinary(), $other->getId()->toBinary()]);
+            $em->getConnection()->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);
+        }
+    }
+
+    public function testSourceMarkReadControlsAreAvailableWithoutTheReadingSidebar(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $user = new User('source-controls-'.bin2hex(random_bytes(8)).'@example.test');
+        $feed = new Feed('https://example.test/'.bin2hex(random_bytes(8)));
+        $subscription = new Subscription($user, $feed);
+        foreach ([$user, $feed, $subscription] as $entity) $em->persist($entity);
+        $em->flush();
+
+        try {
+            $client->loginUser($user);
+            $client->request('GET', '/articles');
+            self::assertResponseIsSuccessful();
+            self::assertSelectorCount(2, 'form[data-source-mark-read][action="/subscriptions/'.$subscription->getId().'/mark-read"] input[name="_token"]');
+        } finally {
+            $em->getConnection()->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
+            $em->getConnection()->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);
+        }
+    }
+
     public function testUnreadCounterWorksWithSubscribedFeeds(): void
     {
         $client = static::createClient();
@@ -162,7 +225,11 @@ final class ArticleControllerTest extends WebTestCase
         $feed->refreshMetadata('Ma source de lecture', null);
         $otherFeed->refreshMetadata('Source privée extérieure', null);
         $preference = new UserPreference($user);
-        foreach ([$user, $other, $feed, $otherFeed, $preference, new Subscription($user, $feed), new Subscription($other, $otherFeed)] as $entity) $em->persist($entity);
+        $category = new \App\Entity\Category($user, 'Actualités');
+        $privateCategory = new \App\Entity\Category($other, 'Catégorie privée');
+        $subscription = new Subscription($user, $feed);
+        $subscription->assignCategory($category);
+        foreach ([$user, $other, $feed, $otherFeed, $preference, $category, $privateCategory, $subscription, new Subscription($other, $otherFeed)] as $entity) $em->persist($entity);
         $em->flush();
         try {
             $client->loginUser($user);
@@ -174,6 +241,9 @@ final class ArticleControllerTest extends WebTestCase
             $client->request('GET', '/articles');
             self::assertResponseIsSuccessful();
             self::assertSelectorExists('.reading-workspace .reading-sidebar');
+            self::assertSelectorExists('.reading-sidebar [data-reading-category="'.$category->getId().'"]');
+            self::assertSelectorExists('.reading-sidebar [data-reading-category-group="'.$category->getId().'"] [data-reading-source]');
+            self::assertSelectorNotExists('.reading-sidebar [data-reading-category="'.$privateCategory->getId().'"]');
             self::assertStringContainsString('Ma source de lecture', $client->getResponse()->getContent());
             self::assertStringNotContainsString('Source privée extérieure', $client->getResponse()->getContent());
         } finally {

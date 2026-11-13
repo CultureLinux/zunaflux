@@ -13,12 +13,29 @@ function setup({ dismissedAt = null, userAgent = 'Android Firefox' } = {}) {
     const localStorage = new Map(dismissedAt === null ? [] : [['zunaflux-install-dismissed-at', dismissedAt]]);
     const context = { document: { querySelector: () => prompt }, navigator: { userAgent }, window: { matchMedia: () => ({ matches: false }), addEventListener: (name, fn) => { events[name] = fn; } }, sessionStorage: { getItem: () => null, setItem() {} }, localStorage: { getItem: key => localStorage.get(key) || null, setItem: (key, value) => localStorage.set(key, value) } };
     vm.runInNewContext(fs.readFileSync('public/install-pwa.js', 'utf8'), context);
-    return { action, prompt, help, events, callbacks };
+    return { action, prompt, help, events, callbacks, localStorage };
 }
 
-test('a recent dismissal suppresses the install invitation for 30 days', () => {
+test('a recent dismissal suppresses the install invitation', () => {
     const state = setup({ dismissedAt: String(Date.now()) });
 
+    assert.equal(state.prompt.hidden, true);
+});
+
+test('dismissing the invitation keeps it hidden when the page is reopened', () => {
+    const firstVisit = setup();
+    firstVisit.callbacks.dismiss();
+    const nextVisit = setup({ storage: firstVisit.localStorage });
+
+    assert.equal(firstVisit.prompt.hidden, true);
+    assert.equal(nextVisit.prompt.hidden, true);
+});
+
+test('a previous dismissal continues to suppress the invitation after 30 days', () => {
+    const state = setup({ dismissedAt: '1' });
+
+    assert.equal(state.prompt.hidden, true);
+    state.events.beforeinstallprompt({ preventDefault() {} });
     assert.equal(state.prompt.hidden, true);
 });
 
