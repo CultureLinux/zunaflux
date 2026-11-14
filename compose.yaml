@@ -92,6 +92,17 @@ services:
       migrations:
         condition: service_completed_successfully
 
+  notifications:
+    image: clinuxfr/zunaflux:${ZUNAFLUX_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    command: ["/usr/local/bin/send-notifications"]
+    environment: *zunaflux-environment
+    depends_on:
+      database:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+
 volumes:
   database-data:
   media-data:

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
+use App\Application\Notification\DigestQueue;
+use App\Application\Notification\SendNotificationDigests;
 use App\Application\Notification\NotificationCounter;
 use App\Application\Notification\NotificationDiagnostics;
 use App\Application\Notification\PushDelivery;
@@ -39,17 +41,12 @@ final class NotificationTraceTest extends KernelTestCase
         };
 
         try {
-            $handler = new NotifyFeedHandler(
-                $em,
-                $logger,
-                new NotificationDiagnostics($logger),
-                new NotificationCounter($em->getConnection(), $logger),
-                new PushMessage($container->get(TranslatorInterface::class)),
-                new PushDelivery($em, '', ''),
-                '',
-                '',
-            );
+            $queue = new DigestQueue($em->getConnection());
+            $handler = new NotifyFeedHandler($em, $queue, $logger);
             $handler(new NotifyFeedMessage((string) $feed->getId(), 'articles', 3));
+            $sender = new SendNotificationDigests($em, $queue, new PushDelivery($em, '', ''), new PushMessage($container->get(TranslatorInterface::class)), new NotificationCounter($em->getConnection(), $logger), new NotificationDiagnostics($logger), $logger);
+            $sender->send($user->getId(), new \DateTimeImmutable('+2 hours'));
+            self::assertSame(3, $queue->pending($user->getId(), 0)['count']);
 
             $entries = array_filter($logger->entries, static fn (array $entry): bool => ($entry['status'] ?? null) === 'configuration_error' && ($entry['device_id'] ?? null) === (string) $device->getId());
             self::assertCount(1, $entries);
@@ -82,16 +79,7 @@ final class NotificationTraceTest extends KernelTestCase
         };
 
         try {
-            $handler = new NotifyFeedHandler(
-                $entityManager,
-                $logger,
-                new NotificationDiagnostics($logger),
-                new NotificationCounter($entityManager->getConnection(), $logger),
-                new PushMessage($container->get(TranslatorInterface::class)),
-                new PushDelivery($entityManager, '', ''),
-                '',
-                '',
-            );
+            $handler = new NotifyFeedHandler($entityManager, new DigestQueue($entityManager->getConnection()), $logger);
             $handler(new NotifyFeedMessage((string) $feed->getId(), 'error'));
 
             $entries = array_filter($logger->entries, static fn (array $entry): bool => ($entry['device_id'] ?? null) === (string) $device->getId());

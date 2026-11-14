@@ -94,3 +94,5 @@ docker compose --env-file docker/.env -f compose.yaml run --rm migrations php bi
 ```
 
 Pour revenir en arrière, restaurez d'abord la base et les médias si une migration a été appliquée, puis restaurez aussi le Compose de cette version et fixez `ZUNAFLUX_IMAGE_TAG` sur le tag précédent dans `docker/.env` et relancez `pull` puis `up -d`. Ne supprimez pas les volumes sans sauvegarde validée.
+
+Le service `notifications` traite les récapitulatifs personnels chaque minute. Il doit recevoir les mêmes montages VAPID que le worker. Voir [la procédure de migration et de validation](notification-schedule.md).

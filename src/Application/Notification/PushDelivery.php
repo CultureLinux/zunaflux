@@ -14,7 +14,7 @@ use Nyholm\Psr7\Factory\Psr17Factory;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\HttpClient\Psr18Client;
 
-final readonly class PushDelivery
+final readonly class PushDelivery implements PushSender
 {
     public function __construct(private EntityManagerInterface $em, private string $pushPrivateFile, private string $pushSubject) {}
 

@@ -462,3 +462,39 @@ dialog [data-article-saved][aria-pressed="true"] svg { color: var(--accent); fil
 .admin-section-nav button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
 .admin-section-nav button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .admin-incident-count { display: inline-flex; min-width: 1.25rem; height: 1.25rem; align-items: center; justify-content: center; margin-left: .4rem; padding: 0 .3rem; border-radius: 999px; background: var(--danger); color: var(--background); font-size: .7rem; font-weight: 700; vertical-align: super; }
+
+/* Personal notification rhythm: native controls, responsive to the settings column. */
+.notification-schedule { padding: clamp(1rem, 4vw, 1.75rem); container-type: inline-size; }
+.notification-schedule-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+.notification-schedule-icon { display: grid; place-items: center; flex: 0 0 3rem; height: 3rem; color: var(--accent); background: var(--accent-soft); border: 1px solid var(--line); border-radius: 50%; }
+.notification-schedule-icon svg { width: 1.75rem; height: 1.75rem; }
+.notification-schedule-form { display: grid; gap: 1.5rem; margin-top: 1.5rem; }
+.notification-schedule-form fieldset { min-width: 0; }
+.notification-modes { display: grid; gap: .75rem; grid-template-columns: minmax(0, 1fr); }
+.notification-choice { position: relative; display: flex; align-items: center; gap: .65rem; min-height: 3rem; padding: 1rem; border: 1px solid var(--line); background: var(--background); cursor: pointer; transition: border-color 160ms ease, background-color 160ms ease; }
+.notification-choice:hover { border-color: var(--accent); }
+.notification-choice:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.notification-choice:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 3px; }
+.notification-choice input { accent-color: var(--accent); flex: none; }
+.notification-choice strong, .notification-choice small { display: block; overflow-wrap: anywhere; }
+.notification-choice strong { color: var(--foreground); }
+.notification-choice small { margin-top: .25rem; font-size: .8125rem; color: var(--muted); line-height: 1.4; }
+.notification-interval-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(4.25rem, 1fr)); gap: .5rem; }
+.notification-interval { flex-direction: column; gap: .35rem; padding: .75rem .4rem; text-align: center; }
+.notification-interval strong { font-size: 1.5rem; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.notification-hours-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+.notification-hour { align-items: flex-start; flex-direction: column; }
+.notification-hour strong { font-size: clamp(1.5rem, 5cqi, 2rem); font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
+.notification-minute { font-weight: 400; }
+.notification-schedule-note { border-inline-start: 2px solid var(--accent); padding-inline-start: .85rem; font-size: .8125rem; line-height: 1.6; color: var(--muted); }
+.notification-schedule-save { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 3rem; padding: .75rem 1.25rem; border: 1px solid var(--accent); color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.notification-schedule-save svg { width: 1.25rem; height: 1.25rem; }
+.notification-schedule-save:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.notification-schedule-form:has([name="notification_mode"][value="interval"]:checked) [data-schedule-fixed],
+.notification-schedule-form:has([name="notification_mode"][value="fixed"]:checked) [data-schedule-interval] { display: none; }
+@container (min-width: 30rem) {
+    .notification-modes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .notification-hours-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .notification-schedule-save { justify-self: end; }
+}
+@media (prefers-reduced-motion: reduce) { .notification-choice { transition: none; } }
