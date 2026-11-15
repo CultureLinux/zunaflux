@@ -1,0 +1,8 @@
+{% extends 'base.html.twig' %}
+{% block title %}{{ 'Préférences'|trans }} · Zunaflux{% endblock %}
+{% block body %}
+<main class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+    <a class="text-accent underline" href="{{ path('app_preferences') }}#preference-notifications">{{ 'Préférences'|trans }}</a>
+    {% include 'preference/_notification_schedule.html.twig' %}
+</main>
+{% endblock %}

@@ -19,3 +19,5 @@ docker run --rm --entrypoint php \
     "$image" bin/console about --env=prod --no-debug
 
 docker run --rm --entrypoint frankenphp "$image" validate --config /etc/frankenphp/Caddyfile --adapter caddyfile
+
+docker run --rm --entrypoint test "$image" -x /usr/local/bin/send-notifications

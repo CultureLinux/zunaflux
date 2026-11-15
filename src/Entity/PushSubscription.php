@@ -41,6 +41,16 @@ final class PushSubscription
     #[ORM\Column(name: 'last_result_at', type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $lastResultAt = null;
 
+    #[ORM\Column(name: 'digest_cursor', options: ['default' => 0])]
+    private int $digestCursor = 0;
+    #[ORM\Column(name: 'digest_sent_timestamp', type: 'bigint', nullable: true)]
+    private ?int $digestSentTimestamp = null;
+
+    public function getDigestCursor(): int { return $this->digestCursor; }
+    public function getDigestSentAt(): ?\DateTimeImmutable { return null === $this->digestSentTimestamp ? null : new \DateTimeImmutable('@'.$this->digestSentTimestamp); }
+    public function startDigestAt(int $cursor): void { $this->digestCursor = $cursor; $this->digestSentTimestamp = null; }
+    public function recordDigest(int $cursor, \DateTimeImmutable $now): void { $this->digestCursor = $cursor; $this->digestSentTimestamp = $now->getTimestamp(); }
+
     public function __construct(User $user, string $endpoint, string $publicKey, string $authSecret)
     {
         $this->id = Uuid::v7();

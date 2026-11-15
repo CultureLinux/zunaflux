@@ -23,5 +23,6 @@
         });
     });
 
-    select('general');
+    const requested = (globalThis.location?.hash || '').replace('#preference-', '');
+    select(tabs.some(tab => tab.dataset.preferenceTab === requested) ? requested : 'general');
 })();

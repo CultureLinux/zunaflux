@@ -76,6 +76,7 @@ final class PushSubscriptionController extends AbstractController
         if (!is_string($key) || !is_string($secret) || !preg_match('/^[A-Za-z0-9_-]{87}$/D', $key) || !preg_match('/^[A-Za-z0-9_-]{22}$/D', $secret)) {
             return $this->json(['error' => 'Clés invalides.'], 400);
         }
+        $newDigest = !$subscription instanceof PushSubscription || !$subscription->getUser()->getId()->equals($user->getId());
         if ($subscription instanceof PushSubscription) {
             if (!$subscription->getUser()->getId()->equals($user->getId()) && (!hash_equals($subscription->getPublicKey(), $key) || !hash_equals($subscription->getAuthSecret(), $secret))) {
                 return $this->json(['error' => 'Abonnement indisponible.'], 403);
@@ -85,6 +86,7 @@ final class PushSubscriptionController extends AbstractController
             $subscription = new PushSubscription($user, $endpoint, $key, $secret);
             $em->persist($subscription);
         }
+        if ($newDigest) $subscription->startDigestAt((int) $em->getConnection()->fetchOne('SELECT COALESCE(MAX(id), 0) FROM notification_pending'));
         $subscription->setDeviceLabel(PushDeviceLabel::fromUserAgent($request->headers->get('User-Agent', '')));
         $em->flush();
         $diagnostics->subscriptionActivated();

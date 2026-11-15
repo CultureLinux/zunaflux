@@ -7,7 +7,7 @@ test -f docker/env.test
 
 config="$(docker compose --env-file docker/env.test -f compose.yaml config)"
 
-for service in database migrations app worker collector; do
+for service in database migrations app worker collector notifications; do
     printf '%s\n' "$config" | grep -Fq "  $service:"
 done
 
@@ -25,3 +25,5 @@ for removed in '  web:' '  assets:' 'public-assets' 'nginx'; do
         exit 1
     fi
 done
+
+printf '%s\n' "$config" | awk '/^  notifications:/{in_notifications=1; next} /^  [a-z]/{in_notifications=0} in_notifications' | grep -Fq 'service_completed_successfully'

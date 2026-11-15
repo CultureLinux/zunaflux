@@ -50,3 +50,9 @@ services:
     App\Application\FeedExplorer\FeedCatalog:
         arguments:
             $projectDir: '%kernel.project_dir%'
+
+    App\Application\Notification\PushSender: '@App\Application\Notification\PushDelivery'
+
+    App\Application\Notification\SendNotificationDigests:
+        arguments:
+            $logger: '@monolog.logger.notification'

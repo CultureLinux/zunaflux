@@ -38,6 +38,7 @@ ENV APP_ENV=prod \
 COPY docker/frankenphp/php/conf.d/zunaflux.ini /usr/local/etc/php/conf.d/zunaflux.ini
 COPY docker/frankenphp/Caddyfile /etc/frankenphp/Caddyfile
 COPY docker/collect-feeds.sh /usr/local/bin/collect-feeds
+COPY docker/send-notifications.sh /usr/local/bin/send-notifications
 COPY --from=application-builder --chown=www-data:www-data /app /app
 
 WORKDIR /app
@@ -46,7 +47,7 @@ RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
     && setcap -r /usr/local/bin/frankenphp \
     && mkdir -p var/cache var/log var/media /config/caddy /data/caddy \
     && chown -R www-data:www-data var /config/caddy /data/caddy \
-    && chmod 0555 /usr/local/bin/collect-feeds
+    && chmod 0555 /usr/local/bin/collect-feeds /usr/local/bin/send-notifications
 
 USER www-data
 

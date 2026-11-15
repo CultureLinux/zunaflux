@@ -6,5 +6,10 @@ namespace App\Message;
 
 final readonly class NotifyFeedMessage
 {
-    public function __construct(public string $feedId, public string $kind, public int $count = 0) {}
+    public string $eventId;
+
+    public function __construct(public string $feedId, public string $kind, public int $count = 0)
+    {
+        $this->eventId = (string) \Symfony\Component\Uid\Uuid::v7();
+    }
 }

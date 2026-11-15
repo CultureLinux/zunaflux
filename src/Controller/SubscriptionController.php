@@ -250,6 +250,9 @@ final class SubscriptionController extends AbstractController
             $subscription->assignCategory($category);
             $subscription->rename($request->request->get('custom_title'));
             if ($feed === $candidate) $entityManager->persist($feed);
+            if (!$subscription->getFeed()->getId()->equals($feed->getId()) || '1' !== $request->request->getString('enabled')) {
+                $entityManager->getConnection()->executeStatement('DELETE FROM notification_pending WHERE subscription_id = ?', [$subscription->getId()->toBinary()]);
+            }
             $subscription->changeFeed($feed);
             '1' === $request->request->getString('enabled') ? $subscription->enable() : $subscription->disable();
             $entityManager->flush();
