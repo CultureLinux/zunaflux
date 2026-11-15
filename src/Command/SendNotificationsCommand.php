@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use App\Application\Time\Clock;
+use App\Application\Time\SystemClock;
 use App\Application\Notification\RelayNotificationOutbox;
 use App\Application\Notification\SendNotificationDigests;
 use Doctrine\ORM\EntityManagerInterface;
@@ -20,6 +22,7 @@ final class SendNotificationsCommand extends Command
         private readonly EntityManagerInterface $em,
         private readonly SendNotificationDigests $sender,
         private readonly RelayNotificationOutbox $relay,
+        private readonly Clock $clock = new SystemClock(),
     ) {
         parent::__construct();
     }
@@ -37,7 +40,7 @@ final class SendNotificationsCommand extends Command
         $users = $this->em->getConnection()->fetchFirstColumn('SELECT DISTINCT s.user_id FROM subscription s JOIN notification_pending p ON p.subscription_id = s.id');
         $sent = 0;
         foreach ($users as $user) {
-            $sent += $this->sender->send(Uuid::fromBinary($user), new \DateTimeImmutable('now', new \DateTimeZone('UTC')));
+            $sent += $this->sender->send(Uuid::fromBinary($user), $this->clock->now()->setTimezone(new \DateTimeZone('UTC')));
             $this->em->clear();
         }
         $output->writeln(sprintf('%d notification(s) accepted.', $sent));

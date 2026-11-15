@@ -17,6 +17,7 @@ use App\Entity\Subscription;
 use App\Entity\User;
 use App\Message\NotifyFeedMessage;
 use App\MessageHandler\NotifyFeedHandler;
+use App\Tests\Support\FrozenClock;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\ORM\EntityManagerInterface;
@@ -36,12 +37,14 @@ final class NotificationOutboxTest extends KernelTestCase
     private EntityManagerInterface $em;
     private Connection $db;
     private Feed $feed;
+    private FrozenClock $clock;
 
     protected function setUp(): void
     {
         self::bootKernel();
         $this->em = self::getContainer()->get(EntityManagerInterface::class);
         $this->db = $this->em->getConnection();
+        $this->clock = new FrozenClock(new \DateTimeImmutable('2026-11-15 12:00:00 UTC'));
         $this->feed = new Feed('https://example.test/outbox-'.bin2hex(random_bytes(8)));
         $this->em->persist($this->feed);
         $this->em->flush();
@@ -95,7 +98,7 @@ final class NotificationOutboxTest extends KernelTestCase
                 return new FetchedFeed(304, null, 'unchanged', null, $url);
             }
         };
-        $collector = new CollectFeed($this->em, $fetcher, new FeedParser(), new NotificationOutbox($this->db));
+        $collector = new CollectFeed($this->em, $fetcher, new FeedParser(), new NotificationOutbox($this->db, $this->clock));
         self::assertSame(0, $collector->collect($this->feed));
         self::assertSame([], $this->pending());
     }
@@ -129,8 +132,8 @@ final class NotificationOutboxTest extends KernelTestCase
             self::assertSame($bus->messages[0]->eventId, $bus->messages[1]->eventId);
 
             // Both accepted copies are handled through the real digest path.
-            $queue = new DigestQueue($this->db);
-            $handler = new NotifyFeedHandler($this->em, $queue, new NullLogger());
+            $queue = new DigestQueue($this->db, $this->clock);
+            $handler = new NotifyFeedHandler($this->em, $queue, new NullLogger(), $this->clock);
             foreach ($bus->messages as $message) {
                 $handler($message);
             }
@@ -143,7 +146,7 @@ final class NotificationOutboxTest extends KernelTestCase
 
     public function testAConcurrentRelaySkipsLockedRowsAndLaterRecoversThem(): void
     {
-        $outbox = new NotificationOutbox($this->db);
+        $outbox = new NotificationOutbox($this->db, $this->clock);
         $first = new NotifyFeedMessage((string) $this->feed->getId(), 'articles', 2);
         $second = new NotifyFeedMessage((string) $this->feed->getId(), 'articles', 3);
         $outbox->add($first);
@@ -188,7 +191,7 @@ final class NotificationOutboxTest extends KernelTestCase
         $lock = 'zunaflux-digest-'.$user->getId();
         try {
             self::assertSame(1, (int) $other->fetchOne('SELECT GET_LOCK(?, 0)', [$lock]));
-            $handler = new NotifyFeedHandler($this->em, new DigestQueue($this->db), new NullLogger());
+            $handler = new NotifyFeedHandler($this->em, new DigestQueue($this->db, $this->clock), new NullLogger(), $this->clock);
             try {
                 $handler(new NotifyFeedMessage((string) $this->feed->getId(), 'articles', 1));
                 self::fail('A busy account must defer processing.');
@@ -213,8 +216,8 @@ final class NotificationOutboxTest extends KernelTestCase
         $id = null;
         try {
             $message = new NotifyFeedMessage((string) $this->feed->getId(), 'articles', 2);
-            $queue = new DigestQueue($this->db);
-            (new NotifyFeedHandler($this->em, $queue, new NullLogger()))($message);
+            $queue = new DigestQueue($this->db, $this->clock);
+            (new NotifyFeedHandler($this->em, $queue, new NullLogger(), $this->clock))($message);
 
             // Model a failure after partial handling: the persistent failed copy
             // carries the same event identity as the already-counted message.
@@ -255,7 +258,7 @@ final class NotificationOutboxTest extends KernelTestCase
                 return new FetchedFeed(200, $this->xml, 'new-etag', null, $url);
             }
         };
-        return new CollectFeed($this->em, $fetcher, new FeedParser(), new NotificationOutbox($this->db));
+        return new CollectFeed($this->em, $fetcher, new FeedParser(), new NotificationOutbox($this->db, $this->clock));
     }
 
     /** @return list<array<string, mixed>> */

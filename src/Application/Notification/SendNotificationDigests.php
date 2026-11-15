@@ -74,7 +74,7 @@ final readonly class SendNotificationDigests
                 $status = $report->isSuccess() ? 'sent' : ($report->isSubscriptionExpired() ? 'expired_subscription' : 'delivery_failed');
                 $this->logger->info('Récapitulatif traité.', $context + ['status' => $status]);
             }
-            $this->queue->prune($userId);
+            $this->queue->prune($userId, $now);
             return $sent;
         } finally {
             $this->queue->unlock($userId);

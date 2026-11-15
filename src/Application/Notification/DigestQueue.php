@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace App\Application\Notification;
 
+use App\Application\Time\Clock;
+use App\Application\Time\SystemClock;
 use Doctrine\DBAL\Connection;
 use Symfony\Component\Uid\Uuid;
 
 final readonly class DigestQueue
 {
-    public function __construct(private Connection $connection) {}
+    public function __construct(private Connection $connection, private Clock $clock = new SystemClock())
+    {
+    }
 
     public function lock(Uuid $user): bool
     {
@@ -41,9 +45,10 @@ final readonly class DigestQueue
         return (int) $this->connection->fetchOne('SELECT COALESCE(MAX(id), 0) FROM notification_pending');
     }
 
-    public function prune(Uuid $user): void
+    public function prune(Uuid $user, ?\DateTimeImmutable $now = null): void
     {
         // Retain consumed events for 30 days to deduplicate delayed Messenger retries.
-        $this->connection->executeStatement('DELETE p FROM notification_pending p JOIN subscription s ON s.id = p.subscription_id WHERE s.user_id = ? AND p.created_at < UTC_TIMESTAMP() - INTERVAL 30 DAY AND NOT EXISTS (SELECT 1 FROM push_subscription d WHERE d.user_id = s.user_id AND d.digest_cursor < p.id)', [$user->toBinary()]);
+        $cutoff = ($now ?? $this->clock->now())->setTimezone(new \DateTimeZone('UTC'))->modify('-30 days');
+        $this->connection->executeStatement('DELETE p FROM notification_pending p JOIN subscription s ON s.id = p.subscription_id WHERE s.user_id = ? AND p.created_at < ? AND NOT EXISTS (SELECT 1 FROM push_subscription d WHERE d.user_id = s.user_id AND d.digest_cursor < p.id)', [$user->toBinary(), $cutoff->format('Y-m-d H:i:s')]);
     }
 }

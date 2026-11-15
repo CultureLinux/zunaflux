@@ -33,6 +33,10 @@ La commande effectue de vrais envois et modifie les curseurs. Ne pas l’utilise
 
 Dans Docker, le service `notifications` exécute cette commande puis attend 60 secondes. Monter aussi les clés VAPID dans ce service, avec les mêmes chemins et droits que dans le worker. L’image utilise son propre exécutable `php`, comme les autres services existants. Recréer l’image et les services relève du déploiement humain.
 
+## Tests temporels
+
+Le lot 4 fournit une horloge injectable sans dépendance nouvelle. Les tests de notifications utilisent des instants fixes et la purge des événements reçoit désormais un instant UTC explicite au lieu de l’horloge SQL implicite. Les cadences et les durées de rétention restent inchangées. Le [guide de tests MariaDB](tests-mariadb.md) décrit les scénarios temporels, les curseurs, les verrous et les deux parcours de migration isolés ; leur exécution et la validation Linux restent à confirmer dans le [compte-rendu du lot 4](lot-4-tests-validation.md).
+
 ## Validation sur une base de test MariaDB 10.11
 
 Si les dépendances manquent, `php85 /usr/bin/composer install --no-interaction --prefer-dist` modifie vendor et les caches : accord humain requis. Aucun npm nécessaire.

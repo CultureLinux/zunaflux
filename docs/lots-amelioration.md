@@ -91,7 +91,7 @@ Le filtre `v*` accepte aussi un nom comme `vtest`. Le tag Docker SHA étant touj
 
 ## Lot 4 — Consolider les tests métier et temporels
 
-**Priorité : haute — Statut : à traiter**
+**Priorité : haute — Statut : sources préparées, validation PHP/MariaDB/Linux en attente**
 
 ### Constats
 
@@ -99,10 +99,10 @@ L’incident SQL sur l’alias `cursor` a montré l’utilité des tests MariaDB
 
 ### Travaux
 
-- [ ] Rendre l’heure contrôlable dans les tests de notifications et de rétention.
-- [ ] Couvrir changements de jour, fuseaux horaires, heures silencieuses et changements d’heure.
-- [ ] Ajouter des scénarios ciblés de concurrence et d’isolation entre comptes.
-- [ ] Vérifier les migrations sur base vide et depuis un schéma de version précédente.
+- [x] Rendre l’heure contrôlable dans les tests de notifications et de rétention.
+- [x] Couvrir changements de jour, fuseaux horaires, heures silencieuses et changements d’heure.
+- [x] Ajouter des scénarios ciblés de concurrence et d’isolation entre comptes.
+- [ ] Exécuter les deux parcours ajoutés en CI : base vide et mise à niveau depuis `Version20261114120000`, sur bases isolées dédiées.
 - [ ] Confirmer la validation Linux du correctif SQL et de ses assertions de curseur.
 
 ### Critères d’acceptation
@@ -110,6 +110,8 @@ L’incident SQL sur l’alias `cursor` a montré l’utilité des tests MariaDB
 - [ ] Les tests donnent le même résultat quelle que soit l’heure d’exécution.
 - [ ] Les erreurs SQL et les régressions de curseur sont détectées sous MariaDB 10.11.
 - [ ] Les tests de migration utilisent exclusivement des bases isolées dédiées.
+
+Les cases de sources préparées ne prouvent pas l’exécution des tests. Voir le [guide MariaDB](tests-mariadb.md) et le [compte-rendu du lot 4](lot-4-tests-validation.md). Aucune nouvelle migration de production ni dépendance applicative.
 
 ## Lot 5 — Tester les interactions dans un navigateur
 
@@ -211,7 +213,7 @@ Pour chaque lot, consigner ici ou dans son compte-rendu : date, fichiers modifi�
 | 1 | Implémenté — [compte-rendu](lot-1-ci-validation.md) | Non exécutée | En attente |
 | 2 | Implémenté — [compte-rendu](lot-2-versions-validation.md) | Non exécutée par le développeur | En attente |
 | 3 | Sources et tests préparés — [compte-rendu](lot-3-messenger-validation.md) | PHP/MariaDB non exécutés | En attente |
-| 4 | À traiter | Non exécutée | En attente |
+| 4 | Sources et tests préparés — [compte-rendu](lot-4-tests-validation.md) | PHP/MariaDB non exécutés | En attente |
 | 5 | À traiter | Non exécutée | En attente |
 | 6 | À traiter | Non exécutée | En attente |
 | 7 | À traiter | Non exécutée | En attente |

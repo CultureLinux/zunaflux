@@ -56,6 +56,79 @@ final class UserPreferenceNotificationScheduleTest extends TestCase
         self::assertTrue($preference->isNotificationDue($firstNewArticle, new \DateTimeImmutable('2026-11-14 12:00:00 UTC')));
     }
 
+    public function testQuietHourBoundariesAreLocalAndEndIsExclusive(): void
+    {
+        $preference = new UserPreference(new User('quiet-boundary@example.test'));
+        $preference->update(['timezone' => 'Europe/Paris', 'quiet_start' => '22:00', 'quiet_end' => '08:00']);
+        foreach ([
+            ['2026-11-14 20:59:59 UTC', true],
+            ['2026-11-14 21:00:00 UTC', false],
+            ['2026-11-15 06:59:59 UTC', false],
+            ['2026-11-15 07:00:00 UTC', true],
+        ] as [$instant, $allowed]) {
+            self::assertSame($allowed, $preference->allowsPushAt(new \DateTimeImmutable($instant)), $instant);
+        }
+        $preference->update(['quiet_start' => '12:00', 'quiet_end' => '14:00']);
+        self::assertFalse($preference->allowsPushAt(new \DateTimeImmutable('2026-11-15 11:00:00 UTC')));
+        self::assertTrue($preference->allowsPushAt(new \DateTimeImmutable('2026-11-15 13:00:00 UTC')));
+    }
+
+    public function testIntervalMeasuresElapsedHoursAcrossBothClockChanges(): void
+    {
+        $preference = new UserPreference(new User('dst-interval@example.test'));
+        $preference->update(['timezone' => 'Europe/Paris']);
+        $preference->setNotificationSchedule('interval', 1, []);
+        foreach ([
+            ['2026-03-29 01:30:00 Europe/Paris', '2026-03-29T01:30:00+00:00'],
+            ['2026-10-25 00:30:00 UTC', '2026-10-25T01:30:00+00:00'],
+            ['2026-10-25 01:30:00 UTC', '2026-10-25T02:30:00+00:00'],
+        ] as [$after, $expected]) {
+            $instant = new \DateTimeImmutable($after);
+            $next = $preference->nextNotificationAfter($instant);
+            self::assertSame($expected, $next->format('c'));
+            self::assertSame(3600, $next->getTimestamp() - $instant->getTimestamp());
+        }
+    }
+
+    public function testFixedSchedulesRespectDatesOnBothSidesOfUtc(): void
+    {
+        $preference = new UserPreference(new User('timezone-date@example.test'));
+        $preference->setNotificationSchedule('fixed', 1, [8]);
+        foreach ([
+            ['Asia/Tokyo', '2026-11-14 22:59:59 UTC', '2026-11-14T23:00:00+00:00'],
+            ['Asia/Tokyo', '2026-11-14 23:00:00 UTC', '2026-11-15T23:00:00+00:00'],
+            ['Pacific/Honolulu', '2026-11-14 19:00:00 UTC', '2026-11-15T18:00:00+00:00'],
+        ] as [$timezone, $after, $expected]) {
+            $preference->update(['timezone' => $timezone]);
+            self::assertSame($expected, $preference->nextNotificationAfter(new \DateTimeImmutable($after))->format('c'));
+        }
+    }
+
+    public function testFixedDailySlotIsNotRepeatedAfterDeliveryOnDstDays(): void
+    {
+        $preference = new UserPreference(new User('dst-daily@example.test'));
+        $preference->update(['timezone' => 'Europe/Paris']);
+        $preference->setNotificationSchedule('fixed', 1, [8]);
+        self::assertSame('2026-03-30T06:00:00+00:00', $preference->nextNotificationAfter(new \DateTimeImmutable('2026-03-29 06:00:00 UTC'))->format('c'));
+        self::assertSame('2026-10-26T07:00:00+00:00', $preference->nextNotificationAfter(new \DateTimeImmutable('2026-10-25 07:00:00 UTC'))->format('c'));
+    }
+
+    public function testQuietHoursCoverBothOccurrencesOfTheRepeatedHour(): void
+    {
+        $preference = new UserPreference(new User('dst-quiet@example.test'));
+        $preference->update(['timezone' => 'Europe/Paris', 'quiet_start' => '22:00', 'quiet_end' => '08:00']);
+        foreach ([
+            '2026-03-29 00:59:59 UTC',
+            '2026-03-29 01:00:00 UTC',
+            '2026-10-25 00:30:00 UTC',
+            '2026-10-25 01:30:00 UTC',
+        ] as $instant) {
+            self::assertFalse($preference->allowsPushAt(new \DateTimeImmutable($instant)), $instant);
+        }
+        self::assertTrue($preference->allowsPushAt(new \DateTimeImmutable('2026-03-29 06:00:00 UTC')));
+        self::assertTrue($preference->allowsPushAt(new \DateTimeImmutable('2026-10-25 07:00:00 UTC')));
+    }
+
     public function testInvalidScheduleDoesNotPartiallyChangePreferences(): void
     {
         $preference = new UserPreference(new User('schedule@example.test'));

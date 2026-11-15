@@ -16,6 +16,7 @@ use App\Entity\Subscription;
 use App\Entity\User;
 use App\Message\NotifyFeedMessage;
 use App\MessageHandler\NotifyFeedHandler;
+use App\Tests\Support\FrozenClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\AbstractLogger;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -41,11 +42,13 @@ final class NotificationTraceTest extends KernelTestCase
         };
 
         try {
-            $queue = new DigestQueue($em->getConnection());
-            $handler = new NotifyFeedHandler($em, $queue, $logger);
+            $clock = new FrozenClock(new \DateTimeImmutable('2026-11-14 20:00:00 UTC'));
+            $queue = new DigestQueue($em->getConnection(), $clock);
+            $handler = new NotifyFeedHandler($em, $queue, $logger, $clock);
             $handler(new NotifyFeedMessage((string) $feed->getId(), 'articles', 3));
-            $sender = new SendNotificationDigests($em, $queue, new PushDelivery($em, '', ''), new PushMessage($container->get(TranslatorInterface::class)), new NotificationCounter($em->getConnection(), $logger), new NotificationDiagnostics($logger), $logger);
-            $sender->send($user->getId(), new \DateTimeImmutable('+2 hours'));
+            $sender = new SendNotificationDigests($em, $queue, new PushDelivery($em, '', ''), new PushMessage($container->get(TranslatorInterface::class)), new NotificationCounter($em->getConnection(), $logger, $clock), new NotificationDiagnostics($logger), $logger);
+            $clock->set(new \DateTimeImmutable('2026-11-14 22:00:00 UTC'));
+            $sender->send($user->getId(), $clock->now());
             self::assertSame(3, $queue->pending($user->getId(), 0)['count']);
 
             $entries = array_filter($logger->entries, static fn (array $entry): bool => ($entry['status'] ?? null) === 'configuration_error' && ($entry['device_id'] ?? null) === (string) $device->getId());

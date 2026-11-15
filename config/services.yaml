@@ -51,6 +51,8 @@ services:
         arguments:
             $projectDir: '%kernel.project_dir%'
 
+    App\Application\Time\Clock: '@App\Application\Time\SystemClock'
+
     App\Domain\Feed\FeedFetcherInterface: '@App\Domain\Feed\FeedFetcher'
 
     App\Application\Notification\RelayNotificationOutbox:
