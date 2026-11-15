@@ -14,6 +14,7 @@ jobs:
 
   detect-docker:
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     outputs:
       dockerfile: ${{ steps.detect.outputs.dockerfile }}
     steps:
@@ -32,6 +33,7 @@ jobs:
       - detect-docker
     if: ${{ needs.detect-docker.outputs.dockerfile == 'true' }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
       - uses: docker/setup-qemu-action@v3

@@ -5,16 +5,20 @@ on:
   push:
     branches:
       - main
-    tags:
-      - 'v*'
   workflow_call:
 
 permissions:
   contents: read
 
+# Only superseded PR runs are cancelled; tag publications use unique groups.
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  quality:
+  php:
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     env:
       APP_ENV: test
       APP_SECRET: ci-test-secret
@@ -48,40 +52,105 @@ jobs:
           php-version: '8.5'
           extensions: ctype, iconv, mbstring, pdo_mysql, xml, dom, curl, intl
           coverage: none
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
+      - name: Configure PHP command paths
+        run: |
+          sudo ln -sf "$(command -v php)" /usr/local/bin/php85
+          if [ "$(command -v composer)" != /usr/bin/composer ]; then
+            sudo ln -sf "$(command -v composer)" /usr/bin/composer
+          fi
       - name: Prepare Symfony test environment
         run: touch .env
       - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
+        run: php85 /usr/bin/composer install --no-interaction --prefer-dist --no-progress
       - name: Validate Composer manifest
-        run: composer validate --strict
+        run: php85 /usr/bin/composer validate --strict
       - name: Check PHP syntax
-        run: find src tests migrations public bin -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+        run: find src tests migrations public bin -type f -name '*.php' -print0 | xargs -0 -n1 php85 -l
       - name: Validate Symfony configuration
         run: |
-          php bin/console lint:container
-          php bin/console lint:twig templates/
+          php85 bin/console lint:container
+          php85 bin/console lint:twig templates/
       - name: Apply test migrations
         env:
           APP_ENV: test
           DATABASE_URL: mysql://zunaflux_test:zunaflux_test@127.0.0.1:3306/zunaflux_test?serverVersion=mariadb-10.11.0&charset=utf8mb4
-        run: php bin/console doctrine:migrations:migrate --no-interaction
+        run: php85 bin/console doctrine:migrations:migrate --no-interaction
       - name: Run PHPUnit
         env:
           APP_ENV: test
           DATABASE_URL: mysql://zunaflux_test:zunaflux_test@127.0.0.1:3306/zunaflux_test?serverVersion=mariadb-10.11.0&charset=utf8mb4
-        run: php vendor/bin/phpunit
+        run: php85 vendor/bin/phpunit --log-junit var/reports/phpunit.xml
+      - name: Preserve PHPUnit report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: phpunit-${{ github.run_id }}-${{ github.run_attempt }}
+          path: var/reports/phpunit.xml
+          if-no-files-found: warn
+          retention-days: 7
+
+  javascript:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Check workflow contracts
+        run: |
+          sh tests/Container/ci-config.sh
+          sh tests/Container/workflow-config.sh
+          sh tests/Container/publish-workflow-config.sh
+          sh tests/Container/ci-quality-gate.sh
       - name: Run JavaScript tests
-        run: for test_file in tests/JavaScript/*.test.cjs; do node "$test_file"; done
+        run: |
+          result=0
+          for test_file in tests/JavaScript/*.test.cjs; do
+            node "$test_file" || result=1
+          done
+          exit "$result"
+
+  assets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      APP_ENV: prod
+      APP_SECRET: ci-build-secret
+      APP_DEBUG: 0
+      APP_TIMEZONE: Europe/Paris
+      MAILER_DSN: null://null
+      MESSENGER_TRANSPORT_DSN: doctrine://default?queue_name=async
+      ZUNAFLUX_PAGE_SIZE: 30
+      ZUNAFLUX_MAX_SUBSCRIPTIONS: 100
+      ZUNAFLUX_PUBLIC_REGISTRATION: 0
+      ZUNAFLUX_MEDIA_STORAGE: var/media
+      DATABASE_URL: mysql://unused:unused@127.0.0.1:3306/unused?serverVersion=mariadb-10.11.0&charset=utf8mb4
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: ctype, iconv, mbstring, pdo_mysql, xml, dom, curl, intl
+          coverage: none
+      - name: Configure PHP command paths
+        run: |
+          sudo ln -sf "$(command -v php)" /usr/local/bin/php85
+          if [ "$(command -v composer)" != /usr/bin/composer ]; then
+            sudo ln -sf "$(command -v composer)" /usr/bin/composer
+          fi
+      - name: Prepare Symfony build environment
+        run: touch .env
+      - name: Install Composer dependencies
+        run: php85 /usr/bin/composer install --no-interaction --prefer-dist --no-progress
       - name: Build production frontend assets
         run: |
-          APP_ENV=prod php bin/console tailwind:build --minify --env=prod
-          APP_ENV=prod php bin/console asset-map:compile --env=prod
+          php85 bin/console tailwind:build --minify --env=prod
+          php85 bin/console asset-map:compile --env=prod
 
   detect-docker:
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     outputs:
       enabled: ${{ steps.detect.outputs.enabled }}
     steps:
@@ -98,6 +167,7 @@ jobs:
     needs: detect-docker
     if: ${{ needs.detect-docker.outputs.enabled == 'true' }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
       - name: Build production image without publishing
@@ -108,3 +178,29 @@ jobs:
           sh tests/Container/compose-config.sh
       - name: Test HTTP server and Compose startup
         run: sh tests/Container/compose-smoke.sh ci-${{ github.sha }}
+
+  quality:
+    if: ${{ always() }}
+    needs: [php, javascript, assets, detect-docker, docker-build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require all mandatory validations
+        env:
+          PHP_RESULT: ${{ needs.php.result }}
+          JAVASCRIPT_RESULT: ${{ needs.javascript.result }}
+          ASSETS_RESULT: ${{ needs.assets.result }}
+          DETECT_RESULT: ${{ needs.detect-docker.result }}
+          DOCKER_ENABLED: ${{ needs.detect-docker.outputs.enabled }}
+          DOCKER_RESULT: ${{ needs.docker-build.result }}
+        run: |
+          test "$PHP_RESULT" = success
+          test "$JAVASCRIPT_RESULT" = success
+          test "$ASSETS_RESULT" = success
+          test "$DETECT_RESULT" = success
+          if [ "$DOCKER_ENABLED" = true ]; then
+            test "$DOCKER_RESULT" = success
+          else
+            test "$DOCKER_ENABLED" = false
+            test "$DOCKER_RESULT" = skipped
+          fi
