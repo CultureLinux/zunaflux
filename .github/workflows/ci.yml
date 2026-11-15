@@ -103,6 +103,8 @@ jobs:
           sh tests/Container/workflow-config.sh
           sh tests/Container/publish-workflow-config.sh
           sh tests/Container/ci-quality-gate.sh
+          sh tests/Container/release-tags.sh
+          sh tests/Container/release-workflow.sh
       - name: Run JavaScript tests
         run: |
           result=0

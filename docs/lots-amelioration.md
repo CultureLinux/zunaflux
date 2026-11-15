@@ -46,7 +46,7 @@ Un tag `v*` déclenche directement `.github/workflows/ci.yml`, puis `.github/wor
 
 ## Lot 2 — Encadrer les versions publiées
 
-**Priorité : haute — Statut : à traiter — Dépendance : lot 1**
+**Priorité : haute — Statut : implémenté, validation Linux/GitHub en attente — Dépendance : lot 1**
 
 ### Constats
 
@@ -54,10 +54,10 @@ Le filtre `v*` accepte aussi un nom comme `vtest`. Le tag Docker SHA étant touj
 
 ### Travaux
 
-- [ ] Valider le format de version avant toute connexion au registre.
-- [ ] Définir les règles pour versions stables, préversions et anciennes branches de maintenance.
-- [ ] Tester la génération des tags Docker, notamment `latest`.
-- [ ] Documenter la procédure de version et les critères de publication.
+- [x] Valider le format de version avant toute connexion au registre.
+- [x] Définir les règles pour versions stables, préversions et anciennes branches de maintenance.
+- [x] Tester la génération des tags Docker, notamment `latest`.
+- [x] Documenter la procédure de version et les critères de publication.
 
 ### Critères d’acceptation
 
@@ -209,7 +209,7 @@ Pour chaque lot, consigner ici ou dans son compte-rendu : date, fichiers modifi�
 | Lot | Implémentation | Validation Linux | Retour développeur |
 | --- | --- | --- | --- |
 | 1 | Implémenté — [compte-rendu](lot-1-ci-validation.md) | Non exécutée | En attente |
-| 2 | À traiter | Non exécutée | En attente |
+| 2 | Implémenté — [compte-rendu](lot-2-versions-validation.md) | Non exécutée par le développeur | En attente |
 | 3 | À traiter | Non exécutée | En attente |
 | 4 | À traiter | Non exécutée | En attente |
 | 5 | À traiter | Non exécutée | En attente |
