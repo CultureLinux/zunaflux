@@ -18,3 +18,8 @@ if grep -Fq 'pull_request:' "$workflow"; then
     printf '%s\n' 'Publication must not run for pull requests.' >&2
     exit 1
 fi
+
+if grep -Eq '^[[:space:]]*(branches|branches-ignore|workflow_dispatch|workflow_call|schedule):' "$workflow"; then
+    printf '%s\n' 'Publication must only run for version tag pushes.' >&2
+    exit 1
+fi

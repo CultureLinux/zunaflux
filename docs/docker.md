@@ -2,6 +2,8 @@
 
 L'image de production est publiée sur Docker Hub sous `clinuxfr/zunaflux`. Les images sont construites et publiées uniquement par GitHub Actions ; ne publiez pas depuis votre poste ou votre serveur.
 
+La publication se déclenche uniquement lors du push d'un tag de version `v*` (par exemple `v1.2.3`), après réussite de la CI. Les pushes sur `main` et les pull requests exécutent les validations sans publier d'image. Pour une version stable, les tags Docker SemVer et `latest` sont générés automatiquement ; une préversion ne met pas à jour `latest`.
+
 ## Prérequis
 
 - Docker Engine avec Docker Compose v2 ;
