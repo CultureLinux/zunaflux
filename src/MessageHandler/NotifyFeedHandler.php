@@ -12,7 +12,6 @@ use App\Message\NotifyFeedMessage;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
-use Symfony\Component\Messenger\Exception\RecoverableMessageHandlingException;
 use Symfony\Component\Uid\Uuid;
 
 #[AsMessageHandler]
@@ -29,7 +28,7 @@ final readonly class NotifyFeedHandler
         foreach ($this->em->getRepository(Subscription::class)->findBy(['feed' => $feed, 'enabled' => true]) as $subscription) {
             $user = $subscription->getUser();
             if (!$user->isActive()) continue;
-            if (!$this->queue->lock($user->getId())) throw new RecoverableMessageHandlingException('Notification digest busy.');
+            if (!$this->queue->lock($user->getId())) throw new \RuntimeException('Notification digest busy.');
             try {
                 $context = ['feed_id' => $message->feedId, 'user_email' => $user->getUserIdentifier(), 'article_count' => $message->count];
                 if (0 === $this->em->getRepository(PushSubscription::class)->count(['user' => $user])) {

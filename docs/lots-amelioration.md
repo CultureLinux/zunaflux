@@ -68,7 +68,7 @@ Le filtre `v*` accepte aussi un nom comme `vtest`. Le tag Docker SHA étant touj
 
 ## Lot 3 — Rendre les échecs Messenger récupérables
 
-**Priorité : haute — Statut : à traiter**
+**Priorité : haute — Statut : implémenté, validation PHP/MariaDB/Linux en attente**
 
 ### Constats
 
@@ -76,10 +76,10 @@ Le filtre `v*` accepte aussi un nom comme `vtest`. Le tag Docker SHA étant touj
 
 ### Travaux
 
-- [ ] Configurer une file d’échec et une politique de nouvelles tentatives explicite.
-- [ ] Ajouter une procédure d’inspection et de rejeu.
-- [ ] Garantir la récupération d’une notification dont les articles ont été enregistrés mais dont la mise en file a échoué.
-- [ ] Tester les interruptions et le rejeu sans duplication métier.
+- [x] Configurer une file d’échec et une politique de nouvelles tentatives explicite.
+- [x] Ajouter une procédure d’inspection et de rejeu.
+- [x] Garantir la récupération d’une notification dont les articles ont été enregistrés mais dont la mise en file a échoué.
+- [ ] Exécuter sur MariaDB les tests ajoutés pour les interruptions, la concurrence et le rejeu sans duplication métier.
 
 ### Critères d’acceptation
 
@@ -87,7 +87,7 @@ Le filtre `v*` accepte aussi un nom comme `vtest`. Le tag Docker SHA étant touj
 - [ ] Les échecs définitifs restent inspectables et rejouables.
 - [ ] Les limites de garantie de livraison sont documentées, notamment pour les envois Web Push externes.
 
-**Impact à déterminer :** une migration peut être nécessaire selon la solution retenue pour assurer la livraison.
+**Impact :** migration `Version20261115120000` pour une outbox transactionnelle ; aucune nouvelle variable applicative ni dépendance. Voir la [procédure de reprise](messenger-recovery.md) et le [compte-rendu](lot-3-messenger-validation.md).
 
 ## Lot 4 — Consolider les tests métier et temporels
 
@@ -210,7 +210,7 @@ Pour chaque lot, consigner ici ou dans son compte-rendu : date, fichiers modifi�
 | --- | --- | --- | --- |
 | 1 | Implémenté — [compte-rendu](lot-1-ci-validation.md) | Non exécutée | En attente |
 | 2 | Implémenté — [compte-rendu](lot-2-versions-validation.md) | Non exécutée par le développeur | En attente |
-| 3 | À traiter | Non exécutée | En attente |
+| 3 | Sources et tests préparés — [compte-rendu](lot-3-messenger-validation.md) | PHP/MariaDB non exécutés | En attente |
 | 4 | À traiter | Non exécutée | En attente |
 | 5 | À traiter | Non exécutée | En attente |
 | 6 | À traiter | Non exécutée | En attente |

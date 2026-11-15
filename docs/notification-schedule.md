@@ -6,6 +6,10 @@ Les nouveautés de toutes les sources actives sont regroupées. Le compteur comp
 
 La collecte RSS reste partagée et indépendante. Les nouveautés collectées après un créneau d’envoi attendent le suivant : un cron de collecte à 08:00 ne garantit pas que sa collecte asynchrone sera terminée pour l’envoi de 08:00. Un nouvel appareil reçoit uniquement les événements postérieurs à son activation. Les tests manuels d’appareil restent immédiats.
 
+## Reprise des événements de collecte
+
+Depuis le lot 3, `app:notifications:send` relaie d’abord les événements conservés dans `notification_outbox`. Les articles et leur événement sont enregistrés ensemble ; une panne de mise en file n’efface plus l’intention de notifier. La migration supplémentaire, la file d’échec Messenger et les limites de déduplication sont décrites dans la [procédure de reprise](messenger-recovery.md). Les commandes d’activation ci-dessous décrivent le lot de cadence initial ; consulter aussi le [compte-rendu du lot 3](lot-3-messenger-validation.md) pour sa migration et ses tests.
+
 ## Activation Linux — approbation humaine requise
 
 Aucune dépendance nouvelle, aucune variable d’environnement nouvelle. Sauvegarder la base et laisser le worker vider les anciens NotifyFeedMessage avant la mise à jour : ils ne portent pas encore d’identifiant d’événement. Arrêter les processus applicatifs suivant votre procédure habituelle, puis appliquer :

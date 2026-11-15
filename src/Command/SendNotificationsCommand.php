@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use App\Application\Notification\RelayNotificationOutbox;
 use App\Application\Notification\SendNotificationDigests;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -15,10 +16,24 @@ use Symfony\Component\Uid\Uuid;
 #[AsCommand(name: 'app:notifications:send', description: 'Sends due personal notification digests.')]
 final class SendNotificationsCommand extends Command
 {
-    public function __construct(private readonly EntityManagerInterface $em, private readonly SendNotificationDigests $sender) { parent::__construct(); }
+    public function __construct(
+        private readonly EntityManagerInterface $em,
+        private readonly SendNotificationDigests $sender,
+        private readonly RelayNotificationOutbox $relay,
+    ) {
+        parent::__construct();
+    }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $relayFailed = false;
+        try {
+            $this->relay->dispatchPending();
+        } catch (\Throwable) {
+            // Existing digests still deserve their normal delivery attempt.
+            $relayFailed = true;
+            $output->writeln('<error>Notification relay failed; pending events are retained.</error>');
+        }
         $users = $this->em->getConnection()->fetchFirstColumn('SELECT DISTINCT s.user_id FROM subscription s JOIN notification_pending p ON p.subscription_id = s.id');
         $sent = 0;
         foreach ($users as $user) {
@@ -26,6 +41,6 @@ final class SendNotificationsCommand extends Command
             $this->em->clear();
         }
         $output->writeln(sprintf('%d notification(s) accepted.', $sent));
-        return Command::SUCCESS;
+        return $relayFailed ? Command::FAILURE : Command::SUCCESS;
     }
 }

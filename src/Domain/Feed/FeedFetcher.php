@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Feed;
 
-final readonly class FeedFetcher
+final readonly class FeedFetcher implements FeedFetcherInterface
 {
     private const int MAX_BYTES = 5_242_880;
     private const int MAX_REDIRECTS = 3;

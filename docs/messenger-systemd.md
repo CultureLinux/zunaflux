@@ -15,6 +15,8 @@ sudo systemctl status zunaflux-messenger.service --no-pager
 
 Le statut attendu est `active (running)`. L’application doit alors afficher le worker actif au plus tard 30 secondes après son démarrage.
 
+Le transport d’échec `failed` conserve désormais les messages dont les tentatives sont épuisées. Le worker reste limité à `async` : ne pas ajouter `failed` à sa consommation normale. L’outbox de notifications est reprise par le planificateur existant ; voir la [procédure d’inspection et de rejeu](messenger-recovery.md).
+
 ## Journaux et diagnostic
 
 ```bash
