@@ -39,7 +39,10 @@ final class NotificationDigestTest extends KernelTestCase
             $handler($event);
             $handler($event);
             $handler(new NotifyFeedMessage((string) $feeds[1]->getId(), 'articles', 3));
-            self::assertSame(5, $queue->pending($user->getId(), 0)['count']);
+            $pending = $queue->pending($user->getId(), 0);
+            self::assertSame(5, $pending['count']);
+            self::assertGreaterThan(0, $pending['cursor']);
+            self::assertSame(['count' => 0, 'cursor' => 0, 'first' => null], $queue->pending($user->getId(), $pending['cursor']));
             self::assertSame(2, $queue->pending($other->getId(), 0)['count']);
             $em->getConnection()->executeStatement("UPDATE notification_pending SET created_at = '2026-11-14 20:00:00' WHERE subscription_id IN (SELECT id FROM subscription WHERE user_id = ?)", [$user->getId()->toBinary()]);
             $attempts = [];

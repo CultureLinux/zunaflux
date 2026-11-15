@@ -32,8 +32,8 @@ final readonly class DigestQueue
     /** @return array{count: int, cursor: int, first: ?\DateTimeImmutable} */
     public function pending(Uuid $user, int $cursor): array
     {
-        $row = $this->connection->fetchAssociative('SELECT COALESCE(SUM(p.article_count), 0) AS total, COALESCE(MAX(p.id), 0) AS cursor, MIN(p.created_at) AS first_at FROM notification_pending p JOIN subscription s ON s.id = p.subscription_id WHERE s.user_id = ? AND s.enabled = 1 AND p.id > ?', [$user->toBinary(), $cursor]);
-        return ['count' => (int) $row['total'], 'cursor' => (int) $row['cursor'], 'first' => null === $row['first_at'] ? null : new \DateTimeImmutable($row['first_at'], new \DateTimeZone('UTC'))];
+        $row = $this->connection->fetchAssociative('SELECT COALESCE(SUM(p.article_count), 0) AS total, COALESCE(MAX(p.id), 0) AS max_id, MIN(p.created_at) AS first_at FROM notification_pending p JOIN subscription s ON s.id = p.subscription_id WHERE s.user_id = ? AND s.enabled = 1 AND p.id > ?', [$user->toBinary(), $cursor]);
+        return ['count' => (int) $row['total'], 'cursor' => (int) $row['max_id'], 'first' => null === $row['first_at'] ? null : new \DateTimeImmutable($row['first_at'], new \DateTimeZone('UTC'))];
     }
 
     public function latestCursor(): int
