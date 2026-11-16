@@ -25,16 +25,16 @@ check() {
 }
 
 export PHP_RESULT=success JAVASCRIPT_RESULT=success ASSETS_RESULT=success
-export MIGRATIONS_RESULT=success
+export MIGRATIONS_RESULT=success BROWSER_RESULT=success
 export DETECT_RESULT=success DOCKER_ENABLED=true DOCKER_RESULT=success
 check 0
 check 0 DOCKER_ENABLED=false DOCKER_RESULT=skipped
 
 for result in failure cancelled skipped; do
-    for variable in PHP_RESULT JAVASCRIPT_RESULT ASSETS_RESULT MIGRATIONS_RESULT DETECT_RESULT DOCKER_RESULT; do
+    for variable in PHP_RESULT JAVASCRIPT_RESULT ASSETS_RESULT MIGRATIONS_RESULT BROWSER_RESULT DETECT_RESULT DOCKER_RESULT; do
         check 1 "$variable=$result"
     done
 done
 check 1 DOCKER_ENABLED=false DOCKER_RESULT=success
 check 1 DOCKER_ENABLED= DOCKER_RESULT=skipped
-printf '%s\n' 'Quality gate: 22 scenarios passed.'
+printf '%s\n' 'Quality gate: 25 scenarios passed.'

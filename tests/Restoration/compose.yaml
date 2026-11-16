@@ -1,0 +1,49 @@
+services:
+  database:
+    image: ${RESTORE_TEST_DB_IMAGE:?Choose the local MariaDB 10.11 image}
+    pull_policy: never
+    environment:
+      MARIADB_ROOT_PASSWORD: ${RESTORE_TEST_DB_PASSWORD:?Synthetic exercise password required}
+      MARIADB_ROOT_HOST: '%'
+    healthcheck:
+      test: [CMD, healthcheck.sh, --connect, --innodb_initialized]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - database-data:/var/lib/mysql
+
+  runner:
+    image: ${RESTORE_TEST_IMAGE:?Choose the local application image}
+    pull_policy: never
+    user: '0:0'
+    entrypoint: [/bin/sh, /exercise/php85]
+    environment:
+      APP_ENV: prod
+      APP_DEBUG: 0
+      APP_SECRET: ${RESTORE_TEST_APP_SECRET:?Synthetic secret required}
+      APP_TIMEZONE: Europe/Paris
+      DATABASE_URL: mysql://root:${RESTORE_TEST_DB_PASSWORD}@database:3306/zunaflux_restore_source?serverVersion=mariadb-10.11.0&charset=utf8mb4
+      MAILER_DSN: null://null
+      MESSENGER_TRANSPORT_DSN: doctrine://default?queue_name=async
+      ZUNAFLUX_PAGE_SIZE: 30
+      ZUNAFLUX_MAX_SUBSCRIPTIONS: 100
+      ZUNAFLUX_PUBLIC_REGISTRATION: 0
+      ZUNAFLUX_MEDIA_STORAGE: /exercise-data/source/media
+      ZUNAFLUX_MASTODON_TOKEN_KEY: ${RESTORE_TEST_TOKEN_KEY:?Synthetic encryption key required}
+      ZUNAFLUX_PUBLIC_BASE_URL: https://restore.example.test
+      ZUNAFLUX_VAPID_PUBLIC_FILE: ''
+      ZUNAFLUX_VAPID_PRIVATE_FILE: ''
+      ZUNAFLUX_VAPID_SUBJECT: ''
+      ZUNAFLUX_RESTORE_EXERCISE: 1
+    volumes:
+      - ./:/exercise:ro
+      - exercise-data:/exercise-data
+
+networks:
+  default:
+    internal: true
+
+volumes:
+  database-data:
+  exercise-data:

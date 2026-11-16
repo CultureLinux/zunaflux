@@ -23,7 +23,7 @@ Zunaflux est un logiciel libre, open source et en développement actif. L'applic
 
 ### Limites connues
 
-- Les notifications Web Push sont encore en validation sur appareils réels et navigateurs ciblés.
+- Les notifications Web Push ont été validées par le développeur ; les fournisseurs pris en charge restent limités à Chrome et Firefox.
 - La lecture hors ligne n'est pas prise en charge : l'application nécessite une connexion réseau pour afficher les articles.
 - Avant toute mise à jour, sauvegardez la base de données, `var/media/` et votre configuration locale.
 
@@ -42,13 +42,13 @@ Zunaflux est un logiciel libre, open source et en développement actif. L'applic
 - **Gardez la main** : exportez vos données et administrez les comptes, les sources et les incidents depuis votre instance.
 - **Partagez sur Mastodon** : connectez un compte dans les préférences pour publier un article, avec le texte et la visibilité de votre choix.
 
-Zunaflux propose également une installation sur l’écran d’accueil depuis un navigateur compatible. Les notifications Web Push pour les nouveaux articles et les erreurs de collecte sont en cours de validation sur appareil. L’application nécessite une connexion réseau pour lire les articles.
+Zunaflux propose également une installation sur l’écran d’accueil depuis un navigateur compatible. Les notifications Web Push pour les nouveaux articles et les erreurs de collecte sont validées par le développeur. L’application nécessite une connexion réseau pour lire les articles.
 
-Les préférences permettent notamment de choisir la langue, le thème, la présentation de lecture et une plage de silence pour les notifications. Les flux peuvent être rafraîchis individuellement, par catégorie ou ensemble. L’export de compte fournit une archive de données personnelles ; la réimportation complète des états de lecture ne fait pas partie du format actuel. Voir [le format d’export](docs/export-format-v1.md).
+Les préférences permettent notamment de choisir la langue, le thème, la présentation de lecture et une plage de silence pour les notifications. Les flux peuvent être rafraîchis individuellement, par catégorie ou ensemble. L’export de compte fournit une archive de données personnelles ; la réimportation complète des états de lecture ne fait pas partie du format actuel. Voir [la synthèse](docs/SYNTHESE.md#configuration-validation-et-limites).
 
 ## Installer Zunaflux
 
-Zunaflux s’adresse aux personnes qui souhaitent héberger leur propre lecteur. Pour Docker, suivez le [guide Docker Compose](docs/docker.md) : FrankenPHP sert directement l’application et ses fichiers statiques. L’installation manuelle ci-dessous nécessite PHP et un serveur web ; adaptez les chemins et les commandes PHP à votre environnement.
+Zunaflux s’adresse aux personnes qui souhaitent héberger leur propre lecteur. Pour Docker, suivez le [guide Docker synthétique](docs/SYNTHESE.md#installation-et-mise-à-jour-docker) : FrankenPHP sert directement l’application et ses fichiers statiques. L’installation manuelle ci-dessous nécessite PHP et un serveur web ; adaptez les chemins et les commandes PHP à votre environnement.
 
 ### Prérequis
 
@@ -109,7 +109,7 @@ php85 bin/console messenger:consume async --env=prod
 
 Configurez ce worker comme un service supervisé sur votre serveur. La durée de conservation des articles est réglable avec `ZUNAFLUX_RETENTION_MONTHS` ; sa valeur par défaut est de 12 mois.
 
-Un exemple prêt pour systemd est fourni dans [`docs/messenger-systemd.md`](docs/messenger-systemd.md).
+Une [unité systemd](deploy/systemd/zunaflux-messenger.service) est fournie ; adaptez les chemins et l’utilisateur à votre serveur.
 
 ### Partage Mastodon
 
@@ -145,17 +145,17 @@ Après une mise à jour, redémarrez le worker Messenger selon votre supervision
 
 ## PWA et notifications
 
-L’installation sur l’écran d’accueil dépend du navigateur. Zunaflux est une PWA installée depuis le navigateur : il n’existe pas d’application native distribuée sur Google Play ou l’App Store. Les notifications demandent HTTPS, une configuration VAPID, un worker Messenger et une activation par utilisateur et par appareil. Elles sont actuellement limitées aux services Web Push de Chrome et Firefox ; leur fonctionnement réel reste à vérifier sur les navigateurs et appareils ciblés.
+L’installation sur l’écran d’accueil dépend du navigateur. Zunaflux est une PWA installée depuis le navigateur : il n’existe pas d’application native distribuée sur Google Play ou l’App Store. Les notifications demandent HTTPS, une configuration VAPID, un worker Messenger et une activation par utilisateur et par appareil. Elles sont actuellement limitées aux services Web Push de Chrome et Firefox. Leur validation a été confirmée par le développeur le 16 novembre 2026 ; la liste des appareils et versions testés n’est pas consignée.
 
-Consultez [la documentation PWA et Web Push](docs/pwa-web-push.md) pour la configuration des clés, les limites actuelles et les points à valider.
+Consultez [la synthèse de configuration](docs/SYNTHESE.md#configuration-validation-et-limites) pour la configuration des clés et les limites actuelles.
 
 ## Docker Compose
 
-L'image de production est publiée sur Docker Hub sous `clinuxfr/zunaflux`. Elle est construite et publiée exclusivement par GitHub Actions. Consultez [le guide Docker Compose](docs/docker.md) pour préparer l'environnement, démarrer les services et appliquer explicitement les migrations.
+L'image de production est publiée sur Docker Hub sous `clinuxfr/zunaflux`. Elle est construite et publiée exclusivement par GitHub Actions. Consultez [le guide Docker Compose](docs/SYNTHESE.md#installation-et-mise-à-jour-docker) pour préparer l'environnement et approuver les migrations avant le démarrage des services.
 
 ## Développement
 
-Le projet utilise Symfony 8.1, PHP 8.5, Doctrine, Twig, Tailwind CSS et MariaDB 10.11. Pour installer les dépendances de développement, utilisez `php85 /usr/bin/composer install` sans l’option `--no-dev`.
+Le projet utilise Symfony 8.1, PHP 8.5, Doctrine, Twig, Tailwind CSS et MariaDB 10.11. Le choix technique est une orientation « bleeding edge » plutôt qu’une cible Symfony LTS ; les montées de version restent explicites et validées par le développeur. Pour installer les dépendances de développement, utilisez `php85 /usr/bin/composer install` sans l’option `--no-dev`.
 
 ```bash
 php85 bin/console lint:container
@@ -171,9 +171,7 @@ node tests/JavaScript/reading-selection.test.cjs
 
 ## Documentation
 
-- [PWA et notifications Web Push](docs/pwa-web-push.md)
-- [Format d’export des données](docs/export-format-v1.md)
-- [Direction artistique](docs/direction-artistique.md)
+- [Synthèse globale : état du projet, production, exploitation et limites](docs/SYNTHESE.md)
 
 ## Licence
 

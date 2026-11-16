@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Application\Reading\ArticleStateService;
+use App\Application\Reading\MarkSubscriptionRead;
 use App\Application\Reading\FeedHtmlSanitizer;
 use App\Entity\Article;
 use App\Entity\ArticleState;
@@ -49,42 +50,48 @@ final class ArticleController extends AbstractController
     }
 
     #[Route('/subscriptions/{id}/mark-read', name: 'app_subscription_mark_read', methods: ['POST'])]
-    public function markSubscriptionRead(string $id, Request $request, EntityManagerInterface $entityManager, ArticleStateService $stateService): Response
+    public function markSubscriptionRead(string $id, Request $request, EntityManagerInterface $entityManager, MarkSubscriptionRead $markRead): Response
     {
-        try { $uuid = Uuid::fromString($id); } catch (\InvalidArgumentException) { throw $this->createNotFoundException(); }
+        try {
+            $uuid = Uuid::fromString($id);
+        } catch (\InvalidArgumentException) {
+            throw $this->createNotFoundException();
+        }
         $user = $this->currentUser();
         $subscription = $entityManager->getRepository(Subscription::class)->findOneBy(['id' => $uuid, 'user' => $user, 'enabled' => true]);
-        if (!$subscription instanceof Subscription) throw $this->createNotFoundException();
-        if (!$this->isCsrfTokenValid('mark-feed-read-'.$id, $request->request->getString('_token'))) throw $this->createAccessDeniedException();
-        $this->markFeedRead($user, $subscription, $entityManager, $stateService);
+        if (!$subscription instanceof Subscription) {
+            throw $this->createNotFoundException();
+        }
+        if (!$this->isCsrfTokenValid('mark-feed-read-'.$id, $request->request->getString('_token'))) {
+            throw $this->createAccessDeniedException();
+        }
+        $markRead->mark($subscription);
 
         return $this->redirectToRoute('app_articles', ['subscription' => $id, 'read' => '0']);
     }
 
     #[Route('/categories/{id}/mark-read', name: 'app_category_mark_read', methods: ['POST'])]
-    public function markCategoryRead(string $id, Request $request, EntityManagerInterface $entityManager, ArticleStateService $stateService): Response
+    public function markCategoryRead(string $id, Request $request, EntityManagerInterface $entityManager, MarkSubscriptionRead $markRead): Response
     {
-        try { $uuid = Uuid::fromString($id); } catch (\InvalidArgumentException) { throw $this->createNotFoundException(); }
+        try {
+            $uuid = Uuid::fromString($id);
+        } catch (\InvalidArgumentException) {
+            throw $this->createNotFoundException();
+        }
         $user = $this->currentUser();
         $category = $entityManager->getRepository(Category::class)->findOneBy(['id' => $uuid, 'user' => $user]);
-        if (!$category instanceof Category) throw $this->createNotFoundException();
-        if (!$this->isCsrfTokenValid('mark-category-read-'.$id, $request->request->getString('_token'))) throw $this->createAccessDeniedException();
+        if (!$category instanceof Category) {
+            throw $this->createNotFoundException();
+        }
+        if (!$this->isCsrfTokenValid('mark-category-read-'.$id, $request->request->getString('_token'))) {
+            throw $this->createAccessDeniedException();
+        }
         $subscriptions = $entityManager->getRepository(Subscription::class)->findBy(['user' => $user, 'category' => $category, 'enabled' => true]);
-        foreach ($subscriptions as $subscription) $this->markFeedRead($user, $subscription, $entityManager, $stateService);
+        foreach ($subscriptions as $subscription) {
+            $markRead->mark($subscription);
+        }
 
         return $this->redirectToRoute('app_articles', ['category' => $id, 'filterName' => $category->getName(), 'read' => '0']);
-    }
-
-    private function markFeedRead(User $user, Subscription $subscription, EntityManagerInterface $entityManager, ArticleStateService $stateService): void
-    {
-        $cursor = null;
-        do {
-            $query = $entityManager->createQueryBuilder()->select('a')->from(Article::class, 'a')->leftJoin(ArticleState::class, 's', 'WITH', 's.article = a AND s.user = :user')->where('a.feed = :feed')->andWhere('s.id IS NULL OR s.isRead = false')->setParameter('user', $user->getId(), 'uuid')->setParameter('feed', $subscription->getFeed()->getId(), 'uuid')->orderBy('a.id', 'ASC')->setMaxResults(100);
-            if ($cursor !== null) $query->andWhere('a.id > :cursor')->setParameter('cursor', $cursor, 'uuid');
-            $articles = $query->getQuery()->getResult();
-            foreach ($articles as $article) { $stateService->update($user, $article, ['isRead' => true]); $cursor = $article->getId(); }
-        } while (count($articles) === 100);
-
     }
 
     #[Route('/api/articles', name: 'app_api_articles', methods: ['GET'])]

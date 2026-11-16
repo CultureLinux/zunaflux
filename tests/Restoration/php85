@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+# The production image names PHP "php". This local test wrapper keeps the
+# exercise entry point explicit without installing an alias in that image.
+exec /usr/local/bin/php "$@"

@@ -75,14 +75,26 @@ final readonly class CollectFeedHandler
     private function logNotQueued(Feed $feed, int $count, string $status, string $kind = 'articles'): void
     {
         try {
-            foreach ($this->entityManager->getRepository(Subscription::class)->findBy(['feed' => $feed, 'enabled' => true]) as $feedSubscription) {
-                $user = $feedSubscription->getUser();
-                $context = ['feed_id' => (string) $feed->getId(), 'kind' => $kind, 'article_count' => $count, 'user_email' => $user->getUserIdentifier(), 'status' => $status];
-                $devices = $this->entityManager->getRepository(PushSubscription::class)->findBy(['user' => $user]);
-                if ([] === $devices) $this->logger->info('Notification de collecte non mise en file.', $context + ['device_id' => null, 'device_label' => null]);
-                foreach ($devices as $device) {
-                    $this->logger->info('Notification de collecte non mise en file.', $context + ['device_id' => (string) $device->getId(), 'device_label' => $device->getDeviceLabel()]);
-                }
+            $traces = $this->entityManager->createQueryBuilder()
+                ->select('u.emailNormalized AS userEmail, d.id AS deviceId, d.deviceLabel AS deviceLabel')
+                ->from(Subscription::class, 's')
+                ->innerJoin('s.user', 'u')
+                ->leftJoin(PushSubscription::class, 'd', 'WITH', 'd.user = u')
+                ->where('s.feed = :feed AND s.enabled = true')
+                ->setParameter('feed', $feed->getId(), 'uuid')
+                ->getQuery()
+                ->getArrayResult();
+
+            foreach ($traces as $trace) {
+                $this->logger->info('Notification de collecte non mise en file.', [
+                    'feed_id' => (string) $feed->getId(),
+                    'kind' => $kind,
+                    'article_count' => $count,
+                    'user_email' => $trace['userEmail'],
+                    'status' => $status,
+                    'device_id' => null === $trace['deviceId'] ? null : (string) $trace['deviceId'],
+                    'device_label' => $trace['deviceLabel'],
+                ]);
             }
         } catch (\Throwable) {
             $this->logger->error('Impossible de tracer les notifications non mises en file.', ['feed_id' => (string) $feed->getId(), 'kind' => $kind, 'article_count' => $count, 'status' => 'trace_error']);

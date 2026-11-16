@@ -1,3 +1,5 @@
+import { viewFromParams, setViewParams, updateSourceMarkReadControls, updateReadingSources } from '../reading/sources.js';
+
 const readingMarkers = (item, labels = { unread: 'Non lu', favorite: 'Favori', saved: 'À lire plus tard' }) => [
     ...(!item.isRead ? [labels.unread] : []),
     ...(item.isFavorite ? [labels.favorite] : []),
@@ -16,28 +18,6 @@ const shareArticle = (article) => {
     } catch (_) {
         return Promise.resolve(false);
     }
-};
-
-const viewFromParams = (params) => {
-    if (params.get('favorite') === '1') return 'favorite';
-    if (params.get('saved') === '1') return 'saved';
-    const read = params.get('read');
-    return read === '0' || read === '1' || read === '' ? read : '0';
-};
-
-const setViewParams = (params, view) => {
-    for (const key of ['read', 'favorite', 'saved']) params.delete(key);
-    if (view === 'favorite' || view === 'saved') params.set(view, '1');
-    else params.set('read', view);
-};
-
-const isReadingSourceVisible = ({ unread, read, favorite = 0, saved = 0 }, view, sourceCategoryId, selectedCategoryId) => {
-    if (selectedCategoryId && sourceCategoryId !== selectedCategoryId) return false;
-    return (view === '0' ? unread : view === '1' ? read : view === 'favorite' || view === 'saved' ? unread : unread + read) > 0;
-};
-
-const updateSourceMarkReadControls = (forms, subscriptionId, categoryId) => {
-    forms.forEach((form) => { form.hidden = categoryId ? form.dataset.categoryId !== categoryId : !subscriptionId || form.dataset.subscriptionId !== subscriptionId; });
 };
 
 const container = document.querySelector('[data-article-list]');
@@ -122,29 +102,7 @@ if (container) {
     if (selectedSearch && searchInput) searchInput.value = new URLSearchParams(location.search).get('filterName');
     const readFilter = document.querySelector('[data-read-filter]');
     readFilter.value = viewFromParams(new URLSearchParams(location.search));
-    const updateSources = () => {
-        document.querySelectorAll('[data-reading-category]').forEach((link) => {
-            const url = new URL(link.href);
-            setViewParams(url.searchParams, readFilter.value);
-            link.href = url.href;
-        });
-        document.querySelectorAll('[data-reading-source]').forEach((row) => {
-            const unread = Number(row.dataset.unread);
-            const read = Number(row.dataset.read);
-            const favorite = Number(row.dataset.favorite);
-            const saved = Number(row.dataset.saved);
-            row.hidden = !isReadingSourceVisible({ unread, read, favorite, saved }, readFilter.value, row.dataset.categoryId || '', categoryFilter);
-            const link = row.querySelector('[data-source-link]');
-            const url = new URL(link.href);
-            setViewParams(url.searchParams, readFilter.value);
-            link.href = url.href;
-        });
-        document.querySelectorAll('[data-reading-category-group]').forEach((group) => {
-            const outsideCategory = categoryFilter && group.dataset.readingCategoryGroup !== categoryFilter;
-            const noUnread = readFilter.value === '0' && ![...group.querySelectorAll('[data-reading-source]')].some((row) => Number(row.dataset.unread) > 0);
-            group.hidden = !!outsideCategory || noUnread;
-        });
-    };
+    const updateSources = () => updateReadingSources(document, readFilter.value, categoryFilter);
     updateSources();
     let nextCursor = null;
     let selectedArticle = null;
