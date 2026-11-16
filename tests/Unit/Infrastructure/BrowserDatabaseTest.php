@@ -18,6 +18,8 @@ final class BrowserDatabaseTest extends TestCase
             ['browser', 'mysql://user:secret@localhost/zunaflux'],
             ['browser', 'mysql://user:secret@localhost/zunaflux_test'],
             ['browser', 'mysql://user:secret@localhost/zunaflux_browser_test_'],
+            ['browser', 'mysql://user:secret@localhost/zunaflux_performance_test_'],
+            ['prod', 'mysql://user:secret@localhost/zunaflux_performance_test_local'],
             ['browser', 'mysql://user:secret@localhost/zunaflux_browser_test_ci?dbname=zunaflux'],
             ['browser', 'sqlite:///:memory:'],
         ] as [$environment, $url]) {
@@ -34,6 +36,13 @@ final class BrowserDatabaseTest extends TestCase
     {
         $parameters = BrowserDatabase::parameters('browser', 'mysql://user:secret@127.0.0.1/zunaflux_browser_test_ci');
         self::assertSame('zunaflux_browser_test_ci', $parameters['dbname']);
+        self::assertSame('pdo_mysql', $parameters['driver']);
+    }
+
+    public function testDedicatedPerformanceDatabaseCanBeReusedForBrowserTests(): void
+    {
+        $parameters = BrowserDatabase::parameters('browser', 'mysql://user:secret@127.0.0.1/zunaflux_performance_test_local');
+        self::assertSame('zunaflux_performance_test_local', $parameters['dbname']);
         self::assertSame('pdo_mysql', $parameters['driver']);
     }
 }

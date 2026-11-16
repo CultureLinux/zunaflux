@@ -107,6 +107,6 @@
     </dialog>
     {% include 'article/_mastodon_share_dialog.html.twig' %}
     <script type="module" src="{{ asset('controllers/mastodon-share.js') }}"></script>
-    <script type="module" src="{{ asset('controllers/article-list.js') }}"></script>
+    {{ importmap('reader') }}
     <script type="module" src="{{ asset('controllers/zen.js') }}"></script>
 {% endblock %}

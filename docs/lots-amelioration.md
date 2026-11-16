@@ -115,7 +115,7 @@ Les cases de sources préparées ne prouvent pas l’exécution des tests. Voir 
 
 ## Lot 5 — Tester les interactions dans un navigateur
 
-**Priorité : moyenne — Statut : sources préparées, validation navigateur/Linux en attente**
+**Priorité : moyenne — Statut : 14 parcours Linux et preuve négative exécutés pendant 7B, acceptation finale en attente**
 
 ### Constats
 
@@ -129,11 +129,11 @@ Plusieurs tests JavaScript, notamment `tests/JavaScript/reading-layout.test.cjs`
 
 ### Critères d’acceptation
 
-- [ ] Une interaction réellement cassée fait échouer un test.
+- [x] Une interaction réellement cassée fait échouer un test : listener d’ouverture retiré temporairement, échec observé puis restauration et 14 parcours verts.
 - [ ] Un changement de présentation sans changement fonctionnel ne casse pas arbitrairement la suite.
-- [ ] Les parcours sont reproductibles avec des données de test isolées.
+- [x] Les parcours sont reproductibles avec des données de test isolées : 14 succès avant/après extraction et zéro fixture navigateur restante.
 
-**Dépendance retenue :** Playwright Test `1.65.1` en développement, Chromium uniquement, sept scénarios sur deux profils (14 parcours), un worker. Manifestes npm verrouillés ; installation et exécution Linux non effectuées par l’agent. Trois assertions de structure retirées ; les autres tests JavaScript restent présents. Voir le [guide navigateur](browser-tests.md) et le [compte-rendu du lot 5](lot-5-browser-validation.md).
+**Dépendance retenue :** Playwright Test `1.65.1`, Chromium, sept scénarios sur deux profils, un worker. Exécution Linux désormais réalisée pendant 7B avec Node 24 déjà présent, paquets verrouillés et Chromium headless ; 14 succès avant/après et après restauration de la preuve négative. Base de performance réutilisée sur demande explicite du développeur, sans parallélisme avec le banc. Le [compte-rendu 7B](lot-7b-reader-validation.md) actualise les résultats du [compte-rendu initial](lot-5-browser-validation.md). Voir aussi le [guide navigateur](browser-tests.md).
 
 ## Lot 6 — Mesurer les performances avant de refactoriser
 
@@ -162,7 +162,7 @@ Plusieurs tests JavaScript, notamment `tests/JavaScript/reading-layout.test.cjs`
 
 ## Lot 7 — Simplifier la maintenance du code
 
-**Priorité : moyenne — Statut : 7A PHP implémenté et vérifié localement, 7B lecteur différé — Prérequis conseillé : lot 5 pour le lecteur**
+**Priorité : moyenne — Statut : 7A et 7B implémentés, vérifications Linux obtenues ; CI et acceptation finale en attente**
 
 ### Constats
 
@@ -171,20 +171,22 @@ Lors de l’analyse, `assets/controllers/article-list.js` compte 664 lignes ; le
 ### Travaux
 
 - [x] Introduire progressivement l’analyse statique PHP : PHPStan niveau 6 sur deux services, obligatoire dans le job PHP de la CI (exécution GitHub en attente).
-- [ ] Extraire les responsabilités du lecteur JavaScript après couverture des interactions.
+- [x] Extraire les responsabilités du lecteur JavaScript après couverture : module des vues/sources, import map Symfony et 14 parcours navigateur avant/après.
 - [x] Déplacer les opérations métier des contrôleurs vers des services ciblés : marquage d’un abonnement extrait dans `MarkSubscriptionRead`, avec test direct.
 - [x] Harmoniser les blocs de code très condensés dans le périmètre traité : deux routes de marquage et service extrait.
 - [x] Découper les changements structurels en petites livraisons vérifiables : 7A PHP, puis 7B JavaScript après validation navigateur.
 
 ### Critères d’acceptation
 
-- [ ] Le comportement est préservé.
-- [ ] Les responsabilités extraites sont plus faciles à tester.
-- [ ] L’analyse statique est intégrée à la CI avec un périmètre et une progression explicites.
+- [x] Le comportement du périmètre extrait est préservé : preuves PHP et navigateur avant/après.
+- [x] Les responsabilités extraites sont testées directement : service PHP et module ES des vues/sources.
+- [x] L’analyse statique est intégrée au job PHP de la CI, niveau 6 sur deux services sans baseline ; exécution GitHub et élargissement progressif encore attendus.
 
 **Dépendance retenue pour 7A :** `phpstan/phpstan`, développement uniquement, pour vérifier les contrats typés des services extraits ; périmètre initial limité et progression documentée.
 
 **Livraison 7A :** PHPStan `2.3.6` en développement, deux services au niveau 6 sans baseline. Routes de marquage caractérisées avant/après extraction (15 tests / 94 assertions), suite finale 186 tests / 839 assertions sans échec et 5 notices préexistantes. Aucune migration. L’installation a signalé 16 avis sur 11 paquets Symfony déjà verrouillés ; aucune mise à jour hors périmètre. Le [plan](lot-7-maintenance-plan.md) et le [compte-rendu](lot-7-maintenance-validation.md) détaillent les résultats et limites. Extraction JavaScript en attente de validation des interactions du lot 5 ; Node 24 requis, Node 20 disponible sur l’hôte.
+
+**Livraison 7B :** Node 24 trouvé sur l’hôte, référence navigateur obtenue après correction de l’amorçage de test. Vues/sources extraites dans un module ES, import map pour les assets compilés. 57 tests JS, 14 parcours Chromium et 187 tests PHP / 843 assertions sans échec (5 notices connues). Contrôle négatif d’ouverture observé et restauré. Aucun manifeste de dépendances modifié ni migration. Voir le [plan](lot-7b-reader-plan.md) et le [compte-rendu](lot-7b-reader-validation.md) ; cette livraison lève le prérequis local qui bloquait 7B lors de 7A.
 
 ## Lot 8 — Vérifier la restauration et clarifier l’exploitation
 
@@ -218,7 +220,7 @@ Pour chaque lot, consigner ici ou dans son compte-rendu : date, fichiers modifi�
 | 2 | Implémenté — [compte-rendu](lot-2-versions-validation.md) | Non exécutée par le développeur | En attente |
 | 3 | Sources et tests préparés — [compte-rendu](lot-3-messenger-validation.md) | PHP/MariaDB non exécutés | En attente |
 | 4 | Sources et tests préparés — [compte-rendu](lot-4-tests-validation.md) | PHP/MariaDB non exécutés | En attente |
-| 5 | Sources préparées — [compte-rendu](lot-5-browser-validation.md) | Navigateur/PHP/npm non exécutés | En attente |
+| 5 | Parcours exécutés pendant [7B](lot-7b-reader-validation.md) | 14 succès, preuve négative puis restauration, fixtures nettoyées | En attente |
 | 6 | Collecte optimisée — [compte-rendu](lot-6-performance-validation.md) | Trois paires avant/après ; collecte 100 abonnés : 208 → 8 SQL ; 184 tests sans échec, 5 notices ; budget temporel à 1 abonné non validé | En attente |
-| 7 | 7A PHP extrait et analyse statique ajoutée — [compte-rendu](lot-7-maintenance-validation.md) | PHPStan niveau 6 sans erreur, 186 tests sans échec, 5 notices ; CI GitHub et 7B à valider | En attente |
+| 7 | 7A PHP et [7B lecteur](lot-7b-reader-validation.md) extraits | 187 tests PHP, 57 JS, 14 Chromium, analyse sans erreur ; 5 notices connues ; CI GitHub à confirmer | En attente |
 | 8 | À traiter | Non exécutée | En attente |

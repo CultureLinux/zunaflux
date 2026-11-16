@@ -1,7 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const vm = require('node:vm');
+const { evaluateArticleList } = require('../Support/evaluate-article-list.cjs');
 test('article actions come before the article title', () => {
     const template = fs.readFileSync('templates/article/index.html.twig', 'utf8');
     const dialog = template.split('data-article-dialog')[1];
@@ -36,7 +36,7 @@ test('article readers expose a native-share control with the loaded article URL'
         URL,
     };
 
-    vm.runInNewContext(script + '\nthis.shareArticle = shareArticle;', context);
+    evaluateArticleList(context, '\nthis.shareArticle = shareArticle;');
     await context.shareArticle({ title: 'Une lecture', url: 'https://example.test/article' });
 
     assert.match(template, /data-article-share/);
@@ -55,7 +55,7 @@ test('article sharing copies the article URL when native sharing is unavailable'
         URL,
     };
 
-    vm.runInNewContext(script + '\nthis.shareArticle = shareArticle;', context);
+    evaluateArticleList(context, '\nthis.shareArticle = shareArticle;');
 
     assert.equal(await context.shareArticle({ title: 'Une lecture', url: 'https://example.test/article' }), 'copied');
     assert.deepEqual(copied, ['https://example.test/article']);
@@ -80,7 +80,7 @@ test('share controls stay visible and the modal article uses its available width
 
 test('the desktop source list keeps only sources from the selected category', () => {
     const context = { document: { querySelector: () => null } };
-    vm.runInNewContext(fs.readFileSync('assets/controllers/article-list.js', 'utf8') + '\nthis.sourceIsVisible = isReadingSourceVisible;', context);
+    context.sourceIsVisible = require('../../assets/reading/sources.js').isReadingSourceVisible;
 
     assert.equal(context.sourceIsVisible({ unread: 2, read: 1, favorite: 1, saved: 0 }, 'favorite', 'science', 'science'), true);
     assert.equal(context.sourceIsVisible({ unread: 2, read: 1, favorite: 0, saved: 1 }, 'favorite', 'science', 'science'), true);

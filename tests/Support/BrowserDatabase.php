@@ -27,9 +27,9 @@ final class BrowserDatabase
             throw new \RuntimeException('Invalid browser test database URL.');
         }
         if ('pdo_mysql' !== ($parameters['driver'] ?? null)
-            || !preg_match('/^zunaflux_browser_test_[a-z0-9_]+$/D', $parameters['dbname'] ?? '')
+            || !preg_match('/^zunaflux_(?:browser|performance)_test_[a-z0-9_]+$/D', $parameters['dbname'] ?? '')
         ) {
-            throw new \RuntimeException('Only a dedicated zunaflux_browser_test_* database is allowed.');
+            throw new \RuntimeException('Only a dedicated zunaflux_browser_test_* or zunaflux_performance_test_* database is allowed.');
         }
         $parameters['serverVersion'] = '10.11.0-MariaDB';
 

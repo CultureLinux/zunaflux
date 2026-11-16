@@ -1,6 +1,6 @@
 # Parcours navigateur du lecteur
 
-Lot 5 : sources préparées, pas de résultat navigateur revendiqué sans exécution Linux et retour du développeur.
+14 parcours exécutés avec succès sur Linux avant et après l’extraction du lot 7B ; contrôle négatif d’ouverture observé, puis restauration et nouvelle suite verte. Acceptation du développeur en attente. Voir le [compte-rendu 7B](lot-7b-reader-validation.md).
 
 ## Outil et coût
 
@@ -32,7 +32,7 @@ Trois anciens tests de `reading-layout.test.cjs` sont retirés : regex du pannea
 
 L’environnement Symfony `browser` conserve le vrai firewall et le formulaire de connexion avec CSRF. Il utilise des sessions natives dans `var/browser-sessions` et un hachage de mots de passe à coût de test ; les environnements `prod` et `test` ne sont pas modifiés. Aucun endpoint HTTP de fixtures ou de connexion spéciale n’est ajouté.
 
-`BROWSER_TEST_DATABASE_URL` est une variable d’outillage, sans repli sur `DATABASE_URL`. Les scripts exigent `APP_ENV=browser`, MySQL/PDO, MariaDB 10.11 et une base nommée `zunaflux_browser_test_<suffixe>` (minuscules, chiffres, underscores). Seuls `charset` et `serverVersion` sont permis dans la query string du DSN. Le CLI refuse les migrations incomplètes avant seed/cleanup.
+`BROWSER_TEST_DATABASE_URL` est une variable d’outillage, sans repli sur `DATABASE_URL`. Les scripts exigent `APP_ENV=browser`, MySQL/PDO, MariaDB 10.11 et une base nommée `zunaflux_browser_test_<suffixe>` ou `zunaflux_performance_test_<suffixe>` (minuscules, chiffres, underscores). Ce second préfixe a été autorisé explicitement par le développeur pour réutiliser sa base de test locale ; ne pas exécuter les deux bancs en même temps sur cette base. Seuls `charset` et `serverVersion` sont permis dans la query string du DSN. Le CLI refuse les migrations incomplètes avant seed/cleanup.
 
 Chaque scénario reçoit un token aléatoire de 32 caractères hexadécimaux, deux comptes ordinaires, trois flux et cinq articles synthétiques. Les dates de collecte sont fixées pour stabiliser l’ordre réel de l’API. Les préférences initiales sont manuelles, en français, avec panneau bureau actif. Un article est déjà lu et un autre favori. Les mots de passe aléatoires sont transmis uniquement au processus de test, pas versionnés ni imprimés dans les journaux normaux.
 
@@ -51,12 +51,18 @@ CREATE DATABASE zunaflux_browser_test_local
 
 Attribuer au compte de test les droits nécessaires sur cette seule base. Renseigner localement `BROWSER_TEST_DATABASE_URL` avec son DSN `mysql://.../zunaflux_browser_test_local?serverVersion=mariadb-10.11.0&charset=utf8mb4`. Ne pas afficher ni versionner le mot de passe. Préparer aussi les valeurs de configuration applicative de test (secret factice, mail nul, VAPID non configuré) ; la CI montre ces valeurs non sensibles et utilise sa propre base éphémère.
 
+Le routeur force les variables de l’environnement de test avant Symfony Runtime et désactive la lecture de dotenv dans le serveur HTTP de test ; exporter les valeurs ci-dessous explicitement. Il fixe aussi le front controller pour éviter une réentrée dans le routeur. Les routes et fichiers de production restent inchangés.
+
 Dans la copie de validation, après accord humain :
 
 ```bash
-set -eu
+# En terminal interactif, ne pas activer set -e ; contrôler chaque code de sortie.
 : "${BROWSER_TEST_DATABASE_URL:?Configurer la base navigateur dédiée}"
-export APP_ENV=browser APP_DEBUG=0
+export APP_ENV=browser APP_DEBUG=0 APP_SECRET=browser-local-test-secret
+export APP_TIMEZONE=Europe/Paris MAILER_DSN='null://null'
+export MESSENGER_TRANSPORT_DSN='doctrine://default?queue_name=async'
+export ZUNAFLUX_PAGE_SIZE=30 ZUNAFLUX_MAX_SUBSCRIPTIONS=100
+export ZUNAFLUX_PUBLIC_REGISTRATION=1 ZUNAFLUX_MEDIA_STORAGE=var/media
 export DATABASE_URL="$BROWSER_TEST_DATABASE_URL"
 # Dépendances de développement : écrit vendor, node_modules et les caches.
 php85 /usr/bin/composer install --no-interaction --prefer-dist --no-progress
@@ -71,6 +77,7 @@ php85 bin/console doctrine:migrations:migrate --env=browser --no-interaction
 php85 tests/Browser/fixtures.php check
 # Les vrais assets doivent être disponibles avant le serveur HTTP.
 php85 bin/console tailwind:build --minify --env=browser
+php85 bin/console cache:clear --env=browser
 php85 bin/console asset-map:compile --env=browser
 npm run test:browser
 ```
@@ -116,7 +123,8 @@ Le token littéral `TOKEN` est refusé ; aucune purge globale n’est proposée.
 Dans une copie de validation uniquement, sauvegarder puis retirer temporairement le listener de clic du bouton d’ouverture (`openButton.addEventListener('click', () => openArticle(item.id));` dans `assets/controllers/article-list.js`). Recompiler les assets de l’environnement `browser`, vider son cache puis lancer :
 
 ```bash
-APP_ENV=browser php85 bin/console asset-map:compile --env=browser
+APP_ENV=browser php85 bin/console cache:clear --env=browser
+php85 bin/console asset-map:compile --env=browser
 APP_ENV=browser php85 bin/console cache:clear --env=browser
 npm run test:browser -- --project=desktop-chromium --grep="ouvrir et fermer"
 ```

@@ -1,5 +1,7 @@
 # Lot 5 — Parcours navigateur : livraison à valider
 
+**Actualisation :** les parcours ont été exécutés sur Linux pendant le lot 7B, avec 14 succès avant/après extraction et contrôle négatif d’ouverture suivi d’une restauration vérifiée. Le [compte-rendu 7B](lot-7b-reader-validation.md) complète et remplace les constats de non-exécution historiques ci-dessous. Acceptation finale du développeur encore attendue.
+
 Date de livraison : 16 novembre 2026. Sources préparées ; aucune exécution PHP, npm, JavaScript ou Chromium revendiquée. Les lots précédents gardent leur état de validation en attente du développeur.
 
 ## Fonctionnalités et fichiers

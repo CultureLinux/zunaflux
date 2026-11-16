@@ -1,5 +1,7 @@
 # Lot 7A — Maintenance PHP, validation locale Linux obtenue
 
+**Suite effectuée :** la disponibilité de Node 24 et les parcours navigateur ont depuis été vérifiés pendant [7B](lot-7b-reader-validation.md). L’extraction des vues/sources JavaScript est implémentée et les résultats actualisés y sont consignés ; les mentions de blocage navigateur ci-dessous décrivent la situation lors de 7A.
+
 16 novembre 2026. Première livraison du lot 7, dans la continuité de l’autorisation du développeur de prendre en charge les tests Linux sur la base dédiée. Acceptation finale du développeur et exécution GitHub Actions en attente. Le statut d’acceptation du lot 6 reste inchangé.
 
 ## Contenu et fichiers
