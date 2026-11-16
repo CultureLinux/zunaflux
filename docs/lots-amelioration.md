@@ -137,7 +137,7 @@ Plusieurs tests JavaScript, notamment `tests/JavaScript/reading-layout.test.cjs`
 
 ## Lot 6 — Mesurer les performances avant de refactoriser
 
-**Priorité : moyenne — Statut : à traiter**
+**Priorité : moyenne — Statut : optimisation de collecte mesurée, budget temporel à un abonné et acceptation en attente**
 
 ### Constats
 
@@ -145,18 +145,20 @@ Plusieurs tests JavaScript, notamment `tests/JavaScript/reading-layout.test.cjs`
 
 ### Travaux
 
-- [ ] Mesurer le nombre de requêtes et le temps de collecte sur un jeu de données représentatif.
-- [ ] Examiner les requêtes de lecture, recherche et purge avec les outils MariaDB.
-- [ ] Réduire les chargements répétitifs et ajuster les index uniquement sur preuve.
+- [x] Mesurer le nombre de requêtes et le temps de collecte sur un jeu contrôlé : 1/10/100 abonnés, puis 10 000 articles pour le lecteur ; représentativité de production à confirmer.
+- [x] Examiner les requêtes de lecture, recherche et purge avec EXPLAIN MariaDB sur le jeu contrôlé.
+- [x] Réduire les chargements répétitifs et ajuster les index uniquement sur preuve : traces de collecte en une projection, aucun index supplémentaire justifié.
 - [ ] Fixer des budgets de performance reproductibles.
 
 ### Critères d’acceptation
 
-- [ ] Les mesures avant/après et les caractéristiques du jeu de données sont disponibles.
-- [ ] Une réduction du coût est démontrée sur les parcours concernés.
-- [ ] Les tests ne montrent aucune régression fonctionnelle.
+- [x] Les mesures avant/après et les caractéristiques du jeu de données sont disponibles.
+- [x] Une réduction du coût est démontrée sur les parcours concernés : collecte 100 abonnés, 208 → 8 instructions SQL, temps médian réduit de 94 à 95 %.
+- [x] Les tests ne montrent aucune régression fonctionnelle : 184 tests, 819 assertions, aucun échec, 5 notices préexistantes.
 
 **Impact à déterminer :** migrations d’index éventuelles, compatibles MariaDB 10.11.
+
+**Preuves :** trois paires avant/après avec EXPLAIN tabulaire et rollback confirmé. Collecte désormais à 8 instructions SQL pour 1/10/100 abonnés, contre 10/28/208. Gain temporel à 100 abonnés de 94 à 95 %. Suite PHPUnit : 184 tests, 819 assertions, 5 notices, aucun échec. Budget de temps à un abonné et acceptation finale encore ouverts. Voir le [protocole](performance-tests.md), le [plan](lot-6-performance-plan.md) et le [compte-rendu](lot-6-performance-validation.md).
 
 ## Lot 7 — Simplifier la maintenance du code
 
@@ -215,6 +217,6 @@ Pour chaque lot, consigner ici ou dans son compte-rendu : date, fichiers modifi�
 | 3 | Sources et tests préparés — [compte-rendu](lot-3-messenger-validation.md) | PHP/MariaDB non exécutés | En attente |
 | 4 | Sources et tests préparés — [compte-rendu](lot-4-tests-validation.md) | PHP/MariaDB non exécutés | En attente |
 | 5 | Sources préparées — [compte-rendu](lot-5-browser-validation.md) | Navigateur/PHP/npm non exécutés | En attente |
-| 6 | À traiter | Non exécutée | En attente |
+| 6 | Collecte optimisée — [compte-rendu](lot-6-performance-validation.md) | Trois paires avant/après ; collecte 100 abonnés : 208 → 8 SQL ; 184 tests sans échec, 5 notices ; budget temporel à 1 abonné non validé | En attente |
 | 7 | À traiter | Non exécutée | En attente |
 | 8 | À traiter | Non exécutée | En attente |
