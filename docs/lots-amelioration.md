@@ -115,7 +115,7 @@ Les cases de sources préparées ne prouvent pas l’exécution des tests. Voir 
 
 ## Lot 5 — Tester les interactions dans un navigateur
 
-**Priorité : moyenne — Statut : à traiter**
+**Priorité : moyenne — Statut : sources préparées, validation navigateur/Linux en attente**
 
 ### Constats
 
@@ -123,9 +123,9 @@ Plusieurs tests JavaScript, notamment `tests/JavaScript/reading-layout.test.cjs`
 
 ### Travaux
 
-- [ ] Ajouter des parcours navigateur : ouvrir un article, marquer lu, filtrer, changer de source et enregistrer une préférence.
-- [ ] Couvrir mobile, bureau et navigation clavier.
-- [ ] Remplacer progressivement les assertions de structure par des assertions de comportement.
+- [x] Ajouter des parcours navigateur : ouvrir un article, marquer lu, filtrer, changer de source et enregistrer une préférence.
+- [x] Couvrir mobile, bureau et navigation clavier.
+- [x] Remplacer progressivement les assertions de structure par des assertions de comportement.
 
 ### Critères d’acceptation
 
@@ -133,7 +133,7 @@ Plusieurs tests JavaScript, notamment `tests/JavaScript/reading-layout.test.cjs`
 - [ ] Un changement de présentation sans changement fonctionnel ne casse pas arbitrairement la suite.
 - [ ] Les parcours sont reproductibles avec des données de test isolées.
 
-**Dépendance à sélectionner :** outil de test navigateur, avec justification de son utilité et de son coût d’exécution.
+**Dépendance retenue :** Playwright Test `1.65.1` en développement, Chromium uniquement, sept scénarios sur deux profils (14 parcours), un worker. Manifestes npm verrouillés ; installation et exécution Linux non effectuées par l’agent. Trois assertions de structure retirées ; les autres tests JavaScript restent présents. Voir le [guide navigateur](browser-tests.md) et le [compte-rendu du lot 5](lot-5-browser-validation.md).
 
 ## Lot 6 — Mesurer les performances avant de refactoriser
 
@@ -214,7 +214,7 @@ Pour chaque lot, consigner ici ou dans son compte-rendu : date, fichiers modifi�
 | 2 | Implémenté — [compte-rendu](lot-2-versions-validation.md) | Non exécutée par le développeur | En attente |
 | 3 | Sources et tests préparés — [compte-rendu](lot-3-messenger-validation.md) | PHP/MariaDB non exécutés | En attente |
 | 4 | Sources et tests préparés — [compte-rendu](lot-4-tests-validation.md) | PHP/MariaDB non exécutés | En attente |
-| 5 | À traiter | Non exécutée | En attente |
+| 5 | Sources préparées — [compte-rendu](lot-5-browser-validation.md) | Navigateur/PHP/npm non exécutés | En attente |
 | 6 | À traiter | Non exécutée | En attente |
 | 7 | À traiter | Non exécutée | En attente |
 | 8 | À traiter | Non exécutée | En attente |

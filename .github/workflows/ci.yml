@@ -244,9 +244,86 @@ jobs:
           fi
           grep -Fq 'Migration test database must be empty' "$RUNNER_TEMP/migration-reuse.log"
 
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      APP_ENV: browser
+      APP_SECRET: ci-test-secret
+      APP_TIMEZONE: Europe/Paris
+      BROWSER_TEST_DATABASE_URL: mysql://zunaflux_browser_test_ci:zunaflux_browser_test_ci@127.0.0.1:3306/zunaflux_browser_test_ci?serverVersion=mariadb-10.11.0&charset=utf8mb4
+      DATABASE_URL: mysql://zunaflux_browser_test_ci:zunaflux_browser_test_ci@127.0.0.1:3306/zunaflux_browser_test_ci?serverVersion=mariadb-10.11.0&charset=utf8mb4
+      MAILER_DSN: null://null
+      MESSENGER_TRANSPORT_DSN: doctrine://default?queue_name=async
+      ZUNAFLUX_PAGE_SIZE: 30
+      ZUNAFLUX_MAX_SUBSCRIPTIONS: 100
+      ZUNAFLUX_PUBLIC_REGISTRATION: 1
+      ZUNAFLUX_MEDIA_STORAGE: var/media
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_DATABASE: zunaflux_browser_test_ci
+          MARIADB_USER: zunaflux_browser_test_ci
+          MARIADB_PASSWORD: zunaflux_browser_test_ci
+          MARIADB_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: ctype, iconv, mbstring, pdo_mysql, xml, dom, curl, intl
+          coverage: none
+      - name: Configure PHP command paths
+        run: |
+          sudo ln -sf "$(command -v php)" /usr/local/bin/php85
+          if [ "$(command -v composer)" != /usr/bin/composer ]; then
+            sudo ln -sf "$(command -v composer)" /usr/bin/composer
+          fi
+      - name: Prepare Symfony test environment
+        run: touch .env
+      - name: Install Composer dependencies
+        run: php85 /usr/bin/composer install --no-interaction --prefer-dist --no-progress
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install browser test dependencies
+        run: npm ci --ignore-scripts
+      - name: Install Chromium and its Linux dependencies
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Prepare isolated browser database
+        run: |
+          php85 tests/Browser/fixtures.php guard
+          php85 bin/console doctrine:migrations:migrate --env=browser --no-interaction
+          php85 tests/Browser/fixtures.php check
+      - name: Build browser frontend assets
+        run: |
+          php85 bin/console tailwind:build --minify --env=browser
+          php85 bin/console asset-map:compile --env=browser
+      - name: Run real browser interactions
+        run: npm run test:browser
+      - name: Preserve browser failure diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            var/browser-report/
+            var/browser-results/
+          if-no-files-found: warn
+          retention-days: 7
+
   quality:
     if: ${{ always() }}
-    needs: [php, javascript, assets, migrations, detect-docker, docker-build]
+    needs: [php, javascript, assets, migrations, browser, detect-docker, docker-build]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -256,6 +333,7 @@ jobs:
           JAVASCRIPT_RESULT: ${{ needs.javascript.result }}
           ASSETS_RESULT: ${{ needs.assets.result }}
           MIGRATIONS_RESULT: ${{ needs.migrations.result }}
+          BROWSER_RESULT: ${{ needs.browser.result }}
           DETECT_RESULT: ${{ needs.detect-docker.result }}
           DOCKER_ENABLED: ${{ needs.detect-docker.outputs.enabled }}
           DOCKER_RESULT: ${{ needs.docker-build.result }}
@@ -264,6 +342,7 @@ jobs:
           test "$JAVASCRIPT_RESULT" = success
           test "$ASSETS_RESULT" = success
           test "$MIGRATIONS_RESULT" = success
+          test "$BROWSER_RESULT" = success
           test "$DETECT_RESULT" = success
           if [ "$DOCKER_ENABLED" = true ]; then
             test "$DOCKER_RESULT" = success
