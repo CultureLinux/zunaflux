@@ -1,0 +1,6 @@
+parameters:
+    level: 6
+    paths:
+        - src/Application/Reading/ArticleStateService.php
+        - src/Application/Reading/MarkSubscriptionRead.php
+    tmpDir: var/phpstan

@@ -162,7 +162,7 @@ Plusieurs tests JavaScript, notamment `tests/JavaScript/reading-layout.test.cjs`
 
 ## Lot 7 — Simplifier la maintenance du code
 
-**Priorité : moyenne — Statut : à traiter — Prérequis conseillé : lot 5 pour le lecteur**
+**Priorité : moyenne — Statut : 7A PHP implémenté et vérifié localement, 7B lecteur différé — Prérequis conseillé : lot 5 pour le lecteur**
 
 ### Constats
 
@@ -170,11 +170,11 @@ Lors de l’analyse, `assets/controllers/article-list.js` compte 664 lignes ; le
 
 ### Travaux
 
-- [ ] Introduire progressivement l’analyse statique PHP.
+- [x] Introduire progressivement l’analyse statique PHP : PHPStan niveau 6 sur deux services, obligatoire dans le job PHP de la CI (exécution GitHub en attente).
 - [ ] Extraire les responsabilités du lecteur JavaScript après couverture des interactions.
-- [ ] Déplacer les opérations métier des contrôleurs vers des services ciblés lorsque cela améliore leur testabilité.
-- [ ] Harmoniser les blocs de code très condensés dans le périmètre traité.
-- [ ] Découper les changements structurels en petites livraisons vérifiables.
+- [x] Déplacer les opérations métier des contrôleurs vers des services ciblés : marquage d’un abonnement extrait dans `MarkSubscriptionRead`, avec test direct.
+- [x] Harmoniser les blocs de code très condensés dans le périmètre traité : deux routes de marquage et service extrait.
+- [x] Découper les changements structurels en petites livraisons vérifiables : 7A PHP, puis 7B JavaScript après validation navigateur.
 
 ### Critères d’acceptation
 
@@ -182,7 +182,9 @@ Lors de l’analyse, `assets/controllers/article-list.js` compte 664 lignes ; le
 - [ ] Les responsabilités extraites sont plus faciles à tester.
 - [ ] L’analyse statique est intégrée à la CI avec un périmètre et une progression explicites.
 
-**Dépendance à prévoir :** analyseur statique de développement, à justifier avant ajout.
+**Dépendance retenue pour 7A :** `phpstan/phpstan`, développement uniquement, pour vérifier les contrats typés des services extraits ; périmètre initial limité et progression documentée.
+
+**Livraison 7A :** PHPStan `2.3.6` en développement, deux services au niveau 6 sans baseline. Routes de marquage caractérisées avant/après extraction (15 tests / 94 assertions), suite finale 186 tests / 839 assertions sans échec et 5 notices préexistantes. Aucune migration. L’installation a signalé 16 avis sur 11 paquets Symfony déjà verrouillés ; aucune mise à jour hors périmètre. Le [plan](lot-7-maintenance-plan.md) et le [compte-rendu](lot-7-maintenance-validation.md) détaillent les résultats et limites. Extraction JavaScript en attente de validation des interactions du lot 5 ; Node 24 requis, Node 20 disponible sur l’hôte.
 
 ## Lot 8 — Vérifier la restauration et clarifier l’exploitation
 
@@ -218,5 +220,5 @@ Pour chaque lot, consigner ici ou dans son compte-rendu : date, fichiers modifi�
 | 4 | Sources et tests préparés — [compte-rendu](lot-4-tests-validation.md) | PHP/MariaDB non exécutés | En attente |
 | 5 | Sources préparées — [compte-rendu](lot-5-browser-validation.md) | Navigateur/PHP/npm non exécutés | En attente |
 | 6 | Collecte optimisée — [compte-rendu](lot-6-performance-validation.md) | Trois paires avant/après ; collecte 100 abonnés : 208 → 8 SQL ; 184 tests sans échec, 5 notices ; budget temporel à 1 abonné non validé | En attente |
-| 7 | À traiter | Non exécutée | En attente |
+| 7 | 7A PHP extrait et analyse statique ajoutée — [compte-rendu](lot-7-maintenance-validation.md) | PHPStan niveau 6 sans erreur, 186 tests sans échec, 5 notices ; CI GitHub et 7B à valider | En attente |
 | 8 | À traiter | Non exécutée | En attente |

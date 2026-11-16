@@ -66,6 +66,8 @@ jobs:
         run: php85 /usr/bin/composer validate --strict
       - name: Check PHP syntax
         run: find src tests migrations public bin -type f -name '*.php' -print0 | xargs -0 -n1 php85 -l
+      - name: Analyse reading services with PHPStan
+        run: php85 vendor/bin/phpstan analyse --configuration=phpstan.neon.dist --no-progress --memory-limit=512M
       - name: Validate Symfony configuration
         run: |
           php85 bin/console lint:container
