@@ -155,7 +155,7 @@ L'image de production est publiée sur Docker Hub sous `clinuxfr/zunaflux`. Elle
 
 ## Développement
 
-Le projet utilise Symfony 8.1, PHP 8.5, Doctrine, Twig, Tailwind CSS et MariaDB 10.11. Pour installer les dépendances de développement, utilisez `php85 /usr/bin/composer install` sans l’option `--no-dev`.
+Le projet utilise Symfony 8.1, PHP 8.5, Doctrine, Twig, Tailwind CSS et MariaDB 10.11. Le choix technique est une orientation « bleeding edge » plutôt qu’une cible Symfony LTS ; les montées de version restent explicites et validées par le développeur. Pour installer les dépendances de développement, utilisez `php85 /usr/bin/composer install` sans l’option `--no-dev`.
 
 ```bash
 php85 bin/console lint:container

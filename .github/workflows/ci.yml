@@ -174,14 +174,31 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+      - name: Configure PHP for the restoration exercise
+        run: sudo ln -sf "$(command -v php)" /usr/local/bin/php85
       - name: Build production image without publishing
         run: docker build --tag clinuxfr/zunaflux:ci-${{ github.sha }} .
       - name: Verify image and Compose topology
         run: |
           sh tests/Container/docker-image-smoke.sh clinuxfr/zunaflux:ci-${{ github.sha }}
           sh tests/Container/compose-config.sh
+          sh tests/Container/compose-private-config.sh
       - name: Test HTTP server and Compose startup
         run: sh tests/Container/compose-smoke.sh ci-${{ github.sha }}
+      - name: Test isolated restore and rollback
+        run: sh tests/Restoration/run.sh clinuxfr/zunaflux:ci-${{ github.sha }}
+      - name: Preserve restoration report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: restoration-${{ github.run_id }}-${{ github.run_attempt }}
+          path: var/restoration/
+          if-no-files-found: warn
+          retention-days: 7
 
   migrations:
     strategy:

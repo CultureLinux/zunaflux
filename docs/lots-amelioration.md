@@ -19,8 +19,8 @@ Aucun commit, push, tag ou déploiement ne doit être effectué par l’agent.
 
 ## Point de cadrage — Référence Symfony
 
-- [ ] Clarifier la référence technique : `AGENTS.md` mentionne Symfony LTS, alors que `composer.json` et le README ciblent Symfony 8.1.
-- [ ] Harmoniser les documents après décision du développeur, sans changer les dépendances implicitement.
+- [x] Référence technique confirmée par le développeur le 16 novembre 2026 : Symfony 8.1, orientation « bleeding edge » plutôt que LTS.
+- [x] Documents harmonisés avec cette décision ; contraintes Composer et dépendances inchangées. Toute montée de version reste soumise à validation du développeur.
 
 ## Lot 1 — Supprimer les doubles validations et améliorer les diagnostics CI
 
