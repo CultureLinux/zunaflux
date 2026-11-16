@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace App\Application\Maintenance;
 
+use App\Application\Time\Clock;
+use App\Application\Time\SystemClock;
 use Doctrine\DBAL\Connection;
 
 final readonly class ArticleRetention
 {
-    public function __construct(private Connection $connection, private int $retentionMonths)
-    {
+    public function __construct(
+        private Connection $connection,
+        private int $retentionMonths,
+        private Clock $clock = new SystemClock(),
+    ) {
         if ($retentionMonths < 1) {
             throw new \InvalidArgumentException('La durée de rétention doit être positive.');
         }
@@ -21,7 +26,7 @@ final readonly class ArticleRetention
         if ($batchSize < 1 || $batchSize > 1000) {
             throw new \InvalidArgumentException('La taille de lot doit être comprise entre 1 et 1000.');
         }
-        $cutoff = (new \DateTimeImmutable())->modify(sprintf('-%d months', $this->retentionMonths));
+        $cutoff = $this->clock->now()->modify(sprintf('-%d months', $this->retentionMonths));
 
         return $this->connection->transactional(function (Connection $connection) use ($cutoff, $batchSize): int {
             $ids = $connection->fetchFirstColumn(

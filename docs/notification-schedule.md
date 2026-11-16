@@ -6,6 +6,10 @@ Les nouveautés de toutes les sources actives sont regroupées. Le compteur comp
 
 La collecte RSS reste partagée et indépendante. Les nouveautés collectées après un créneau d’envoi attendent le suivant : un cron de collecte à 08:00 ne garantit pas que sa collecte asynchrone sera terminée pour l’envoi de 08:00. Un nouvel appareil reçoit uniquement les événements postérieurs à son activation. Les tests manuels d’appareil restent immédiats.
 
+## Reprise des événements de collecte
+
+Depuis le lot 3, `app:notifications:send` relaie d’abord les événements conservés dans `notification_outbox`. Les articles et leur événement sont enregistrés ensemble ; une panne de mise en file n’efface plus l’intention de notifier. La migration supplémentaire, la file d’échec Messenger et les limites de déduplication sont décrites dans la [procédure de reprise](messenger-recovery.md). Les commandes d’activation ci-dessous décrivent le lot de cadence initial ; consulter aussi le [compte-rendu du lot 3](lot-3-messenger-validation.md) pour sa migration et ses tests.
+
 ## Activation Linux — approbation humaine requise
 
 Aucune dépendance nouvelle, aucune variable d’environnement nouvelle. Sauvegarder la base et laisser le worker vider les anciens NotifyFeedMessage avant la mise à jour : ils ne portent pas encore d’identifiant d’événement. Arrêter les processus applicatifs suivant votre procédure habituelle, puis appliquer :
@@ -28,6 +32,10 @@ Conserver le cron de collecte et ajouter dans `/etc/cron.d/…` (chemin php85 ab
 La commande effectue de vrais envois et modifie les curseurs. Ne pas l’utiliser comme vérification sans effet. Un verrou MariaDB par compte empêche deux passages simultanés d’envoyer le même récapitulatif ; le passage qui ne peut pas prendre le verrou attend le prochain cron. Le verrou est libéré même en cas d’échec. Les notifications asynchrones en cours d’accumulation sont réessayées par Messenger si le compte est verrouillé.
 
 Dans Docker, le service `notifications` exécute cette commande puis attend 60 secondes. Monter aussi les clés VAPID dans ce service, avec les mêmes chemins et droits que dans le worker. L’image utilise son propre exécutable `php`, comme les autres services existants. Recréer l’image et les services relève du déploiement humain.
+
+## Tests temporels
+
+Le lot 4 fournit une horloge injectable sans dépendance nouvelle. Les tests de notifications utilisent des instants fixes et la purge des événements reçoit désormais un instant UTC explicite au lieu de l’horloge SQL implicite. Les cadences et les durées de rétention restent inchangées. Le [guide de tests MariaDB](tests-mariadb.md) décrit les scénarios temporels, les curseurs, les verrous et les deux parcours de migration isolés ; leur exécution et la validation Linux restent à confirmer dans le [compte-rendu du lot 4](lot-4-tests-validation.md).
 
 ## Validation sur une base de test MariaDB 10.11
 

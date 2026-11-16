@@ -8,6 +8,7 @@ use App\Application\Notification\{DigestQueue, NotificationCounter, Notification
 use App\Entity\{Feed, PushSubscription, Subscription, User, UserPreference};
 use App\Message\NotifyFeedMessage;
 use App\MessageHandler\NotifyFeedHandler;
+use App\Tests\Support\FrozenClock;
 use Doctrine\ORM\EntityManagerInterface;
 use Minishlink\WebPush\MessageSentReport;
 use Nyholm\Psr7\{Request, Response};
@@ -21,7 +22,8 @@ final class NotificationDigestTest extends KernelTestCase
     {
         self::bootKernel();
         $em = self::getContainer()->get(EntityManagerInterface::class);
-        $queue = new DigestQueue($em->getConnection());
+        $clock = new FrozenClock(new \DateTimeImmutable('2026-11-14 20:00:00 UTC'));
+        $queue = new DigestQueue($em->getConnection(), $clock);
         $logger = new NullLogger();
         $user = new User('digest-'.bin2hex(random_bytes(8)).'@example.test');
         $other = new User('digest-other-'.bin2hex(random_bytes(8)).'@example.test');
@@ -34,7 +36,7 @@ final class NotificationDigestTest extends KernelTestCase
         foreach ([$user, $other, ...$feeds, $first, $second, $otherDevice, $preference, new Subscription($user, $feeds[0]), new Subscription($user, $feeds[1]), new Subscription($other, $feeds[0])] as $entity) $em->persist($entity);
         $em->flush();
         try {
-            $handler = new NotifyFeedHandler($em, $queue, $logger);
+            $handler = new NotifyFeedHandler($em, $queue, $logger, $clock);
             $event = new NotifyFeedMessage((string) $feeds[0]->getId(), 'articles', 2);
             $handler($event);
             $handler($event);
@@ -44,7 +46,6 @@ final class NotificationDigestTest extends KernelTestCase
             self::assertGreaterThan(0, $pending['cursor']);
             self::assertSame(['count' => 0, 'cursor' => 0, 'first' => null], $queue->pending($user->getId(), $pending['cursor']));
             self::assertSame(2, $queue->pending($other->getId(), 0)['count']);
-            $em->getConnection()->executeStatement("UPDATE notification_pending SET created_at = '2026-11-14 20:00:00' WHERE subscription_id IN (SELECT id FROM subscription WHERE user_id = ?)", [$user->getId()->toBinary()]);
             $attempts = [];
             $delivery = $this->createMock(PushSender::class);
             $delivery->method('configured')->willReturn(true);
@@ -56,15 +57,20 @@ final class NotificationDigestTest extends KernelTestCase
             });
             $realDelivery = new PushDelivery($em, '', '');
             $delivery->method('record')->willReturnCallback($realDelivery->record(...));
-            $sender = new SendNotificationDigests($em, $queue, $delivery, new PushMessage(self::getContainer()->get(TranslatorInterface::class)), new NotificationCounter($em->getConnection(), $logger), new NotificationDiagnostics($logger), $logger);
-            self::assertSame(0, $sender->send($user->getId(), new \DateTimeImmutable('2026-11-14 23:00:00 UTC')));
+            $sender = new SendNotificationDigests($em, $queue, $delivery, new PushMessage(self::getContainer()->get(TranslatorInterface::class)), new NotificationCounter($em->getConnection(), $logger, $clock), new NotificationDiagnostics($logger), $logger);
+            $sendAt = static function (\DateTimeImmutable $now) use ($clock, $sender, $user): int {
+                $clock->set($now);
+
+                return $sender->send($user->getId(), $now);
+            };
+            self::assertSame(0, $sendAt(new \DateTimeImmutable('2026-11-14 23:00:00 UTC')));
             self::assertSame([], $attempts);
-            self::assertSame(1, $sender->send($user->getId(), new \DateTimeImmutable('2026-11-15 08:00:00 UTC')));
-            self::assertSame(1, $sender->send($user->getId(), new \DateTimeImmutable('2026-11-15 08:01:00 UTC')));
+            self::assertSame(1, $sendAt(new \DateTimeImmutable('2026-11-15 08:00:00 UTC')));
+            self::assertSame(1, $sendAt(new \DateTimeImmutable('2026-11-15 08:01:00 UTC')));
             self::assertSame(['5 nouveaux articles dans vos sources.'], $attempts[(string) $first->getId()]);
             self::assertCount(2, $attempts[(string) $second->getId()]);
             self::assertArrayNotHasKey((string) $otherDevice->getId(), $attempts);
-            self::assertSame(0, $sender->send($user->getId(), new \DateTimeImmutable('2026-11-15 12:00:00 UTC')));
+            self::assertSame(0, $sendAt(new \DateTimeImmutable('2026-11-15 12:00:00 UTC')));
             $handler($event);
             self::assertSame(0, $queue->pending($user->getId(), $first->getDigestCursor())['count']);
             // A fresh device starts at the current cursor, without replaying retained events.
@@ -72,7 +78,7 @@ final class NotificationDigestTest extends KernelTestCase
             $newDevice->startDigestAt($queue->latestCursor());
             $em->persist($newDevice);
             $em->flush();
-            self::assertSame(0, $sender->send($user->getId(), new \DateTimeImmutable('2026-11-15 13:00:00 UTC')));
+            self::assertSame(0, $sendAt(new \DateTimeImmutable('2026-11-15 13:00:00 UTC')));
             self::assertArrayNotHasKey((string) $newDevice->getId(), $attempts);
 
             $handler(new NotifyFeedMessage((string) $feeds[1]->getId(), 'articles', 4));
