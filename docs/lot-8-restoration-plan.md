@@ -14,3 +14,15 @@ Objectif : démontrer une restauration SQL + médias + configuration de chiffrem
 Vérifications : cycle rouge/vert de transmission Compose, syntaxe PHP/shell/YAML, test réel d’import/restauration/rollback et suite applicative existante. Les contrôles de processus en production restent en lecture seule et ne sont pas exécutés par l’agent.
 
 Contraintes : PHP 8.5 via php85 sur l’hôte, MariaDB 10.11 exclusivement, aucun identifiant réel dans les fichiers, aucun git add/commit/push/tag, aucun déploiement/redémarrage de production. Le futur rapport distinguera explicitement les opérations modifiant les données de test, les vérifications sans effet et la validation humaine encore requise.
+
+## État de reprise du 16 novembre 2026
+
+Les fichiers `tests/Restoration/{run.sh,compose.yaml,fixture.php,php85}`, le test `tests/Container/compose-private-config.sh`, la transmission des variables Compose et l’intégration CI existaient déjà au début de cette reprise. Leur présence ne constitue pas une preuve d’exécution. Le guide associé est [restoration.md](restoration.md).
+
+- [x] Ajouter un test de refus sans daemon : endpoint distant via `DOCKER_HOST`, contexte distant prioritaire et image locale absente.
+- [x] Observer son échec, puis corriger la résolution et le verrouillage de l’endpoint ainsi que la propagation des erreurs d’inspection d’image.
+- [x] Empêcher le chargement implicite d’un fichier `.env` local par le Compose de l’exercice.
+- [x] Documenter les commandes, les approbations, les limites et les diagnostics.
+- [x] Exécuter l’exercice SQL/médias/clés/traitements/retour arrière sur Docker local après approbation humaine : succès sur l’image du code courant.
+- [x] Consigner les résultats et contrôler le nettoyage : [compte-rendu](lot-8-restoration-validation.md).
+- [ ] Obtenir le retour explicite du développeur avant clôture ; CI GitHub encore à confirmer.

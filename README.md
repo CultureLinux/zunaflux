@@ -23,7 +23,7 @@ Zunaflux est un logiciel libre, open source et en développement actif. L'applic
 
 ### Limites connues
 
-- Les notifications Web Push sont encore en validation sur appareils réels et navigateurs ciblés.
+- Les notifications Web Push ont été validées par le développeur ; les fournisseurs pris en charge restent limités à Chrome et Firefox.
 - La lecture hors ligne n'est pas prise en charge : l'application nécessite une connexion réseau pour afficher les articles.
 - Avant toute mise à jour, sauvegardez la base de données, `var/media/` et votre configuration locale.
 
@@ -42,7 +42,7 @@ Zunaflux est un logiciel libre, open source et en développement actif. L'applic
 - **Gardez la main** : exportez vos données et administrez les comptes, les sources et les incidents depuis votre instance.
 - **Partagez sur Mastodon** : connectez un compte dans les préférences pour publier un article, avec le texte et la visibilité de votre choix.
 
-Zunaflux propose également une installation sur l’écran d’accueil depuis un navigateur compatible. Les notifications Web Push pour les nouveaux articles et les erreurs de collecte sont en cours de validation sur appareil. L’application nécessite une connexion réseau pour lire les articles.
+Zunaflux propose également une installation sur l’écran d’accueil depuis un navigateur compatible. Les notifications Web Push pour les nouveaux articles et les erreurs de collecte sont validées par le développeur. L’application nécessite une connexion réseau pour lire les articles.
 
 Les préférences permettent notamment de choisir la langue, le thème, la présentation de lecture et une plage de silence pour les notifications. Les flux peuvent être rafraîchis individuellement, par catégorie ou ensemble. L’export de compte fournit une archive de données personnelles ; la réimportation complète des états de lecture ne fait pas partie du format actuel. Voir [le format d’export](docs/export-format-v1.md).
 
@@ -145,7 +145,7 @@ Après une mise à jour, redémarrez le worker Messenger selon votre supervision
 
 ## PWA et notifications
 
-L’installation sur l’écran d’accueil dépend du navigateur. Zunaflux est une PWA installée depuis le navigateur : il n’existe pas d’application native distribuée sur Google Play ou l’App Store. Les notifications demandent HTTPS, une configuration VAPID, un worker Messenger et une activation par utilisateur et par appareil. Elles sont actuellement limitées aux services Web Push de Chrome et Firefox ; leur fonctionnement réel reste à vérifier sur les navigateurs et appareils ciblés.
+L’installation sur l’écran d’accueil dépend du navigateur. Zunaflux est une PWA installée depuis le navigateur : il n’existe pas d’application native distribuée sur Google Play ou l’App Store. Les notifications demandent HTTPS, une configuration VAPID, un worker Messenger et une activation par utilisateur et par appareil. Elles sont actuellement limitées aux services Web Push de Chrome et Firefox. Leur validation a été confirmée par le développeur le 16 novembre 2026 ; la liste des appareils et versions testés n’est pas consignée.
 
 Consultez [la documentation PWA et Web Push](docs/pwa-web-push.md) pour la configuration des clés, les limites actuelles et les points à valider.
 

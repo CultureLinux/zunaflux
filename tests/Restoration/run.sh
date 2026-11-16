@@ -5,16 +5,31 @@ umask 077
 
 task_image=${1:?Usage: run.sh LOCAL_APPLICATION_IMAGE}
 task_root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
-case $(docker context inspect --format '{{ .Endpoints.docker.Host }}') in
+# DOCKER_CONTEXT has precedence over DOCKER_HOST in the Docker CLI. Resolve
+# that same endpoint, then pin it for every command including cleanup.
+if [ -n "${DOCKER_CONTEXT:-}" ]; then
+    task_endpoint=$(docker context inspect --format '{{ .Endpoints.docker.Host }}' "$DOCKER_CONTEXT")
+elif [ -n "${DOCKER_HOST:-}" ]; then
+    task_endpoint=$DOCKER_HOST
+else
+    task_endpoint=$(docker context inspect --format '{{ .Endpoints.docker.Host }}')
+fi
+case "$task_endpoint" in
     unix://*) ;;
     *) printf '%s\n' 'Only a local Unix Docker context is accepted.' >&2; exit 64 ;;
 esac
+export DOCKER_HOST="$task_endpoint"
+unset DOCKER_CONTEXT
 
-export RESTORE_TEST_IMAGE=$(docker image inspect --format '{{.Id}}' "$task_image")
-export RESTORE_TEST_DB_IMAGE=$(docker image inspect --format '{{.Id}}' mariadb:10.11)
-export RESTORE_TEST_DB_PASSWORD=$(php85 -r 'echo bin2hex(random_bytes(24));')
-export RESTORE_TEST_APP_SECRET=$(php85 -r 'echo bin2hex(random_bytes(32));')
-export RESTORE_TEST_TOKEN_KEY=$(php85 -r 'echo base64_encode(random_bytes(32));')
+# Assign before exporting so a failed inspect/key generation preserves its exit
+# status under set -e, before any resources or cleanup trap are created.
+RESTORE_TEST_IMAGE=$(docker image inspect --format '{{.Id}}' "$task_image")
+RESTORE_TEST_DB_IMAGE=$(docker image inspect --format '{{.Id}}' mariadb:10.11)
+RESTORE_TEST_DB_PASSWORD=$(php85 -r 'echo bin2hex(random_bytes(24));')
+RESTORE_TEST_APP_SECRET=$(php85 -r 'echo bin2hex(random_bytes(32));')
+RESTORE_TEST_TOKEN_KEY=$(php85 -r 'echo base64_encode(random_bytes(32));')
+export RESTORE_TEST_IMAGE RESTORE_TEST_DB_IMAGE RESTORE_TEST_DB_PASSWORD
+export RESTORE_TEST_APP_SECRET RESTORE_TEST_TOKEN_KEY
 task_project="zunaflux-restore-$(php85 -r 'echo bin2hex(random_bytes(8));')"
 task_private=$(mktemp -d /tmp/zunaflux-restore.XXXXXXXX)
 task_phase=initialization
@@ -22,7 +37,7 @@ mkdir -p "$task_root/var/restoration"
 task_report="$task_root/var/restoration/$task_project.json"
 
 compose() {
-    docker compose --project-name "$task_project" -f "$task_root/tests/Restoration/compose.yaml" "$@"
+    docker compose --env-file /dev/null --project-name "$task_project" -f "$task_root/tests/Restoration/compose.yaml" "$@"
 }
 
 cleanup() {
@@ -34,7 +49,8 @@ cleanup() {
     if [ "$task_clean" = 1 ]; then
         task_left=$(docker ps -aq --filter "label=com.docker.compose.project=$task_project") || task_clean=0
         task_volumes=$(docker volume ls -q --filter "label=com.docker.compose.project=$task_project") || task_clean=0
-        [ -z "$task_left$task_volumes" ] || task_clean=0
+        task_networks=$(docker network ls -q --filter "label=com.docker.compose.project=$task_project") || task_clean=0
+        [ -z "$task_left$task_volumes$task_networks" ] || task_clean=0
     fi
     rm -f "$task_private/database.sql"
     rmdir "$task_private" || task_clean=0

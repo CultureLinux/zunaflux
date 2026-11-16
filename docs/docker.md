@@ -46,13 +46,15 @@ Le formulaire crée un compte administrateur et modifie la base. Vérifiez l'adr
 
 ### Mise à jour — modifie la base
 
-Chaque `up -d` exécute aussi les migrations non appliquées. Avant une mise à jour de production, sauvegardez la base et les médias, puis inspectez les migrations proposées :
+Chaque `up -d` peut aussi appliquer les migrations non appliquées via le service `migrations`. Avant une mise à jour de production, sauvegardez de façon cohérente la base, les médias et les secrets, puis inspectez les migrations proposées sur une copie isolée configurée pour la version cible. Cette commande crée un conteneur et peut initialiser les métadonnées Doctrine ; elle nécessite une approbation humaine :
 
 ```bash
-docker compose --env-file docker/.env -f compose.yaml run --rm migrations php bin/console doctrine:migrations:migrate --env=prod --no-interaction --dry-run
+docker compose --env-file docker/.env -f compose.yaml run --rm --no-deps --entrypoint /usr/local/bin/php migrations bin/console doctrine:migrations:migrate --env=prod --no-interaction --dry-run
 ```
 
 Ne lancez `up -d` qu'après validation humaine des migrations et de la sauvegarde.
+
+Le [guide de restauration](restoration.md) détaille l’exercice synthétique isolé, les clés indispensables et le retour arrière. Le chemin d’entrypoint ci-dessus est celui de PHP 8.5 dans l’image ; sur l’hôte, utiliser `php85`.
 
 ## Exploitation
 
@@ -82,17 +84,22 @@ Si vous utilisez Traefik, rattachez désormais le service `app` au réseau du pr
 
 ## Mise à jour et retour arrière
 
-Avant toute mise à jour, sauvegardez la base MariaDB et le volume `media-data`. Préférez un tag versionné, par exemple `1.2.3`, à `latest` en production.
+Avant toute mise à jour, sauvegardez la base MariaDB, le volume `media-data` et les secrets. Préférez un tag versionné, par exemple `1.2.3`, à `latest` en production. Après approbation du téléchargement, récupérez l’image cible :
 
 ```bash
 docker compose --env-file docker/.env -f compose.yaml pull
-docker compose --env-file docker/.env -f compose.yaml up -d
 ```
 
-Après approbation humaine, vérifiez les migrations proposées ; `up -d` les appliquera via le service `migrations` :
+Sur une copie isolée configurée pour cette version, inspectez les migrations après approbation de la création du conteneur de contrôle :
 
 ```bash
-docker compose --env-file docker/.env -f compose.yaml run --rm migrations php bin/console doctrine:migrations:migrate --env=prod --no-interaction --dry-run
+docker compose --env-file docker/.env -f compose.yaml run --rm --no-deps --entrypoint /usr/local/bin/php migrations bin/console doctrine:migrations:migrate --env=prod --no-interaction --dry-run
+```
+
+Obtenez ensuite l’approbation humaine des migrations et de la sauvegarde avant de démarrer la mise à jour de production :
+
+```bash
+docker compose --env-file docker/.env -f compose.yaml up -d
 ```
 
 Pour revenir en arrière, restaurez d'abord la base et les médias si une migration a été appliquée, puis restaurez aussi le Compose de cette version et fixez `ZUNAFLUX_IMAGE_TAG` sur le tag précédent dans `docker/.env` et relancez `pull` puis `up -d`. Ne supprimez pas les volumes sans sauvegarde validée.

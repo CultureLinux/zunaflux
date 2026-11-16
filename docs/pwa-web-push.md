@@ -24,6 +24,8 @@ La clé privée et le répertoire qui la contient doivent être lisibles par le 
 
 ## État de validation
 
-Les points de terminaison autorisés sont actuellement limités aux services Web Push de Chrome et Firefox. Les autres navigateurs ou fournisseurs peuvent nécessiter une adaptation. Les livraisons en erreur sont journalisées sans exposer les abonnements ; elles ne sont pas réessayées individuellement. Les icônes de 192 × 192 et 512 × 512 sont fournies au format SVG, avec une variante PNG plus grande ; leur prise en charge et l'installation restent à vérifier sur Android. Les notifications réelles n'ont pas encore été vérifiées sur appareil.
+Le développeur a confirmé la validation du Web Push le 16 novembre 2026. Les appareils, versions et scénarios précis ne sont pas consignés.
+
+Les points de terminaison autorisés sont actuellement limités aux services Web Push de Chrome et Firefox. Les autres navigateurs ou fournisseurs peuvent nécessiter une adaptation. Les livraisons en erreur sont journalisées sans exposer les abonnements ; elles ne sont pas réessayées individuellement. Les icônes de 192 × 192 et 512 × 512 sont fournies au format SVG, avec une variante PNG plus grande ; leur prise en charge et l'installation restent à vérifier sur Android.
 
 Le regroupement et la fréquence personnelle des nouveautés sont décrits dans [Rythme des notifications](notification-schedule.md). Le traitement de collecte accumule désormais les nouveautés ; la commande `app:notifications:send` traite les envois programmés.

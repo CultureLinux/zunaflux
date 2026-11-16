@@ -180,6 +180,8 @@ jobs:
           coverage: none
       - name: Configure PHP for the restoration exercise
         run: sudo ln -sf "$(command -v php)" /usr/local/bin/php85
+      - name: Verify restoration refusal paths without Docker resources
+        run: sh tests/Container/restoration-preflight.sh
       - name: Build production image without publishing
         run: docker build --tag clinuxfr/zunaflux:ci-${{ github.sha }} .
       - name: Verify image and Compose topology

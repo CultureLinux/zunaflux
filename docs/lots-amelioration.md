@@ -190,7 +190,7 @@ Lors de l’analyse, `assets/controllers/article-list.js` compte 664 lignes ; le
 
 ## Lot 8 — Vérifier la restauration et clarifier l’exploitation
 
-**Priorité : moyenne — Statut : à traiter**
+**Priorité : moyenne — Statut : exercice isolé Linux réussi, acceptation finale et CI GitHub en attente**
 
 ### Constats
 
@@ -198,17 +198,20 @@ Les sauvegardes sont documentées, mais leur restauration reste une procédure m
 
 ### Travaux
 
-- [ ] Préparer un exercice reproductible de restauration sur environnement isolé.
-- [ ] Vérifier la base, les médias et la configuration indispensable au chiffrement.
-- [ ] Contrôler l’activité des workers, du collecteur et des notifications.
-- [ ] Clarifier l’étape d’approbation des migrations avant une mise à jour.
+- [x] Préparer un exercice reproductible de restauration sur environnement isolé : `tests/Restoration/run.sh`, fixtures synthétiques et Compose autonome.
+- [x] Vérifier la base, les médias et la configuration indispensable au chiffrement sur l’exercice synthétique MariaDB 10.11.
+- [x] Contrôler l’activité du worker et des commandes de collecte/notifications dans l’exercice : mise en file, consommation, outbox, digest et heartbeat ; aucun appel externe.
+- [x] Clarifier l’étape d’approbation des migrations avant une mise à jour : inspection avant `up`, approbation humaine, sauvegarde cohérente et retour à un ensemble compatible.
+
+Voir le [guide d’exploitation et d’exercice](restoration.md) et le [compte-rendu](lot-8-restoration-validation.md). L’exercice local du 16 novembre 2026 a réussi sur l’image courante après un premier échec sur une image ancienne ; nettoyage confirmé. La CI Docker prépare déjà l’exercice et conserve son rapport ; son exécution GitHub reste à confirmer. Les gardes refusent les endpoints Docker distants et l’absence d’image locale avant création de ressources.
 
 ### Critères d’acceptation
 
-- [ ] La restauration est démontrée dans un environnement distinct de la production.
-- [ ] Les données restaurées sont lisibles et les traitements opérationnels.
-- [ ] La procédure de retour arrière est vérifiée.
-- [ ] Les opérations modifiant données et environnement sont clairement identifiées et approuvées par le développeur.
+- [x] La restauration synthétique est démontrée dans un environnement distinct de la production.
+- [x] Les données restaurées sont lisibles et les traitements internes opérationnels ; collecte réseau et envoi Push hors exercice.
+- [x] Le retour arrière vers une troisième base neuve restaure données, schéma et médias.
+- [x] Les opérations modifiant données et environnement sont identifiées ; construction locale et exercices Docker autorisés explicitement via l’outil d’approbation.
+- [ ] Le développeur accepte les résultats du lot ; aucune validation d’une sauvegarde réelle de production n’est revendiquée.
 
 ## Suivi des validations
 
@@ -223,4 +226,6 @@ Pour chaque lot, consigner ici ou dans son compte-rendu : date, fichiers modifi�
 | 5 | Parcours exécutés pendant [7B](lot-7b-reader-validation.md) | 14 succès, preuve négative puis restauration, fixtures nettoyées | En attente |
 | 6 | Collecte optimisée — [compte-rendu](lot-6-performance-validation.md) | Trois paires avant/après ; collecte 100 abonnés : 208 → 8 SQL ; 184 tests sans échec, 5 notices ; budget temporel à 1 abonné non validé | En attente |
 | 7 | 7A PHP et [7B lecteur](lot-7b-reader-validation.md) extraits | 187 tests PHP, 57 JS, 14 Chromium, analyse sans erreur ; 5 notices connues ; CI GitHub à confirmer | En attente |
-| 8 | À traiter | Non exécutée | En attente |
+| 8 | Scripts, CI et procédure — [compte-rendu](lot-8-restoration-validation.md) | SQL/médias/clés, reprise interne et retour arrière réussis ; nettoyage confirmé ; 102 tests unitaires/298 assertions, 4 notices ; PHPStan sans erreur | Acceptation finale en attente |
+
+Web Push : validation confirmée explicitement par le développeur le 16 novembre 2026. Cette confirmation ne clôture pas les autres validations des lots.
