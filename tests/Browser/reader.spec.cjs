@@ -5,6 +5,19 @@ const reader = (page, title) => page.getByRole('dialog', { name: title, exact: t
 const readFilter = (page) => page.getByRole('combobox', { name: 'Vue des articles', exact: true });
 const closeReader = (dialog) => dialog.getByRole('button', { name: /Retour à la liste|Fermer/ });
 
+test('recharger les articles charge les modules sans erreur et initialise la liste', async ({ scenario }) => {
+    const { page } = scenario;
+    const errors = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    const sourcesResponse = page.waitForResponse((response) => /\/reading\/sources(?:-[^/]+)?\.js$/.test(new URL(response.url()).pathname));
+    await page.reload();
+    const response = await sourcesResponse;
+    expect(response.status()).toBe(200);
+    expect(response.headers()['content-type']).toMatch(/(?:text|application)\/javascript/);
+    await expect(rows(page)).toHaveCount(3);
+    expect(errors).toEqual([]);
+});
+
 test('ouvrir et fermer un article dans le lecteur adapté au viewport', async ({ scenario }, testInfo) => {
     const { page, data } = scenario;
     await expect(opener(page, data.articles.private.title)).toHaveCount(0);
