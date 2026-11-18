@@ -121,6 +121,43 @@ final class ArticleControllerTest extends WebTestCase
             $em->getConnection()->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);
         }
     }
+    public function testZenIncludesImagesFromTheSummaryAlongsideTheFullContent(): void
+    {
+        $client = static::createClient();
+        $em = static::getContainer()->get(EntityManagerInterface::class);
+        $user = new User('zen-image-'.bin2hex(random_bytes(8)).'@example.test');
+        $feed = new Feed('https://example.test/'.bin2hex(random_bytes(8)));
+        $summary = '<p>Texte du résumé <img src="https://example.test/shared.jpg"><img src="https://example.test/summary.jpg" alt="Photo du résumé"></p>';
+        $article = new Article($feed, new ParsedFeedItem('zen-image', 'Avec résumé', null, $summary, '<p>Texte intégral <img src="https://example.test/shared.jpg"></p>', null));
+        $summaryOnly = new Article($feed, new ParsedFeedItem('summary-only', 'Résumé seul', null, $summary, null, null));
+        foreach ([$user, $feed, $article, $summaryOnly, new Subscription($user, $feed)] as $entity) {
+            $em->persist($entity);
+        }
+        $em->flush();
+
+        try {
+            $client->loginUser($user);
+            $path = '/api/articles/'.$article->getId();
+            $client->request('GET', $path.'?zen=1');
+            self::assertResponseIsSuccessful();
+            $html = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR)['safeHtml'];
+            self::assertStringContainsString('Texte intégral', $html);
+            self::assertStringNotContainsString('Texte du résumé', $html);
+            self::assertStringContainsString('src="'.$path.'/images/0"', $html);
+            self::assertStringContainsString('src="'.$path.'/images/1?summary=1" alt="Photo du résumé"', $html);
+            self::assertSame(2, substr_count($html, '<img '));
+
+            $client->request('GET', '/api/articles/'.$summaryOnly->getId().'?zen=1');
+            self::assertResponseIsSuccessful();
+            $html = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR)['safeHtml'];
+            self::assertStringContainsString('Texte du résumé', $html);
+            self::assertStringContainsString('src="/api/articles/'.$summaryOnly->getId().'/images/1"', $html);
+        } finally {
+            $em->getConnection()->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
+            $em->getConnection()->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);
+        }
+    }
+
     public function testHomeRedirectsAuthenticatedUsersToReading(): void
     {
         $client = static::createClient();

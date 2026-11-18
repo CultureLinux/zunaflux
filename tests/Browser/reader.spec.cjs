@@ -101,7 +101,7 @@ test('enregistrer une préférence change réellement le mode de lecture', async
     const saved = page.waitForResponse((response) => new URL(response.url()).pathname === '/preferences' && response.request().method() === 'POST');
     await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
     expect((await saved).status()).toBeLessThan(400);
-    await page.reload();
+    await expect(page.getByRole('status').filter({ hasText: 'Préférences enregistrées.' })).toBeVisible();
     await expect(mode).toHaveValue('on_preview');
     await expect(split).not.toBeChecked();
     await page.goto('/articles');
