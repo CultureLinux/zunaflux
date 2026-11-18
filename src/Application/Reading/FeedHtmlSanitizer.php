@@ -10,7 +10,8 @@ final class FeedHtmlSanitizer
     private const ALLOWED = ['p', 'br', 'strong', 'b', 'em', 'i', 's', 'blockquote', 'ul', 'ol', 'li', 'h2', 'h3', 'h4', 'pre', 'code', 'a', 'hr'];
     private const DROP = ['script', 'style', 'svg', 'math', 'iframe', 'object', 'embed', 'form', 'template', 'noscript'];
 
-    public function sanitize(string $html, ?callable $imagePath = null): string
+    /** @param null|callable(int, string): ?string $imagePath */
+    public function sanitize(string $html, ?callable $imagePath = null, bool $imagesOnly = false): string
     {
         $document = new \DOMDocument('1.0', 'UTF-8');
         $previous = libxml_use_internal_errors(true);
@@ -18,7 +19,7 @@ final class FeedHtmlSanitizer
             $document->loadHTML('<?xml encoding="UTF-8"><html><body>'.$html.'</body></html>', LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING);
             $body = $document->getElementsByTagName('body')->item(0);
             $urls = $this->urlsFromDocument($document);
-            return null === $body ? '' : $this->children($body, $urls, $imagePath);
+            return null === $body ? '' : $this->children($body, $urls, $imagePath, $imagesOnly);
         } finally {
             libxml_clear_errors();
             libxml_use_internal_errors($previous);
@@ -54,12 +55,14 @@ final class FeedHtmlSanitizer
     }
 
     /** @param list<string> $urls */
-    private function children(\DOMNode $node, array $urls, ?callable $imagePath): string
+    private function children(\DOMNode $node, array $urls, ?callable $imagePath, bool $imagesOnly): string
     {
         $result = '';
         foreach ($node->childNodes as $child) {
             if ($child instanceof \DOMText) {
-                $result .= htmlspecialchars($child->data, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
+                if (!$imagesOnly) {
+                    $result .= htmlspecialchars($child->data, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
+                }
                 continue;
             }
             if (!$child instanceof \DOMElement) {
@@ -68,8 +71,9 @@ final class FeedHtmlSanitizer
             $tag = strtolower($child->tagName);
             if ('img' === $tag) {
                 $index = array_search(trim($child->getAttribute('src')), $urls, true);
-                if (false !== $index && null !== $imagePath) {
-                    $src = htmlspecialchars($imagePath($index), ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
+                $path = false !== $index && null !== $imagePath ? $imagePath($index, $urls[$index]) : null;
+                if (null !== $path) {
+                    $src = htmlspecialchars($path, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
                     $alt = htmlspecialchars($child->getAttribute('alt'), ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
                     $result .= '<img src="'.$src.'" alt="'.$alt.'" loading="lazy" decoding="async">';
                 }
@@ -78,8 +82,8 @@ final class FeedHtmlSanitizer
             if (in_array($tag, self::DROP, true)) {
                 continue;
             }
-            if (!in_array($tag, self::ALLOWED, true)) {
-                $result .= $this->children($child, $urls, $imagePath);
+            if ($imagesOnly || !in_array($tag, self::ALLOWED, true)) {
+                $result .= $this->children($child, $urls, $imagePath, $imagesOnly);
                 continue;
             }
             $attributes = '';
@@ -91,7 +95,7 @@ final class FeedHtmlSanitizer
             }
             $result .= '<'.$tag.$attributes.'>';
             if (!in_array($tag, ['br', 'hr'], true)) {
-                $result .= $this->children($child, $urls, $imagePath).'</'.$tag.'>';
+                $result .= $this->children($child, $urls, $imagePath, $imagesOnly).'</'.$tag.'>';
             }
         }
         return $result;

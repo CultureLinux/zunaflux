@@ -70,7 +70,7 @@ if (zen) {
         hasMore = page.hasMore;
     };
     const show = async () => {
-        const response = await fetch(`/api/articles/${encodeURIComponent(items[index].id)}`, { headers: { Accept: 'application/json' } });
+        const response = await fetch(`/api/articles/${encodeURIComponent(items[index].id)}?zen=1`, { headers: { Accept: 'application/json' } });
         if (!response.ok) throw new Error(messages.loadArticle);
         article = await response.json();
         finished = false; complete.hidden = true; title.hidden = false; body.hidden = false; message.classList.remove('sr-only');

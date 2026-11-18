@@ -39,4 +39,15 @@ final class FeedHtmlSanitizerTest extends TestCase
         self::assertSame(['https://example.test/a.jpg'], $sanitizer->imageUrls('<img src="https://example.test/a.jpg">'));
     }
 
+    public function testImageOnlyRenderingKeepsSafeImagesAndCanSkipDuplicates(): void
+    {
+        $sanitizer = new FeedHtmlSanitizer();
+        $html = $sanitizer->sanitize(
+            '<p>Résumé <img src="https://example.test/duplicate.jpg"><img src="https://example.test/unique.jpg" alt="Photo" onerror="alert(1)"></p><noscript><img src="https://example.test/hidden.jpg"></noscript>',
+            static fn (int $index, string $url): ?string => 'https://example.test/duplicate.jpg' === $url ? null : '/articles/1/images/'.$index,
+            imagesOnly: true,
+        );
+
+        self::assertSame('<img src="/articles/1/images/1" alt="Photo" loading="lazy" decoding="async">', $html);
+    }
 }

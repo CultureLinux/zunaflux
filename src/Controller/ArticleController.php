@@ -155,10 +155,33 @@ final class ArticleController extends AbstractController
     }
 
     #[Route('/api/articles/{id}', name: 'app_api_article_show', methods: ['GET'])]
-    public function show(string $id, EntityManagerInterface $entityManager, FeedHtmlSanitizer $sanitizer): JsonResponse
+    public function show(string $id, Request $request, EntityManagerInterface $entityManager, FeedHtmlSanitizer $sanitizer): JsonResponse
     {
         $article = $this->accessibleArticle($id, $entityManager);
         $state = $entityManager->getRepository(ArticleState::class)->findOneBy(['user' => $this->currentUser(), 'article' => $article]);
+        $content = $article->getContent();
+        $summary = $article->getSummary();
+        $imagePath = fn (int $index, bool $fromSummary = false): string => $this->generateUrl('app_api_article_image', [
+            'id' => $article->getId(),
+            'index' => $index,
+            ...($fromSummary ? ['summary' => 1] : []),
+        ]);
+        $renderedImages = [];
+        $safeHtml = $sanitizer->sanitize($content ?: $summary ?: 'Aucun résumé disponible.', static function (int $index, string $url) use ($imagePath, &$renderedImages): string {
+            $renderedImages[$url] = true;
+
+            return $imagePath($index);
+        });
+        if ($request->query->getBoolean('zen') && $content && $summary) {
+            $safeHtml .= $sanitizer->sanitize($summary, static function (int $index, string $url) use ($imagePath, &$renderedImages): ?string {
+                if (isset($renderedImages[$url])) {
+                    return null;
+                }
+                $renderedImages[$url] = true;
+
+                return $imagePath($index, true);
+            }, imagesOnly: true);
+        }
 
         return $this->json([
             'id' => (string) $article->getId(),
@@ -166,7 +189,7 @@ final class ArticleController extends AbstractController
             'url' => $article->getUrl(),
             'summary' => $article->getSummary(),
             'content' => $article->getContent(),
-            'safeHtml' => $sanitizer->sanitize($article->getContent() ?: $article->getSummary() ?: 'Aucun résumé disponible.', fn (int $index): string => $this->generateUrl('app_api_article_image', ['id' => $article->getId(), 'index' => $index])),
+            'safeHtml' => $safeHtml,
             'publishedAt' => $article->getPublishedAt()?->format(DATE_ATOM),
             'source' => $article->getFeed()->getTitle() ?? $article->getFeed()->getCanonicalUrl(),
             'isRead' => $state?->isRead() ?? false,
@@ -178,10 +201,11 @@ final class ArticleController extends AbstractController
     }
 
     #[Route('/api/articles/{id}/images/{index}', name: 'app_api_article_image', requirements: ['index' => '\d+'], methods: ['GET'])]
-    public function image(string $id, int $index, EntityManagerInterface $entityManager, FeedHtmlSanitizer $sanitizer, FeedImageFetcher $fetcher): Response
+    public function image(string $id, int $index, Request $request, EntityManagerInterface $entityManager, FeedHtmlSanitizer $sanitizer, FeedImageFetcher $fetcher): Response
     {
         $article = $this->accessibleArticle($id, $entityManager);
-        $urls = $sanitizer->imageUrls($article->getContent() ?: $article->getSummary() ?: '');
+        $html = $request->query->getBoolean('summary') ? $article->getSummary() : ($article->getContent() ?: $article->getSummary());
+        $urls = $sanitizer->imageUrls($html ?: '');
         if (!isset($urls[$index])) throw $this->createNotFoundException();
         try {
             $image = $fetcher->fetch($urls[$index]);
