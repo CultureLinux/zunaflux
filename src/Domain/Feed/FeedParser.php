@@ -8,14 +8,20 @@ final class FeedParser
 {
     public function parse(string $xml): ParsedFeed
     {
-        if (preg_match('/<!DOCTYPE|<!ENTITY/i', $xml)) {
-            throw new \InvalidArgumentException('Feed XML must not contain a DOCTYPE or entities.');
+        // A plain DOCTYPE is legitimate (RSS 0.91 feeds declare one) and harmless with
+        // LIBXML_NONET: only entity declarations are refused. The check is repeated on the
+        // parsed document because a UTF-16 payload evades the textual pre-check.
+        if (preg_match('/<!ENTITY/i', $xml)) {
+            throw new \InvalidArgumentException('Feed XML must not contain a DOCTYPE with entities.');
         }
         $previous = libxml_use_internal_errors(true);
         try {
             $document = new \DOMDocument();
             if (!$document->loadXML($xml, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_COMPACT)) {
                 throw new \InvalidArgumentException('The feed is not valid XML.');
+            }
+            if (null !== $document->doctype && $document->doctype->entities->length > 0) {
+                throw new \InvalidArgumentException('Feed XML must not contain a DOCTYPE with entities.');
             }
             $root = $document->documentElement;
             if (!$root instanceof \DOMElement) {
@@ -49,13 +55,15 @@ final class FeedParser
     {
         $items = [];
         foreach ($xpath->query('/*[local-name()="rss" or local-name()="RDF"]/*[local-name()="channel"]/*[local-name()="item"] | /*[local-name()="RDF"]/*[local-name()="item"]') ?: [] as $item) {
-            $url = $this->text($xpath, './*[local-name()="link"]', $item);
+            $url = $this->text($xpath, './*[local-name()="link" and namespace-uri()!="http://www.w3.org/2005/Atom"]', $item);
             $guid = $this->text($xpath, './*[local-name()="guid"]', $item);
             $title = $this->text($xpath, './*[local-name()="title"]', $item) ?? '(sans titre)';
             $identity = $guid ?: ($url ? hash('sha256', $url) : hash('sha256', $title.$this->text($xpath, './*[local-name()="pubDate"]', $item)));
             $items[] = new ParsedFeedItem($identity, $title, $url, $this->text($xpath, './*[local-name()="description"]', $item), $this->text($xpath, './*[local-name()="encoded"]', $item), $this->date($this->text($xpath, './*[local-name()="pubDate" or local-name()="date"]', $item)));
         }
-        return new ParsedFeed($this->text($xpath, '/*[local-name()="rss"]/*[local-name()="channel"]/*[local-name()="title"]'), $this->text($xpath, '/*[local-name()="rss"]/*[local-name()="channel"]/*[local-name()="link"]'), $items);
+        $channel = '/*[local-name()="rss" or local-name()="RDF"]/*[local-name()="channel"]';
+
+        return new ParsedFeed($this->text($xpath, $channel.'/*[local-name()="title"]'), $this->text($xpath, $channel.'/*[local-name()="link" and namespace-uri()!="http://www.w3.org/2005/Atom"]'), $items);
     }
 
     private function text(\DOMXPath $xpath, string $query, ?\DOMNode $context = null): ?string { $node = $xpath->query($query, $context)->item(0); $value = $node ? trim($node->textContent) : ''; return '' === $value ? null : $value; }

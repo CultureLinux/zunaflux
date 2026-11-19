@@ -61,7 +61,7 @@ final class AdminController extends AbstractController
   if ('application/json' === $r->headers->get('Accept')) {
    $logs = ['Vérification de l’adresse et collecte du flux…'];
    try {
-    $collect(new CollectFeedMessage((string)$incident->getFeed()->getId()));
+    $collect->collectOrFail(new CollectFeedMessage((string)$incident->getFeed()->getId()));
     $em->remove($incident);
     $em->flush();
     $logs[] = 'Collecte terminée avec succès.';
