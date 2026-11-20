@@ -46,6 +46,8 @@ final class SecurityControllerTest extends WebTestCase
     public function testRegistrationIsBlockedAtConfiguredAccountLimit(): void
     {
         $client = static::createClient();
+        // The registration quota is persisted in the cache between runs.
+        static::getContainer()->get('limiter.register')->create('127.0.0.1')->reset();
         $connection = static::getContainer()->get(EntityManagerInterface::class)->getConnection();
         $old = $connection->fetchOne('SELECT account_limit FROM registration_settings WHERE id = 1');
         $count = (int) $connection->fetchOne('SELECT COUNT(*) FROM app_user');
@@ -114,6 +116,8 @@ final class SecurityControllerTest extends WebTestCase
     public function testVisitorCanRegisterANewAccount(): void
     {
         $client = static::createClient();
+        // The registration quota is persisted in the cache between runs.
+        static::getContainer()->get('limiter.register')->create('127.0.0.1')->reset();
         $crawler = $client->request('GET', '/register');
 
         self::assertResponseIsSuccessful();

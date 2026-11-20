@@ -17,6 +17,7 @@ use App\Entity\UserPreference;
 use App\Infrastructure\Reading\FeedImageFetcher;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -123,11 +124,11 @@ final class ArticleController extends AbstractController
             $query->andWhere('LOWER(a.title) LIKE :search OR LOWER(a.summary) LIKE :search OR LOWER(f.title) LIKE :search OR LOWER(subscription.customTitle) LIKE :search')
                 ->setParameter('search', '%'.mb_strtolower($search).'%');
         }
-        if ('' !== $request->query->getString('subscription')) $query->andWhere('subscription.id = :subscription')->setParameter('subscription', Uuid::fromString($request->query->getString('subscription')), 'uuid');
-        if ('' !== $request->query->getString('category')) $query->andWhere('IDENTITY(subscription.category) = :category')->setParameter('category', Uuid::fromString($request->query->getString('category')), 'uuid');
+        if ('' !== $request->query->getString('subscription')) $query->andWhere('subscription.id = :subscription')->setParameter('subscription', $this->queryUuid($request, 'subscription'), 'uuid');
+        if ('' !== $request->query->getString('category')) $query->andWhere('IDENTITY(subscription.category) = :category')->setParameter('category', $this->queryUuid($request, 'category'), 'uuid');
         foreach (['read' => 'isRead', 'favorite' => 'isFavorite', 'saved' => 'isSaved'] as $parameter => $field) { if (in_array($request->query->getString($parameter), ['0','1'], true)) $query->andWhere('COALESCE(s.'.$field.', false) = :'.$parameter)->setParameter($parameter, '1' === $request->query->getString($parameter)); }
-        if ('' !== $request->query->getString('from')) $query->andWhere('COALESCE(a.publishedAt, a.collectedAt) >= :from')->setParameter('from', new \DateTimeImmutable($request->query->getString('from')));
-        if ('' !== $request->query->getString('to')) $query->andWhere('COALESCE(a.publishedAt, a.collectedAt) <= :to')->setParameter('to', new \DateTimeImmutable($request->query->getString('to')));
+        if ('' !== $request->query->getString('from')) $query->andWhere('COALESCE(a.publishedAt, a.collectedAt) >= :from')->setParameter('from', $this->queryDate($request, 'from'));
+        if ('' !== $request->query->getString('to')) $query->andWhere('COALESCE(a.publishedAt, a.collectedAt) <= :to')->setParameter('to', $this->queryDate($request, 'to'));
 
         $items = $query->getQuery()->getArrayResult();
         $hasMore = count($items) > self::PAGE_SIZE;
@@ -289,6 +290,22 @@ final class ArticleController extends AbstractController
     }
 
     /** @return array{collectedAt: string, id: string}|null */
+    private function queryUuid(Request $request, string $name): Uuid
+    {
+        $value = $request->query->getString($name);
+
+        return Uuid::isValid($value) ? Uuid::fromString($value) : throw new BadRequestHttpException(sprintf('Invalid "%s" filter.', $name));
+    }
+
+    private function queryDate(Request $request, string $name): \DateTimeImmutable
+    {
+        try {
+            return new \DateTimeImmutable($request->query->getString($name));
+        } catch (\Exception) {
+            throw new BadRequestHttpException(sprintf('Invalid "%s" filter.', $name));
+        }
+    }
+
     private function decodeCursor(string $cursor): ?array
     {
         if ('' === $cursor) { return null; }

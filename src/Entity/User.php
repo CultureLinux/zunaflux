@@ -6,6 +6,7 @@ namespace App\Entity;
 
 use App\Domain\Identity\EmailAddressNormalizer;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Security\Core\User\EquatableInterface;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Uid\Uuid;
@@ -13,7 +14,7 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Entity]
 #[ORM\Table(name: 'app_user')]
 #[ORM\UniqueConstraint(name: 'uniq_app_user_email_normalized', columns: ['email_normalized'])]
-class User implements UserInterface, PasswordAuthenticatedUserInterface
+class User implements UserInterface, PasswordAuthenticatedUserInterface, EquatableInterface
 {
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
@@ -83,6 +84,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         if (!in_array($role, $this->roles, true)) {
             $this->roles[] = $role;
         }
+    }
+
+    /** Replaces Symfony's default comparison so that disabling an account ends its open sessions. */
+    public function isEqualTo(UserInterface $user): bool
+    {
+        return $user instanceof self
+            && $this->id->equals($user->id)
+            && $this->emailNormalized === $user->emailNormalized
+            && $this->passwordHash === $user->passwordHash
+            && $this->getRoles() === $user->getRoles()
+            && $this->isActive() === $user->isActive();
     }
 
     public function isActive(): bool { return 'active' === $this->status; }

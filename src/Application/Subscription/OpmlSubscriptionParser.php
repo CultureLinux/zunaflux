@@ -17,6 +17,7 @@ final class OpmlSubscriptionParser
         try {
             $document = new \DOMDocument();
             if (!$document->loadXML($xml, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_COMPACT)
+                || null !== $document->doctype
                 || !$document->documentElement instanceof \DOMElement
                 || 'opml' !== strtolower($document->documentElement->localName)) {
                 throw new \InvalidArgumentException('Le fichier n’est pas un OPML valide.');

@@ -10,11 +10,13 @@ use App\Application\Administration\RegistrationLimit;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 
 final class SecurityController extends AbstractController
 {
@@ -76,6 +78,7 @@ final class SecurityController extends AbstractController
         UserPasswordHasherInterface $passwordHasher,
         bool $publicRegistration,
         RegistrationLimit $registrationLimit,
+        #[Autowire(service: 'limiter.register')] RateLimiterFactoryInterface $registerLimiter,
     ): Response {
         if (!$publicRegistration) {
             throw $this->createNotFoundException();
@@ -102,6 +105,13 @@ final class SecurityController extends AbstractController
             $this->addFlash('error', 'Le mot de passe doit contenir au moins 12 caractères.');
 
             return $this->redirectToRoute('app_register');
+        }
+
+        // Counted once the submission is well-formed, so typos do not exhaust the quota.
+        if (!$registerLimiter->create($request->getClientIp() ?? 'unknown')->consume()->isAccepted()) {
+            $this->addFlash('error', 'Trop de tentatives d’inscription depuis cette connexion. Réessayez plus tard.');
+
+            return $this->render('security/register.html.twig', [], new Response(status: Response::HTTP_TOO_MANY_REQUESTS));
         }
 
         $user = new User($email);

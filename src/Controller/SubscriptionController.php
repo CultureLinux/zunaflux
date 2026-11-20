@@ -232,6 +232,7 @@ final class SubscriptionController extends AbstractController
         $subscription = $this->ownedSubscription($id, $entityManager);
         if (!$this->isCsrfTokenValid('subscription-'.$id, $request->request->getString('_token'))) throw $this->createAccessDeniedException('Invalid CSRF token.');
         $categoryId = $request->request->getString('category_id');
+        if ('' !== $categoryId && !Uuid::isValid($categoryId)) throw $this->createNotFoundException();
         $category = '' === $categoryId ? null : $entityManager->getRepository(Category::class)->find(Uuid::fromString($categoryId));
         if (null !== $category && $category->getUser()->getId()->equals($subscription->getUser()->getId()) === false) throw $this->createAccessDeniedException();
         try {
@@ -307,6 +308,7 @@ final class SubscriptionController extends AbstractController
     #[Route('/categories/{id}/delete', name: 'app_category_delete', methods: ['POST'])]
     public function deleteCategory(string $id, Request $request, EntityManagerInterface $entityManager): RedirectResponse
     {
+        if (!Uuid::isValid($id)) throw $this->createNotFoundException();
         $user = $this->currentUser(); $category = $entityManager->getRepository(Category::class)->find(Uuid::fromString($id));
         if (!$category instanceof Category || !$category->getUser()->getId()->equals($user->getId())) throw $this->createAccessDeniedException();
         if (!$this->isCsrfTokenValid('delete-category-'.$id, $request->request->getString('_token'))) throw $this->createAccessDeniedException('Invalid CSRF token.');
