@@ -107,7 +107,7 @@ Un worker doit être actif pour traiter les messages de collecte et de notificat
 php85 bin/console messenger:consume async --env=prod
 ```
 
-Configurez ce worker comme un service supervisé sur votre serveur. La durée de conservation des articles est réglable avec `ZUNAFLUX_RETENTION_MONTHS` ; sa valeur par défaut est de 12 mois.
+Configurez ce worker comme un service supervisé sur votre serveur. La durée de conservation des articles est réglable avec `ZUNAFLUX_RETENTION_MONTHS` ; sa valeur par défaut est de 12 mois. La purge s’appuie sur la date de collecte et est exécutée par `app:maintenance:purge-articles` (options `--max-seconds` et `--batch-size`) : intégrée à `docker/collect-feeds.sh` sous Docker, à planifier (cron ou timer systemd) hors Docker.
 
 Une [unité systemd](deploy/systemd/zunaflux-messenger.service) est fournie ; adaptez les chemins et l’utilisateur à votre serveur.
 

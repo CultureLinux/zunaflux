@@ -21,5 +21,9 @@ while :; do
         printf '%s\n' 'Feed collection failed; retrying after the configured interval.' >&2
     fi
 
+    if ! php bin/console app:maintenance:purge-articles --max-seconds=60 --env=prod --no-interaction; then
+        printf '%s\n' 'Article purge failed; retrying after the configured interval.' >&2
+    fi
+
     sleep "$interval"
 done

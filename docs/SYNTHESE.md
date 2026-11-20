@@ -31,7 +31,7 @@ Le service `migrations` applique automatiquement les migrations : les examiner s
 
 ## Exploitation et sauvegardes
 
-Compose supervise application, worker, collecte et notifications. Hors Docker, superviser `messenger:consume async`, planifier `app:feeds:collect` et exécuter `app:notifications:send` chaque minute, via `php85 bin/console … --env=prod`. Adapter l’[unité systemd](../deploy/systemd/zunaflux-messenger.service) fournie.
+Compose supervise application, worker, collecte et notifications. Hors Docker, superviser `messenger:consume async`, planifier `app:feeds:collect` et exécuter `app:notifications:send` chaque minute, lancer `app:maintenance:purge-articles --max-seconds=60` périodiquement (par exemple chaque heure ; dans Docker, `collect-feeds.sh` s’en charge), via `php85 bin/console … --env=prod`. Adapter l’[unité systemd](../deploy/systemd/zunaflux-messenger.service) fournie.
 
 L’outbox conserve les événements à relayer ; `failed` conserve les échecs définitifs. Inspecter avec `php85 bin/console messenger:failed:show --env=prod`. Le rejeu nécessite une décision humaine et peut renotifier ; un envoi externe et son curseur ne forment pas une transaction unique.
 

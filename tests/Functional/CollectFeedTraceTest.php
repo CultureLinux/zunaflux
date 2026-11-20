@@ -51,7 +51,8 @@ final class CollectFeedTraceTest extends KernelTestCase
     {
         [$entries, $selects] = $this->collect(25);
         self::assertCount(27, $entries);
-        // Feed lookup, incident lookup and the trace projection must suffice,
+        // Feed lookup, incident lookup and the trace projection must suffice (the per-feed
+        // advisory lock SELECTs are a constant cost and are not counted),
         // regardless of subscriber count; leave one query of headroom.
         self::assertLessThanOrEqual(4, $selects);
     }
@@ -64,7 +65,7 @@ final class CollectFeedTraceTest extends KernelTestCase
             public int $selects = 0;
             public function log($level, \Stringable|string $message, array $context = []): void
             {
-                if (isset($context['sql']) && preg_match('/^\s*SELECT\b/i', $context['sql'])) {
+                if (isset($context['sql']) && preg_match('/^\s*SELECT\b(?!\s+(?:GET|RELEASE)_LOCK)/i', $context['sql'])) {
                     ++$this->selects;
                 }
             }
