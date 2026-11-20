@@ -68,6 +68,11 @@ L'ordre recommandé suit le rapport gain/risque. Les lots 1 à 3 sont courts et 
 | 7 | Accessibilité et i18n | Moyenne | M | Non | Partiel (7.1, 7.4, 7.5, 7.8, 7.11…), non validé | [lot-07-accessibilite-i18n.md](lot-07-accessibilite-i18n.md) |
 | 8 | Robustesse front, PWA et poids des assets | Moyenne | M | Non | Partiel (8.1, 8.2, 8.3, 8.6…), non validé | [lot-08-front-pwa.md](lot-08-front-pwa.md) |
 | 9 | Architecture et dette de code | Basse | L | Non | Appliqué (9.A à 9.D) avec restes listés, non validé | [lot-09-architecture.md](lot-09-architecture.md) |
+| 10 | Sécurité applicative et valeurs par défaut | Haute | M | Non | Appliqué, validé en partie (connexion, langue) | [lot-10-securite-applicative.md](lot-10-securite-applicative.md) |
+| 11 | Exploitation Docker et défauts de déploiement | Haute | M | Non | À faire (décisions à arbitrer) | [lot-11-exploitation-docker.md](lot-11-exploitation-docker.md) |
+| 12 | Données, collecte et performances | Moyenne | L | Oui | À faire (décisions à arbitrer) | [lot-12-donnees-performances.md](lot-12-donnees-performances.md) |
+| 13 | Front, accessibilité et PWA | Moyenne | M | Non | À faire (validation navigateur) | [lot-13-front-accessibilite-pwa.md](lot-13-front-accessibilite-pwa.md) |
+| 14 | Qualité, CI et architecture résiduelle | Basse | M–L | Non | À faire | [lot-14-qualite-ci-architecture.md](lot-14-qualite-ci-architecture.md) |
 
 Le détail de ce qui est appliqué, partiel ou laissé de côté figure dans la section « Statut d'avancement » de chaque fichier de lot.
 
@@ -109,3 +114,7 @@ for f in tests/JavaScript/*.test.cjs; do node "$f" || exit 1; done
 ```
 
 Les commandes qui **modifient une base ou l'environnement** (migrations, `docker compose up`) sont isolées dans chaque lot et exigent une approbation humaine. Les tests fonctionnels et de migration ne doivent tourner que sur une base dédiée.
+
+## Points écartés (décision du 20 novembre 2026)
+
+Ces points restent ouverts dans les lots 1 à 9 mais sont volontairement hors des lots 10 à 14 : 4.4 (table de compteurs de non-lus, optimisation prématurée), 5.9 (sauvegardes automatisées, dépendantes de l'hébergeur : une commande `mariadb-dump` documentée suffit), 5.10 (durcissement systemd hors Docker), 6.3 (épinglage des actions par SHA et environnement `production` : Dependabot couvre les mises à jour), et, au lot 9, l'horloge dans les entités et les exceptions techniques génériques. Les changements incompatibles des lots 10 et 11 sont annoncés uniquement dans une section « Changements incompatibles » du `README.md`.

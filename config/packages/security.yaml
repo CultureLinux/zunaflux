@@ -31,10 +31,9 @@ security:
             login_throttling:
                 max_attempts: 5
                 interval: '15 minutes'
-            switch_user:
-                role: ROLE_ADMIN
     access_control:
         - { path: ^/healthz$, roles: PUBLIC_ACCESS }
+        - { path: ^/csp-report$, roles: PUBLIC_ACCESS }
         - { path: ^/setup$, roles: PUBLIC_ACCESS }
         - { path: ^/login$, roles: PUBLIC_ACCESS }
         - { path: ^/register$, roles: PUBLIC_ACCESS }
@@ -45,3 +44,11 @@ security:
         - { path: ^/api/statistics, roles: ROLE_USER }
         - { path: ^/subscriptions, roles: ROLE_USER }
         - { path: ^/exports, roles: ROLE_USER }
+
+when@prod:
+    security:
+        firewalls:
+            main:
+                remember_me:
+                    secure: '%env(bool:default:app.cookie_secure_default:ZUNAFLUX_COOKIE_SECURE)%'
+

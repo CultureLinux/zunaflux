@@ -19,9 +19,11 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Core\Authentication\Token\SwitchUserToken;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 final class AdminController extends AbstractController
 {
@@ -213,29 +215,33 @@ final class AdminController extends AbstractController
         return $this->redirectToRoute('app_admin');
     }
 
+    /**
+     * Impersonation is decided here, after the CSRF check, and never by a query parameter:
+     * a link must not be able to switch an administrator into another account.
+     */
     #[Route('/admin/users/{id}/impersonate', name: 'app_admin_user_impersonate', methods: ['POST'])]
-    public function impersonate(string $id, Request $r, EntityManagerInterface $em): Response
+    public function impersonate(string $id, Request $r, EntityManagerInterface $em, TokenStorageInterface $tokens): Response
     {
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
-        try {
-            $u = $em->getRepository(User::class)->find(Uuid::fromString($id));
-        } catch (\InvalidArgumentException) {
-            $u = null;
-        }
+        $u = Uuid::isValid($id) ? $em->getRepository(User::class)->find(Uuid::fromString($id)) : null;
         if (!$u instanceof User || !$u->isActive()) {
             throw $this->createNotFoundException();
         }
         $current = $this->getUser();
+        $original = $tokens->getToken();
         if (
             !$current instanceof User
+            || null === $original
+            || $original instanceof SwitchUserToken
             || $current->getId()->equals($u->getId())
+            || $u->isAdmin()
             || !$this->isCsrfTokenValid('impersonate-user-'.$id, $r->request->getString('_token'))
         ) {
             throw $this->createAccessDeniedException();
         }
-        $r->getSession()->set('impersonated_by', $current->getUserIdentifier());
+        $tokens->setToken(new SwitchUserToken($u, 'main', $u->getRoles(), $original, $r->getUri()));
 
-        return $this->redirectToRoute('app_articles', ['_switch_user' => $u->getUserIdentifier()]);
+        return $this->redirectToRoute('app_articles');
     }
 
     #[Route('/admin/users', name: 'app_admin_user_create', methods: ['POST'])]
@@ -277,14 +283,17 @@ final class AdminController extends AbstractController
     }
 
     #[Route('/impersonation/exit', name: 'app_impersonation_exit', methods: ['POST'])]
-    public function exitImpersonation(Request $r): Response
+    public function exitImpersonation(Request $r, TokenStorageInterface $tokens): Response
     {
         if (!$this->isCsrfTokenValid('exit-impersonation', $r->request->getString('_token'))) {
             throw $this->createAccessDeniedException();
         }
-        $r->getSession()->remove('impersonated_by');
+        $token = $tokens->getToken();
+        if ($token instanceof SwitchUserToken) {
+            $tokens->setToken($token->getOriginalToken());
+        }
 
-        return $this->redirectToRoute('app_articles', ['_switch_user' => '_exit']);
+        return $this->redirectToRoute('app_admin');
     }
 
     #[Route('/admin/incidents/{id}/acknowledge', name: 'app_admin_incident_acknowledge', methods: ['POST'])]

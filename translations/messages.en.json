@@ -625,5 +625,8 @@
   "Filtres invalides.": "Invalid filters.",
   "Article inaccessible.": "Article not accessible.",
   "Nouvelle collecte placée en file. L’incident sera supprimé si elle réussit.": "A new collection has been queued. The incident will be removed if it succeeds.",
-  "Le site a répondu avec le code HTTP %status%.": "The site responded with HTTP code %status%."
+  "Le site a répondu avec le code HTTP %status%.": "The site responded with HTTP code %status%.",
+  "Jeton d’installation invalide.": "Invalid setup token.",
+  "Jeton d’installation": "Setup token",
+  "Valeur de ZUNAFLUX_SETUP_TOKEN sur le serveur.": "Value of ZUNAFLUX_SETUP_TOKEN on the server."
 }

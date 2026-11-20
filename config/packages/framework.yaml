@@ -16,3 +16,9 @@ framework:
         cookie_samesite: lax
     php_errors:
         log: true
+
+when@prod:
+    framework:
+        session:
+            cookie_secure: '%env(bool:default:app.cookie_secure_default:ZUNAFLUX_COOKIE_SECURE)%'
+

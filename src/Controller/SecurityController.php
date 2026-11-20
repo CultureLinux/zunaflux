@@ -24,13 +24,15 @@ final class SecurityController extends AbstractController
     public function setup(
         Request $request,
         CreateInitialAdministrator $initialAdministrator,
+        #[Autowire('%app.setup_token%')] string $setupToken,
     ): Response {
         if (!$initialAdministrator->isRequired()) {
             throw $this->createNotFoundException();
         }
+        $tokenRequired = '' !== $setupToken;
 
         if ($request->isMethod('GET')) {
-            return $this->render('security/setup.html.twig', ['data' => [], 'errors' => []]);
+            return $this->render('security/setup.html.twig', ['data' => [], 'errors' => [], 'tokenRequired' => $tokenRequired]);
         }
 
         if (!$this->isCsrfTokenValid('initial-setup', $request->request->getString('_token'))) {
@@ -42,6 +44,10 @@ final class SecurityController extends AbstractController
         ];
         $password = $request->request->getString('password');
         $errors = [];
+        // When ZUNAFLUX_SETUP_TOKEN is set, whoever reaches /setup first still needs the secret.
+        if ($tokenRequired && !hash_equals($setupToken, $request->request->getString('setup_token'))) {
+            $errors['setup_token'] = 'Jeton d’installation invalide.';
+        }
         if (filter_var($data['email'], FILTER_VALIDATE_EMAIL) === false) {
             $errors['email'] = 'Saisissez une adresse e-mail valide.';
         }
@@ -49,7 +55,7 @@ final class SecurityController extends AbstractController
             $errors['password'] = 'Le mot de passe doit contenir au moins 12 caractères.';
         }
         if ([] !== $errors) {
-            return $this->render('security/setup.html.twig', ['data' => $data, 'errors' => $errors], new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY));
+            return $this->render('security/setup.html.twig', ['data' => $data, 'errors' => $errors, 'tokenRequired' => $tokenRequired], new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY));
         }
 
         if (!$initialAdministrator->create($data['email'], $password)) {

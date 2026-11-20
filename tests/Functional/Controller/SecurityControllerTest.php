@@ -43,6 +43,47 @@ final class SecurityControllerTest extends WebTestCase
         $connection->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
     }
 
+    public function testTheSetupTokenIsRequiredWhenConfigured(): void
+    {
+        putenv('ZUNAFLUX_SETUP_TOKEN=correct-horse-token');
+        $_SERVER['ZUNAFLUX_SETUP_TOKEN'] = $_ENV['ZUNAFLUX_SETUP_TOKEN'] = 'correct-horse-token';
+        try {
+            $client = static::createClient();
+            $connection = static::getContainer()->get(EntityManagerInterface::class)->getConnection();
+            self::assertSame(0, (int) $connection->fetchOne('SELECT COUNT(*) FROM app_user'));
+
+            $crawler = $client->request('GET', '/setup');
+            self::assertResponseIsSuccessful();
+            self::assertSelectorExists('input[name="setup_token"]');
+            $token = $crawler->filter('input[name="_token"]')->attr('value');
+            $payload = ['_token' => $token, 'email' => 'token-admin@example.test', 'password' => 'a-secure-password'];
+
+            $client->request('POST', '/setup', $payload + ['setup_token' => 'wrong']);
+            self::assertResponseStatusCodeSame(422);
+            self::assertSelectorTextContains('body', 'Jeton d’installation invalide.');
+            $client->request('POST', '/setup', $payload);
+            self::assertResponseStatusCodeSame(422);
+            self::assertSame(0, (int) $connection->fetchOne('SELECT COUNT(*) FROM app_user'));
+
+            $client->request('POST', '/setup', $payload + ['setup_token' => 'correct-horse-token']);
+            self::assertResponseRedirects('/login');
+            self::assertSame(1, (int) $connection->fetchOne('SELECT COUNT(*) FROM app_user'));
+        } finally {
+            putenv('ZUNAFLUX_SETUP_TOKEN');
+            unset($_SERVER['ZUNAFLUX_SETUP_TOKEN'], $_ENV['ZUNAFLUX_SETUP_TOKEN']);
+            static::getContainer()->get(EntityManagerInterface::class)->getConnection()->executeStatement("DELETE FROM app_user WHERE email_normalized = 'token-admin@example.test'");
+        }
+    }
+
+    public function testNoSetupFieldIsShownWithoutAConfiguredToken(): void
+    {
+        $client = static::createClient();
+        $client->request('GET', '/setup');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('input[name="setup_token"]');
+    }
+
     public function testRegistrationIsBlockedAtConfiguredAccountLimit(): void
     {
         $client = static::createClient();

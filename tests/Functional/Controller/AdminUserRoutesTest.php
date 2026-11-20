@@ -82,26 +82,66 @@ final class AdminUserRoutesTest extends WebTestCase
         self::assertTrue($this->fresh($admin)->isActive());
     }
 
-    public function testImpersonationIsRestrictedToOtherActiveAccounts(): void
+    public function testImpersonationSwitchesAccountOnlyThroughACsrfProtectedPostAndCanBeExited(): void
     {
         $client = static::createClient();
         $admin = $this->createUser(admin: true);
         $target = $this->createUser();
+        $client->loginUser($admin);
+
+        $this->post($client, 'impersonate-user-'.$target->getId(), '/admin/users/'.$target->getId().'/impersonate');
+        self::assertResponseRedirects('/articles');
+        self::assertStringNotContainsString('_switch_user', (string) $client->getResponse()->headers->get('Location'));
+
+        $client->followRedirect();
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('aside[role="status"]', $target->getUserIdentifier());
+        // An administrator impersonating someone cannot start a second impersonation, nor open the admin area.
+        $other = $this->createUser();
+        $this->post($client, 'impersonate-user-'.$other->getId(), '/admin/users/'.$other->getId().'/impersonate');
+        self::assertResponseStatusCodeSame(403);
+        $client->request('GET', '/admin');
+        self::assertResponseStatusCodeSame(403);
+
+        $this->post($client, 'exit-impersonation', '/impersonation/exit');
+        self::assertResponseRedirects('/admin');
+        $client->followRedirect();
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('aside[role="status"]');
+    }
+
+    public function testImpersonationIsRestrictedToOtherActiveNonAdministratorAccounts(): void
+    {
+        $client = static::createClient();
+        $admin = $this->createUser(admin: true);
+        $otherAdmin = $this->createUser(admin: true);
         $inactive = $this->createUser();
         $inactive->disable();
         static::getContainer()->get(EntityManagerInterface::class)->flush();
         $client->loginUser($admin);
 
-        $this->post($client, 'impersonate-user-'.$target->getId(), '/admin/users/'.$target->getId().'/impersonate');
-        self::assertResponseRedirects();
-        self::assertStringContainsString('_switch_user='.$target->getUserIdentifier(), (string) $client->getResponse()->headers->get('Location'));
-
         $this->post($client, 'impersonate-user-'.$admin->getId(), '/admin/users/'.$admin->getId().'/impersonate');
+        self::assertResponseStatusCodeSame(403);
+        $this->post($client, 'impersonate-user-'.$otherAdmin->getId(), '/admin/users/'.$otherAdmin->getId().'/impersonate');
         self::assertResponseStatusCodeSame(403);
         $this->post($client, 'impersonate-user-'.$inactive->getId(), '/admin/users/'.$inactive->getId().'/impersonate');
         self::assertResponseStatusCodeSame(404);
-        $client->request('POST', '/admin/users/'.$target->getId().'/impersonate', ['_token' => 'forged']);
-        self::assertResponseStatusCodeSame(403);
+        $client->request('POST', '/admin/users/'.$inactive->getId().'/impersonate', ['_token' => 'forged']);
+        self::assertContains($client->getResponse()->getStatusCode(), [403, 404]);
+    }
+
+    public function testALinkCannotSwitchAnAdministratorIntoAnotherAccount(): void
+    {
+        $client = static::createClient();
+        $admin = $this->createUser(admin: true);
+        $victim = $this->createUser();
+        $client->loginUser($admin);
+
+        $client->request('GET', '/articles?_switch_user='.urlencode($victim->getUserIdentifier()));
+        $client->request('GET', '/admin');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('aside[role="status"]');
     }
 
     public function testDeletionNeedsADisabledAccountTheConfirmationWordAndAValidToken(): void

@@ -119,7 +119,7 @@
         <div class="zen-guide" data-zen-guide hidden><div><h3 class="font-serif text-2xl">{{ "Bienvenue en lecture zen"|trans }}</h3><p class="mt-4">{{ 'Faites défiler l’article normalement. Glissez à gauche ou à droite sur l’article pour naviguer. Les boutons en bas permettent aussi de changer d’article, gérer les favoris et enregistrer pour plus tard.'|trans }}</p><button class="mt-5 border border-accent px-4 text-accent" type="button" data-zen-guide-close>{{ "J’ai compris"|trans }}</button></div></div>
     </dialog>
     {% include 'article/_mastodon_share_dialog.html.twig' %}
-    {{ importmap('reader') }}
+    {{ importmap('reader', {nonce: csp_nonce()}) }}
     <script type="module" src="{{ asset('controllers/mastodon-share.js') }}"></script>
     <script type="module" src="{{ asset('controllers/zen.js') }}"></script>
     <script type="module" src="{{ asset('controllers/confirm-feed-delete.js') }}"></script>

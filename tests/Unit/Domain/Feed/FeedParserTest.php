@@ -107,4 +107,14 @@ final class FeedParserTest extends TestCase
         $this->expectExceptionMessage('DOCTYPE');
         (new FeedParser())->parse($xml);
     }
+
+    public function testAUtf16DocumentDeclaringEntitiesIsRefusedEvenThoughTheTextualPrecheckCannotSeeIt(): void
+    {
+        $xml = '<?xml version="1.0" encoding="UTF-16"?><!DOCTYPE rss [<!ENTITY x "expanded">]><rss version="2.0"><channel><title>&x;</title></channel></rss>';
+        $utf16 = "\xFF\xFE".mb_convert_encoding($xml, 'UTF-16LE', 'UTF-8');
+        self::assertSame(0, preg_match('/<!ENTITY/i', $utf16), 'The byte-level pre-check is blind to UTF-16.');
+
+        $this->expectException(\InvalidArgumentException::class);
+        (new FeedParser())->parse($utf16);
+    }
 }

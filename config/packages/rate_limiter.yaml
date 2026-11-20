@@ -4,6 +4,10 @@ framework:
             policy: fixed_window
             limit: 3
             interval: '1 hour'
+        csp_report:
+            policy: sliding_window
+            limit: 30
+            interval: '1 minute'
         contact:
             policy: fixed_window
             limit: 3

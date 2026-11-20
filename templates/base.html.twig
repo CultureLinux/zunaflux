@@ -15,7 +15,7 @@
         {% endblock %}
         {% if app.environment == 'prod' and matomo_url|trim != '' and matomo_site_id|trim != '' %}
             <!-- Matomo -->
-            <script>
+            <script nonce="{{ csp_nonce() }}">
                 var _paq = window._paq = window._paq || [];
                 _paq.push(['trackPageView']);
                 _paq.push(['enableLinkTracking']);
@@ -34,7 +34,7 @@
         <a class="skip-link" href="#main">{{ 'Aller au contenu'|trans }}</a>
         {% if app.user %}
             {% set current_route = app.request.attributes.get('_route')|default('') %}
-            {% if app.session.get('impersonated_by') or is_granted('ROLE_PREVIOUS_ADMIN') %}<aside class="border-b border-warning bg-accent-soft px-4 py-3 text-sm text-foreground" role="status">{{ 'Vous naviguez en tant que %user%.'|trans({'%user%': app.user.userIdentifier}) }} <form class="inline" method="post" action="{{ path('app_impersonation_exit') }}"><input type="hidden" name="_token" value="{{ csrf_token('exit-impersonation') }}"><button class="ml-2 underline" type="submit">{{ 'Revenir à mon compte'|trans }}</button></form></aside>{% endif %}
+            {% if is_granted('IS_IMPERSONATOR') %}<aside class="border-b border-warning bg-accent-soft px-4 py-3 text-sm text-foreground" role="status">{{ 'Vous naviguez en tant que %user%.'|trans({'%user%': app.user.userIdentifier}) }} <form class="inline" method="post" action="{{ path('app_impersonation_exit') }}"><input type="hidden" name="_token" value="{{ csrf_token('exit-impersonation') }}"><button class="ml-2 underline" type="submit">{{ 'Revenir à mon compte'|trans }}</button></form></aside>{% endif %}
             <nav class="relative z-50 border-b border-line bg-background px-4 py-3 md:px-6" aria-label="{{ 'Navigation principale'|trans }}">
                 <div class="site-header flex flex-wrap items-center justify-between gap-3">
                     <a class="site-header-brand inline-flex items-center font-serif text-2xl text-foreground hover:text-accent" href="{{ path('app_articles') }}"><img class="site-header-logo" src="{{ asset('images/livre-rss-transparent-320.webp') }}" alt="" width="54" height="40">Zunaflux</a>

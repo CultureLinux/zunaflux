@@ -625,5 +625,8 @@
   "Filtres invalides.": "Ungültige Filter.",
   "Article inaccessible.": "Artikel nicht zugänglich.",
   "Nouvelle collecte placée en file. L’incident sera supprimé si elle réussit.": "Ein neuer Abruf wurde eingereiht. Der Vorfall wird bei Erfolg entfernt.",
-  "Le site a répondu avec le code HTTP %status%.": "Die Website hat mit dem HTTP-Code %status% geantwortet."
+  "Le site a répondu avec le code HTTP %status%.": "Die Website hat mit dem HTTP-Code %status% geantwortet.",
+  "Jeton d’installation invalide.": "Ungültiges Installationstoken.",
+  "Jeton d’installation": "Installationstoken",
+  "Valeur de ZUNAFLUX_SETUP_TOKEN sur le serveur.": "Wert von ZUNAFLUX_SETUP_TOKEN auf dem Server."
 }
