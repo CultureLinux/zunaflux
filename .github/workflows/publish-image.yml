@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Validate publication version
         env:
           RELEASE_TAG: ${{ github.ref_name }}
@@ -32,7 +32,7 @@ jobs:
     outputs:
       dockerfile: ${{ steps.detect.outputs.dockerfile }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - id: detect
         run: |
           if test -f Dockerfile; then
@@ -55,7 +55,7 @@ jobs:
       cancel-in-progress: false
       queue: max
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
       - name: Prepare release tags
