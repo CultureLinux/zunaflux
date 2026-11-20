@@ -1,12 +1,10 @@
+import { fetchCounters } from '../reading/api.js';
+
 const zenNav = document.querySelector('[data-zen-nav]');
 const zenNavCount = document.querySelector('[data-zen-count]');
 
 if (zenNav && zenNavCount) {
-    fetch('/api/statistics/counters', { headers: { Accept: 'application/json' } })
-        .then(response => {
-            if (!response.ok) throw new Error();
-            return response.json();
-        })
+    fetchCounters()
         .then(data => {
             const count = data.all.unread_count;
             zenNavCount.textContent = String(count);

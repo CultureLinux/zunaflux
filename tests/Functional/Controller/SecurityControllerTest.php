@@ -43,9 +43,52 @@ final class SecurityControllerTest extends WebTestCase
         $connection->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
     }
 
+    public function testTheSetupTokenIsRequiredWhenConfigured(): void
+    {
+        putenv('ZUNAFLUX_SETUP_TOKEN=correct-horse-token');
+        $_SERVER['ZUNAFLUX_SETUP_TOKEN'] = $_ENV['ZUNAFLUX_SETUP_TOKEN'] = 'correct-horse-token';
+        try {
+            $client = static::createClient();
+            $connection = static::getContainer()->get(EntityManagerInterface::class)->getConnection();
+            self::assertSame(0, (int) $connection->fetchOne('SELECT COUNT(*) FROM app_user'));
+
+            $crawler = $client->request('GET', '/setup');
+            self::assertResponseIsSuccessful();
+            self::assertSelectorExists('input[name="setup_token"]');
+            $token = $crawler->filter('input[name="_token"]')->attr('value');
+            $payload = ['_token' => $token, 'email' => 'token-admin@example.test', 'password' => 'a-secure-password'];
+
+            $client->request('POST', '/setup', $payload + ['setup_token' => 'wrong']);
+            self::assertResponseStatusCodeSame(422);
+            self::assertSelectorTextContains('body', 'Jeton d’installation invalide.');
+            $client->request('POST', '/setup', $payload);
+            self::assertResponseStatusCodeSame(422);
+            self::assertSame(0, (int) $connection->fetchOne('SELECT COUNT(*) FROM app_user'));
+
+            $client->request('POST', '/setup', $payload + ['setup_token' => 'correct-horse-token']);
+            self::assertResponseRedirects('/login');
+            self::assertSame(1, (int) $connection->fetchOne('SELECT COUNT(*) FROM app_user'));
+        } finally {
+            putenv('ZUNAFLUX_SETUP_TOKEN');
+            unset($_SERVER['ZUNAFLUX_SETUP_TOKEN'], $_ENV['ZUNAFLUX_SETUP_TOKEN']);
+            static::getContainer()->get(EntityManagerInterface::class)->getConnection()->executeStatement("DELETE FROM app_user WHERE email_normalized = 'token-admin@example.test'");
+        }
+    }
+
+    public function testNoSetupFieldIsShownWithoutAConfiguredToken(): void
+    {
+        $client = static::createClient();
+        $client->request('GET', '/setup');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorNotExists('input[name="setup_token"]');
+    }
+
     public function testRegistrationIsBlockedAtConfiguredAccountLimit(): void
     {
         $client = static::createClient();
+        // The registration quota is persisted in the cache between runs.
+        static::getContainer()->get('limiter.register')->create('127.0.0.1')->reset();
         $connection = static::getContainer()->get(EntityManagerInterface::class)->getConnection();
         $old = $connection->fetchOne('SELECT account_limit FROM registration_settings WHERE id = 1');
         $count = (int) $connection->fetchOne('SELECT COUNT(*) FROM app_user');
@@ -57,7 +100,8 @@ final class SecurityControllerTest extends WebTestCase
             if (0 === $count) {
                 $user = new User('limit-'.bin2hex(random_bytes(8)).'@example.test');
                 $em = static::getContainer()->get(EntityManagerInterface::class);
-                $em->persist($user); $em->flush();
+                $em->persist($user);
+                $em->flush();
             }
             $client->request('GET', '/register');
             self::assertResponseStatusCodeSame(403);
@@ -66,7 +110,9 @@ final class SecurityControllerTest extends WebTestCase
             self::assertResponseStatusCodeSame(403);
         } finally {
             $connection->executeStatement('UPDATE registration_settings SET account_limit = ? WHERE id = 1', [$old]);
-            if (isset($user)) $connection->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
+            if (isset($user)) {
+                $connection->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
+            }
         }
     }
 
@@ -101,7 +147,9 @@ final class SecurityControllerTest extends WebTestCase
             self::assertGreaterThanOrEqual(time() + 604790, $expires);
             self::assertLessThanOrEqual(time() + 604810, $expires);
             foreach ($client->getCookieJar()->all() as $otherCookie) {
-                if ('REMEMBERME' !== $otherCookie->getName()) $client->getCookieJar()->expire($otherCookie->getName(), $otherCookie->getPath(), $otherCookie->getDomain());
+                if ('REMEMBERME' !== $otherCookie->getName()) {
+                    $client->getCookieJar()->expire($otherCookie->getName(), $otherCookie->getPath(), $otherCookie->getDomain());
+                }
             }
             $client->request('GET', '/articles');
             self::assertResponseIsSuccessful();
@@ -114,6 +162,8 @@ final class SecurityControllerTest extends WebTestCase
     public function testVisitorCanRegisterANewAccount(): void
     {
         $client = static::createClient();
+        // The registration quota is persisted in the cache between runs.
+        static::getContainer()->get('limiter.register')->create('127.0.0.1')->reset();
         $crawler = $client->request('GET', '/register');
 
         self::assertResponseIsSuccessful();
@@ -166,10 +216,14 @@ final class SecurityControllerTest extends WebTestCase
         $client = static::createClient();
         $entityManager = static::getContainer()->get(EntityManagerInterface::class);
         $user = new User('admin-boundary-'.bin2hex(random_bytes(8)).'@example.test');
-        $entityManager->persist($user); $entityManager->flush();
+        $entityManager->persist($user);
+        $entityManager->flush();
         try {
-            $client->loginUser($user); $client->request('GET', '/admin');
+            $client->loginUser($user);
+            $client->request('GET', '/admin');
             self::assertResponseStatusCodeSame(403);
-        } finally { $entityManager->getConnection()->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]); }
+        } finally {
+            $entityManager->getConnection()->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
+        }
     }
 }

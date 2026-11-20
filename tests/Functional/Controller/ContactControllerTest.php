@@ -12,6 +12,7 @@ final class ContactControllerTest extends WebTestCase
 {
     /** @var list<string> */
     private array $createdUserIds = [];
+
     public function testVisitorCanOpenAndSubmitTheContactForm(): void
     {
         $client = $this->authenticatedClient();

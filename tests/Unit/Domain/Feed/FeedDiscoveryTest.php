@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Domain\Feed;
 
 use App\Domain\Feed\FeedDiscovery;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class FeedDiscoveryTest extends TestCase
@@ -37,5 +38,23 @@ final class FeedDiscoveryTest extends TestCase
         self::assertSame('https://example.com/rss', $discovery->resolve('../rss', 'https://example.com/news/index'));
         self::assertSame('https://example.com/news/index?feed=1', $discovery->resolve('?feed=1', 'https://example.com/news/index'));
         self::assertNull($discovery->resolve('http://user@example.com/rss', 'https://example.com/'));
+    }
+
+    /** @return iterable<string, array{string, string, ?string}> */
+    public static function redirectLocations(): iterable
+    {
+        yield 'absolute' => ['https://example.test/a/feed.xml', 'https://other.test/x', 'https://other.test/x'];
+        yield 'absolute path' => ['https://example.test/a/feed.xml', '/rss', 'https://example.test/rss'];
+        yield 'relative' => ['https://example.test/a/feed.xml', 'new.xml', 'https://example.test/a/new.xml'];
+        yield 'dot segments' => ['https://example.test/a/b/feed.xml', '../new.xml', 'https://example.test/a/new.xml'];
+        yield 'protocol relative' => ['https://example.test/a/feed.xml', '//cdn.test/f', 'https://cdn.test/f'];
+        yield 'keeps the port' => ['http://example.test:80/feed', '/rss', 'http://example.test:80/rss'];
+        yield 'unusable' => ['https://example.test/feed', 'http://exa mple.test/', null];
+    }
+
+    #[DataProvider('redirectLocations')]
+    public function testRedirectLocationsAreResolvedAgainstTheCurrentUrl(string $base, string $location, ?string $expected): void
+    {
+        self::assertSame($expected, (new FeedDiscovery())->resolve($location, $base));
     }
 }

@@ -59,9 +59,10 @@ input[type="checkbox"]:not([role="switch"]):focus-visible { outline: 2px solid v
     --surface: #FFFFFF;
     --surface-muted: #ECEBE6;
     --foreground: #1F2937;
-    --muted: #64748B;
+    --muted: #56657A;
     --line: #D7DFE8;
-    --accent: #5475A5;
+    --input-border: #76879B;
+    --accent: #4A6A99;
     --accent-soft: #E8EEF7;
     --accent-foreground: #FFFFFF;
     --success: #16764C;
@@ -83,6 +84,7 @@ dialog [data-article-saved][aria-pressed="true"] svg { color: var(--accent); fil
         --foreground: #F8FAFC;
         --muted: #94A3B8;
         --line: #334155;
+        --input-border: #6B7C93;
         --accent: #6D9FD0;
         --accent-soft: #22344A;
         --accent-foreground: #0F1419;
@@ -100,6 +102,7 @@ dialog [data-article-saved][aria-pressed="true"] svg { color: var(--accent); fil
         --foreground: #F8FAFC;
         --muted: #94A3B8;
         --line: #334155;
+        --input-border: #6B7C93;
         --accent: #6D9FD0;
         --accent-soft: #22344A;
         --accent-foreground: #0F1419;
@@ -163,6 +166,16 @@ dialog [data-article-saved][aria-pressed="true"] svg { color: var(--accent); fil
     --font-mono: "IBM Plex Mono", "Courier New", monospace;
 }
 
+/* WCAG 1.4.11: form-control borders need 3:1. Unlayered on purpose, so it wins over the
+   `border-line` utilities used in templates; focus keeps the accent border. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="range"]), select, textarea { border-color: var(--input-border); }
+input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="range"]):focus, select:focus, textarea:focus { border-color: var(--accent); }
+
+/* WCAG 2.4.1: bypass block, visible only on keyboard focus. */
+.skip-link { position: absolute; left: .75rem; top: -4rem; z-index: 100; padding: .75rem 1rem; background: var(--accent); color: var(--accent-foreground); border-radius: .5rem; font-weight: 600; }
+.skip-link:focus { top: .75rem; }
+main[tabindex="-1"]:focus { outline: none; }
+
 @layer base {
     body { background: var(--background); color: var(--foreground); }
     ::selection { background: var(--accent-soft); color: var(--foreground); }
@@ -224,6 +237,9 @@ dialog [data-article-saved][aria-pressed="true"] svg { color: var(--accent); fil
         .reading-workspace { display: grid; grid-template-columns: 13rem minmax(18rem, 1fr) minmax(20rem, 1.1fr); min-height: calc(100dvh - 5rem); max-width: 112rem; margin: auto; }
         .reading-workspace .reading-sidebar { display: block; min-width: 0; padding: 1.75rem 1rem; border-right: 1px solid var(--line); background: var(--surface); }
         .reading-sidebar-title, .reading-sidebar-heading { color: var(--muted); font-size: .7rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+        .reading-sidebar-top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+        .reading-mark-all { display: inline-flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; border: 1px solid var(--line); border-radius: .5rem; color: var(--accent); }
+        .reading-mark-all:hover { background: var(--accent-soft); border-color: var(--accent); }
         .reading-sidebar-category { margin: .75rem .5rem -.75rem; color: var(--accent); font-size: .875rem; font-weight: 600; overflow-wrap: anywhere; }
         .reading-sidebar-heading { display: flex; align-items: center; justify-content: space-between; margin: 2rem .5rem .5rem; }
         .reading-sidebar-heading a { color: var(--accent); font-size: 1.5rem; }

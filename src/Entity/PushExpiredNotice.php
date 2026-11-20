@@ -33,7 +33,18 @@ final class PushExpiredNotice
         $this->expiredAt = new \DateTimeImmutable();
     }
 
-    public function getId(): Uuid { return $this->id; }
-    public function getDeviceLabel(): string { return $this->deviceLabel; }
-    public function getExpiredAt(): \DateTimeImmutable { return $this->expiredAt; }
+    public function getId(): Uuid
+    {
+        return $this->id;
+    }
+
+    public function getDeviceLabel(): string
+    {
+        return $this->deviceLabel;
+    }
+
+    public function getExpiredAt(): \DateTimeImmutable
+    {
+        return $this->expiredAt;
+    }
 }

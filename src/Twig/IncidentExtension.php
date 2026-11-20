@@ -11,7 +11,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class IncidentExtension extends AbstractExtension
 {
-    public function __construct(private readonly IncidentMessage $message, private readonly TranslatorInterface $translator) {}
+    public function __construct(private readonly IncidentMessage $message, private readonly TranslatorInterface $translator)
+    {
+    }
 
     public function getFilters(): array
     {
@@ -20,7 +22,12 @@ final class IncidentExtension extends AbstractExtension
 
     public function describe(string $message): string
     {
-        $description = $this->message->describe($message);
+        return $this->translate($this->message->describe($message));
+    }
+
+    /** Translates a description produced by IncidentMessage (or stored from it), including its HTTP code. */
+    public function translate(string $description): string
+    {
         if (preg_match('/HTTP (\d{3})/', $description, $matches) && '429' !== $matches[1]) {
             return $this->translator->trans(str_replace($matches[1], '%code%', $description), ['%code%' => $matches[1]]);
         }

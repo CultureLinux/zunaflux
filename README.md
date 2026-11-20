@@ -107,7 +107,7 @@ Un worker doit être actif pour traiter les messages de collecte et de notificat
 php85 bin/console messenger:consume async --env=prod
 ```
 
-Configurez ce worker comme un service supervisé sur votre serveur. La durée de conservation des articles est réglable avec `ZUNAFLUX_RETENTION_MONTHS` ; sa valeur par défaut est de 12 mois.
+Configurez ce worker comme un service supervisé sur votre serveur. La durée de conservation des articles est réglable avec `ZUNAFLUX_RETENTION_MONTHS` ; sa valeur par défaut est de 12 mois. La purge s’appuie sur la date de collecte et est exécutée par `app:maintenance:purge-articles` (options `--max-seconds` et `--batch-size`) : intégrée à `docker/collect-feeds.sh` sous Docker, à planifier (cron ou timer systemd) hors Docker.
 
 Une [unité systemd](deploy/systemd/zunaflux-messenger.service) est fournie ; adaptez les chemins et l’utilisateur à votre serveur.
 
@@ -121,6 +121,24 @@ ZUNAFLUX_MASTODON_TOKEN_KEY=cle-privee-base64-de-32-octets
 ```
 
 La clé doit être une valeur aléatoire de 32 octets encodée en base64. Elle chiffre les jetons d’accès enregistrés : conservez-la avec vos sauvegardes de configuration, ne la publiez pas et ne la remplacez pas lors d’une mise à jour. Une clé perdue ou changée rend les jetons précédents illisibles ; les comptes concernés devront être reconnectés. Chaque utilisateur peut ensuite connecter son instance dans ses préférences et publier depuis un article.
+
+## Changements incompatibles
+
+Zunaflux n'a pas encore de version stable : les valeurs par défaut évoluent vers le plus sûr, sans période de transition. Si vous mettez à jour une installation existante, vérifiez ces points.
+
+| Depuis | Changement | Ce qu'il faut faire |
+|---|---|---|
+| Lot 10 | Les cookies de session et « se souvenir de moi » sont `Secure` en production : un accès en HTTP simple ne garde plus la session. | Servir Zunaflux en HTTPS (derrière un proxy, avec `SYMFONY_TRUSTED_PROXIES`), ou définir `ZUNAFLUX_COOKIE_SECURE=0` pour un essai local en HTTP. |
+| Lot 10 | L'imitation d'un compte par un administrateur passe uniquement par le bouton de l'administration (requête POST protégée). Le lien `?_switch_user=…` ne fonctionne plus. Un administrateur ne peut plus imiter un autre administrateur ni enchaîner deux imitations. | Utiliser le bouton « Imiter » de la page Administration, puis « Revenir à mon compte ». |
+
+### Variables ajoutées
+
+- `ZUNAFLUX_COOKIE_SECURE` (défaut : `1` en production) : `0` autorise les cookies en HTTP.
+- `ZUNAFLUX_SETUP_TOKEN` (facultative) : si elle est définie, la page `/setup` exige ce jeton pour créer le premier administrateur. Sans elle, créez l'administrateur par la console avant d'exposer le serveur : `php85 bin/console app:user:create EMAIL MOT_DE_PASSE --admin --env=prod`.
+
+### Politique de sécurité du contenu
+
+Zunaflux envoie une politique CSP en mode « rapport seul » : rien n'est bloqué, les violations sont journalisées (`CSP violation reported.`) via `/csp-report`. Elle servira à durcir la politique plus tard.
 
 ## Sauvegarder et mettre à jour
 

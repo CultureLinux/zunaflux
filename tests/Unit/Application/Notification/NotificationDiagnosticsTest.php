@@ -16,9 +16,13 @@ final class NotificationDiagnosticsTest extends TestCase
 {
     public function testSubscriptionChangesAreLoggedAtInfoLevel(): void
     {
-        $logger = new class extends AbstractLogger {
+        $logger = new class () extends AbstractLogger {
             public array $entries = [];
-            public function log($level, \Stringable|string $message, array $context = []): void { $this->entries[] = [$level, (string) $message, $context]; }
+
+            public function log($level, \Stringable|string $message, array $context = []): void
+            {
+                $this->entries[] = [$level, (string) $message, $context];
+            }
         };
         $diagnostics = new NotificationDiagnostics($logger);
 
@@ -31,9 +35,13 @@ final class NotificationDiagnosticsTest extends TestCase
 
     public function testReportRecordsHttpStatusWithoutExposingEndpointOrResponse(): void
     {
-        $logger = new class extends AbstractLogger {
+        $logger = new class () extends AbstractLogger {
             public array $entries = [];
-            public function log($level, \Stringable|string $message, array $context = []): void { $this->entries[] = [$level, (string) $message, $context]; }
+
+            public function log($level, \Stringable|string $message, array $context = []): void
+            {
+                $this->entries[] = [$level, (string) $message, $context];
+            }
         };
         $diagnostics = new NotificationDiagnostics($logger);
         $report = new MessageSentReport(new Request('POST', 'https://updates.push.services.mozilla.com/secret-token'), new Response(403, [], 'secret-response'), false, 'secret-token');
@@ -47,9 +55,13 @@ final class NotificationDiagnosticsTest extends TestCase
 
     public function testExceptionIsClassifiedWithoutLoggingItsMessage(): void
     {
-        $logger = new class extends AbstractLogger {
+        $logger = new class () extends AbstractLogger {
             public array $entries = [];
-            public function log($level, \Stringable|string $message, array $context = []): void { $this->entries[] = [$level, (string) $message, $context]; }
+
+            public function log($level, \Stringable|string $message, array $context = []): void
+            {
+                $this->entries[] = [$level, (string) $message, $context];
+            }
         };
         (new NotificationDiagnostics($logger))->exception('test', 'envoi', new \RuntimeException('Connection timed out for https://example.test/secret-token'));
 

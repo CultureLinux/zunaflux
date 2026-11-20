@@ -33,12 +33,18 @@ final class NotificationTraceTest extends KernelTestCase
         $feed = new Feed('https://example.test/'.bin2hex(random_bytes(8)));
         $device = new PushSubscription($user, 'https://fcm.googleapis.com/fcm/send/secret-token', 'secret-key', 'secret-auth');
         $device->setDeviceLabel('Firefox Android');
-        foreach ([$user, $feed, new Subscription($user, $feed), $device] as $entity) $em->persist($entity);
+        foreach ([$user, $feed, new Subscription($user, $feed), $device] as $entity) {
+            $em->persist($entity);
+        }
         $em->flush();
 
-        $logger = new class extends AbstractLogger {
+        $logger = new class () extends AbstractLogger {
             public array $entries = [];
-            public function log($level, \Stringable|string $message, array $context = []): void { $this->entries[] = $context; }
+
+            public function log($level, \Stringable|string $message, array $context = []): void
+            {
+                $this->entries[] = $context;
+            }
         };
 
         try {
@@ -73,12 +79,18 @@ final class NotificationTraceTest extends KernelTestCase
         $administrator->addRole('ROLE_ADMIN');
         $feed = new Feed('https://example.test/'.bin2hex(random_bytes(8)));
         $device = new PushSubscription($administrator, 'https://fcm.googleapis.com/fcm/send/administrator-token', 'administrator-key', 'administrator-auth');
-        foreach ([$administrator, $feed, $device] as $entity) $entityManager->persist($entity);
+        foreach ([$administrator, $feed, $device] as $entity) {
+            $entityManager->persist($entity);
+        }
         $entityManager->flush();
 
-        $logger = new class extends AbstractLogger {
+        $logger = new class () extends AbstractLogger {
             public array $entries = [];
-            public function log($level, \Stringable|string $message, array $context = []): void { $this->entries[] = $context; }
+
+            public function log($level, \Stringable|string $message, array $context = []): void
+            {
+                $this->entries[] = $context;
+            }
         };
 
         try {

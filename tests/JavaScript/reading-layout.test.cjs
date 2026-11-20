@@ -23,6 +23,8 @@ test('the empty filtered state uses the translated label from the article list',
     assert.match(template, /data-empty-filtered-label=/);
     assert.match(script, /container\.dataset\.emptyFilteredLabel/);
     assert.doesNotMatch(script, /Aucun article ne correspond à vos critères\./);
+    // The screen-reader status must not duplicate the visible empty message (it broke getByText in the browser suite).
+    assert.doesNotMatch(script, /status\.textContent[^\n]*emptyFilteredLabel/);
 });
 
 test('article readers expose a native-share control with the loaded article URL', async () => {

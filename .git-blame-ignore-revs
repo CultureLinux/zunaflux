@@ -1,0 +1,4 @@
+# Revisions ignored by `git blame` (mechanical changes only).
+# Enable once with: git config blame.ignoreRevsFile .git-blame-ignore-revs
+# Append the SHA of the PHP-CS-Fixer reformatting commit (audit lot 9.A) below, one per line:
+dbb5baad7244dcb0765b14945f636318792aa6ed

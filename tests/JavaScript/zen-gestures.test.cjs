@@ -5,7 +5,7 @@ const vm = require('node:vm');
 
 test('zen gestures navigate horizontally and leave vertical scrolling alone', () => {
     const context = { document: { querySelector: () => null } };
-    vm.runInNewContext(fs.readFileSync('assets/controllers/zen.js', 'utf8') + '\nthis.classify = classifyZenGesture;', context);
+    vm.runInNewContext(fs.readFileSync('assets/controllers/zen.js', 'utf8').replace(/^import .*\n/gm, '') + '\nthis.classify = classifyZenGesture;', context);
     assert.equal(context.classify(-90, 5), 'next');
     assert.equal(context.classify(90, 5), 'previous');
     assert.equal(context.classify(5, 90), null);
@@ -14,7 +14,7 @@ test('zen gestures navigate horizontally and leave vertical scrolling alone', ()
 });
 
 test('zen gestures target article content and remaining count appears in the header', () => {
-    const script = fs.readFileSync('assets/controllers/zen.js', 'utf8');
+    const script = fs.readFileSync('assets/controllers/zen.js', 'utf8').replace(/^import .*\n/gm, '');
     const template = fs.readFileSync('templates/article/index.html.twig', 'utf8');
     assert.match(script, /content\.addEventListener\('touchstart'/);
     assert.match(script, /content\.addEventListener\('touchend'/);
@@ -24,7 +24,7 @@ test('zen gestures target article content and remaining count appears in the hea
 
 test('zen counts use translated singular and plural messages', () => {
     const context = { document: { querySelector: () => null } };
-    vm.runInNewContext(fs.readFileSync('assets/controllers/zen.js', 'utf8') + '\nthis.formatCount = formatZenCount;', context);
+    vm.runInNewContext(fs.readFileSync('assets/controllers/zen.js', 'utf8').replace(/^import .*\n/gm, '') + '\nthis.formatCount = formatZenCount;', context);
     assert.equal(context.formatCount(1, '%count% ungelesener Artikel', '%count% ungelesene Artikel'), '1 ungelesener Artikel');
     assert.equal(context.formatCount(2, '%count% ungelesener Artikel', '%count% ungelesene Artikel'), '2 ungelesene Artikel');
     assert.equal(context.formatCount(0, '%count% article restant', '%count% articles restants'), '0 articles restants');
@@ -32,7 +32,7 @@ test('zen counts use translated singular and plural messages', () => {
 
 test('Zen requests native fullscreen only on mobile and safely ignores unsupported browsers', async () => {
     const context = { document: { fullscreenEnabled: true, fullscreenElement: null, querySelector: () => null } };
-    vm.runInNewContext(fs.readFileSync('assets/controllers/zen.js', 'utf8') + '\nthis.requestFullscreen = requestZenFullscreen;', context);
+    vm.runInNewContext(fs.readFileSync('assets/controllers/zen.js', 'utf8').replace(/^import .*\n/gm, '') + '\nthis.requestFullscreen = requestZenFullscreen;', context);
 
     let calls = 0;
     const zen = { requestFullscreen: () => { calls += 1; return Promise.resolve(); } };

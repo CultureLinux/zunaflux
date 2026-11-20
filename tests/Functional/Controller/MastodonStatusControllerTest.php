@@ -21,7 +21,9 @@ final class MastodonStatusControllerTest extends WebTestCase
         $user = new User('mastodon-status-'.bin2hex(random_bytes(8)).'@example.test');
         $feed = new Feed('https://example.test/'.bin2hex(random_bytes(8)));
         $article = new Article($feed, new ParsedFeedItem('one', 'Article à publier', 'https://example.test/article', null, null, null));
-        foreach ([$user, $feed, $article, new Subscription($user, $feed)] as $entity) $em->persist($entity);
+        foreach ([$user, $feed, $article, new Subscription($user, $feed)] as $entity) {
+            $em->persist($entity);
+        }
         $em->flush();
 
         try {

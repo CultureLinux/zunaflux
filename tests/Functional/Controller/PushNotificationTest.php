@@ -140,7 +140,9 @@ final class PushNotificationTest extends WebTestCase
         $second = new \App\Entity\PushSubscription($owner, 'https://fcm.googleapis.com/fcm/send/'.bin2hex(random_bytes(12)), str_repeat('C', 87), str_repeat('D', 22));
         $first->setDeviceLabel('Firefox · Windows');
         $second->setDeviceLabel('Chrome · Android');
-        foreach ([$owner, $other, $first, $second] as $entity) $em->persist($entity);
+        foreach ([$owner, $other, $first, $second] as $entity) {
+            $em->persist($entity);
+        }
         $em->flush();
         try {
             $client->loginUser($owner);
@@ -169,5 +171,4 @@ final class PushNotificationTest extends WebTestCase
             $em->getConnection()->executeStatement('DELETE FROM app_user WHERE id IN (?, ?)', [$owner->getId()->toBinary(), $other->getId()->toBinary()]);
         }
     }
-
 }

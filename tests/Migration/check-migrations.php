@@ -126,7 +126,7 @@ try {
     fwrite(STDOUT, 'Migration check '.$scenario.': passed (MariaDB 10.11, isolated schema, data preserved).'.PHP_EOL);
 } catch (Throwable $error) {
     // Do not print connection URLs or credentials from driver exceptions.
-    $safe = $error instanceof RuntimeException && !($error instanceof \Doctrine\DBAL\Exception);
+    $safe = $error instanceof RuntimeException && !($error instanceof Doctrine\DBAL\Exception);
     fwrite(STDERR, 'Migration check failed: '.($safe ? $error->getMessage() : 'database/configuration error; inspect the isolated test environment.').PHP_EOL);
     exit(1);
 }

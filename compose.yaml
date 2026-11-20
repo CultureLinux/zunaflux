@@ -6,6 +6,9 @@ x-zunaflux-environment: &zunaflux-environment
   DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in docker/.env}
   MAILER_DSN: ${MAILER_DSN:-null://null}
   MESSENGER_TRANSPORT_DSN: ${MESSENGER_TRANSPORT_DSN:-doctrine://default?queue_name=async}
+  SYMFONY_TRUSTED_PROXIES: ${SYMFONY_TRUSTED_PROXIES:-}
+  ZUNAFLUX_SETUP_TOKEN: ${ZUNAFLUX_SETUP_TOKEN:-}
+  ZUNAFLUX_COOKIE_SECURE: ${ZUNAFLUX_COOKIE_SECURE:-1}
   ZUNAFLUX_PAGE_SIZE: ${ZUNAFLUX_PAGE_SIZE:-30}
   ZUNAFLUX_MAX_SUBSCRIPTIONS: ${ZUNAFLUX_MAX_SUBSCRIPTIONS:-100}
   ZUNAFLUX_PUBLIC_REGISTRATION: ${ZUNAFLUX_PUBLIC_REGISTRATION:-0}
@@ -52,7 +55,7 @@ services:
     ports:
       - "${ZUNAFLUX_HTTP_PORT:-8080}:8080"
     healthcheck:
-      test: ["CMD", "php", "-r", "$$c = curl_init('http://127.0.0.1:8080/'); curl_setopt_array($$c, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 3]); curl_exec($$c); $$s = curl_getinfo($$c, CURLINFO_RESPONSE_CODE); exit($$s >= 200 && $$s < 400 ? 0 : 1);"]
+      test: ["CMD", "php", "-r", "$$c = curl_init('http://127.0.0.1:8080/healthz'); curl_setopt_array($$c, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 3]); curl_exec($$c); $$s = curl_getinfo($$c, CURLINFO_RESPONSE_CODE); exit(200 === $$s ? 0 : 1);"]
       interval: 10s
       timeout: 5s
       start_period: 10s
@@ -82,6 +85,7 @@ services:
   collector:
     image: clinuxfr/zunaflux:${ZUNAFLUX_IMAGE_TAG:-latest}
     restart: unless-stopped
+    init: true
     command: ["/usr/local/bin/collect-feeds"]
     environment:
       <<: *zunaflux-environment
@@ -97,6 +101,7 @@ services:
   notifications:
     image: clinuxfr/zunaflux:${ZUNAFLUX_IMAGE_TAG:-latest}
     restart: unless-stopped
+    init: true
     command: ["/usr/local/bin/send-notifications"]
     environment: *zunaflux-environment
     depends_on:

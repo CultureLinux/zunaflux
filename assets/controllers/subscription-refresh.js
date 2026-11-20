@@ -14,6 +14,7 @@ document.querySelectorAll('[data-subscription-refresh-form], [data-category-refr
             if (!response.ok) throw new Error();
             const { runId } = await response.json();
             const poll = async () => {
+                if (dialog.open === false) return;
                 const status = await fetch(form.dataset.statusUrl.replace('__run_id__', runId));
                 if (!status.ok) throw new Error();
                 const result = await status.json();
@@ -34,7 +35,7 @@ document.querySelectorAll('[data-subscription-refresh-form], [data-category-refr
                     text.textContent = `${entry.title || entry.canonical_url} — ${label}${articles}${entry.detail ? ` · ${entry.detail}` : ''}`;
                     row.append(marker, text); log.append(row);
                 }
-                if (!result.complete) window.setTimeout(poll, 1000);
+                if (!result.complete && dialog.open !== false) window.setTimeout(() => { poll().catch(() => { log.textContent = dialog.dataset.networkError; }); }, 1000);
             };
             await poll();
         } catch (_) {

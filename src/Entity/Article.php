@@ -10,6 +10,10 @@ use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'article')]
+#[ORM\Index(name: 'idx_article_feed_published', columns: ['feed_id', 'published_at'])]
+#[ORM\Index(name: 'idx_article_collected', columns: ['collected_at', 'id'])]
+#[ORM\Index(name: 'idx_article_feed_collected', columns: ['feed_id', 'collected_at', 'id'])]
+#[ORM\Index(name: 'idx_article_search', columns: ['title', 'summary'], flags: ['fulltext'])]
 #[ORM\UniqueConstraint(name: 'uniq_article_feed_identity_hash', columns: ['feed_id', 'identity_hash'])]
 final class Article
 {
@@ -38,19 +42,60 @@ final class Article
 
     public function __construct(Feed $feed, ParsedFeedItem $item)
     {
-        $this->id = Uuid::v7(); $this->feed = $feed; $this->identity = mb_substr($item->identity, 0, 2048);
-        $this->identityHash = hash('sha256', $item->identity, true); $this->title = mb_substr($item->title, 0, 500);
-        $this->url = $item->url ? mb_substr($item->url, 0, 2048) : null; $this->summary = $item->summary;
-        $this->content = $item->content; $this->publishedAt = $item->publishedAt; $this->collectedAt = new \DateTimeImmutable();
+        $this->id = Uuid::v7();
+        $this->feed = $feed;
+        $this->identity = mb_substr($item->identity, 0, 2048);
+        $this->identityHash = hash('sha256', $item->identity, true);
+        $this->title = mb_substr($item->title, 0, 500);
+        $this->url = $item->url ? mb_substr($item->url, 0, 2048) : null;
+        $this->summary = $item->summary;
+        $this->content = $item->content;
+        $this->publishedAt = $item->publishedAt;
+        $this->collectedAt = new \DateTimeImmutable();
     }
 
-    public function getId(): Uuid { return $this->id; }
-    public function getFeed(): Feed { return $this->feed; }
-    public function getTitle(): string { return $this->title; }
-    public function getUrl(): ?string { return $this->url; }
-    public function getSummary(): ?string { return $this->summary; }
-    public function getContent(): ?string { return $this->content; }
-    public function getPublishedAt(): ?\DateTimeImmutable { return $this->publishedAt; }
-    public function getCollectedAt(): \DateTimeImmutable { return $this->collectedAt; }
-    public function getIdentityHash(): string { return $this->identityHash; }
+    public function getId(): Uuid
+    {
+        return $this->id;
+    }
+
+    public function getFeed(): Feed
+    {
+        return $this->feed;
+    }
+
+    public function getTitle(): string
+    {
+        return $this->title;
+    }
+
+    public function getUrl(): ?string
+    {
+        return $this->url;
+    }
+
+    public function getSummary(): ?string
+    {
+        return $this->summary;
+    }
+
+    public function getContent(): ?string
+    {
+        return $this->content;
+    }
+
+    public function getPublishedAt(): ?\DateTimeImmutable
+    {
+        return $this->publishedAt;
+    }
+
+    public function getCollectedAt(): \DateTimeImmutable
+    {
+        return $this->collectedAt;
+    }
+
+    public function getIdentityHash(): string
+    {
+        return $this->identityHash;
+    }
 }

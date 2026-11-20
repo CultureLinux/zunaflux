@@ -10,16 +10,17 @@ final class OpmlSubscriptionParser
     public function parse(string $xml): array
     {
         if (preg_match('/<!DOCTYPE|<!ENTITY/i', $xml)) {
-            throw new \InvalidArgumentException('Le fichier OPML ne doit pas contenir de DOCTYPE ou d’entités.');
+            throw new \App\Application\Exception\InvalidOpmlFile('Le fichier OPML ne doit pas contenir de DOCTYPE ou d’entités.');
         }
 
         $previous = libxml_use_internal_errors(true);
         try {
             $document = new \DOMDocument();
             if (!$document->loadXML($xml, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_COMPACT)
+                || null !== $document->doctype
                 || !$document->documentElement instanceof \DOMElement
                 || 'opml' !== strtolower($document->documentElement->localName)) {
-                throw new \InvalidArgumentException('Le fichier n’est pas un OPML valide.');
+                throw new \App\Application\Exception\InvalidOpmlFile('Le fichier n’est pas un OPML valide.');
             }
 
             $subscriptions = [];

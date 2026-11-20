@@ -5,6 +5,9 @@ framework:
         fallbacks: ['fr']
     csrf_protection: true
     http_method_override: false
+    # Comma-separated proxy IPs/CIDRs (or REMOTE_ADDR); empty means no trusted proxy.
+    trusted_proxies: '%env(default::SYMFONY_TRUSTED_PROXIES)%'
+    trusted_headers: ['x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-forwarded-port']
     handle_all_throwables: true
     session:
         handler_id: null
@@ -13,3 +16,9 @@ framework:
         cookie_samesite: lax
     php_errors:
         log: true
+
+when@prod:
+    framework:
+        session:
+            cookie_secure: '%env(bool:default:app.cookie_secure_default:ZUNAFLUX_COOKIE_SECURE)%'
+

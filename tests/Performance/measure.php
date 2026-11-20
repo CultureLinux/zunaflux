@@ -39,8 +39,9 @@ use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 require dirname(__DIR__).'/bootstrap.php';
 
 // Deliberately retain SQL and bindings only in process memory, never in reports.
-$queries = new class extends AbstractLogger {
+$queries = new class () extends AbstractLogger {
     public array $entries = [];
+
     public function log($level, Stringable|string $message, array $context = []): void
     {
         if (isset($context['sql'])) {
@@ -85,9 +86,10 @@ try {
         }
     }
     $db->beginTransaction();
-    $logger = new class extends AbstractLogger {
+    $logger = new class () extends AbstractLogger {
         public int $notifications = 0;
         public bool $error = false;
+
         public function log($level, Stringable|string $message, array $context = []): void
         {
             if ('no_new_articles' === ($context['status'] ?? null)) {
@@ -98,7 +100,7 @@ try {
             }
         }
     };
-    $fetcher = new class implements FeedFetcherInterface {
+    $fetcher = new class () implements FeedFetcherInterface {
         public function fetch(string $url, ?string $etag = null, ?string $lastModified = null): FetchedFeed
         {
             return new FetchedFeed(304, null, null, null, $url);

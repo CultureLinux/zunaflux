@@ -6,6 +6,7 @@ namespace App\Entity;
 
 use App\Domain\Identity\EmailAddressNormalizer;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Security\Core\User\EquatableInterface;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Uid\Uuid;
@@ -13,31 +14,24 @@ use Symfony\Component\Uid\Uuid;
 #[ORM\Entity]
 #[ORM\Table(name: 'app_user')]
 #[ORM\UniqueConstraint(name: 'uniq_app_user_email_normalized', columns: ['email_normalized'])]
-class User implements UserInterface, PasswordAuthenticatedUserInterface
+class User implements UserInterface, PasswordAuthenticatedUserInterface, EquatableInterface
 {
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
     private Uuid $id;
-
     #[ORM\Column(name: 'email_normalized', length: 254)]
     private string $emailNormalized;
-
     #[ORM\Column(name: 'password_hash')]
     private string $passwordHash = '';
-
     /** @var list<string> */
     #[ORM\Column(type: 'json')]
     private array $roles = ['ROLE_USER'];
-
     #[ORM\Column(length: 20)]
     private string $status = 'active';
-
     #[ORM\Column(name: 'created_at')]
     private \DateTimeImmutable $createdAt;
-
     #[ORM\Column(name: 'disabled_at', nullable: true)]
     private ?\DateTimeImmutable $disabledAt = null;
-
     #[ORM\Column(name: 'subscription_limit', nullable: true)]
     private ?int $subscriptionLimit = null;
 
@@ -85,11 +79,59 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         }
     }
 
-    public function isActive(): bool { return 'active' === $this->status; }
-    public function disable(): void { $this->status = 'disabled'; $this->disabledAt = new \DateTimeImmutable(); }
-    public function enable(): void { $this->status = 'active'; $this->disabledAt = null; }
-    public function isAdmin(): bool { return in_array('ROLE_ADMIN', $this->roles, true); }
-    public function removeAdminRole(): void { $this->roles = array_values(array_filter($this->roles, static fn (string $role): bool => 'ROLE_ADMIN' !== $role)); }
-    public function setSubscriptionLimit(?int $limit): void { if (null !== $limit && $limit < 1) throw new \InvalidArgumentException('La limite doit être positive.'); $this->subscriptionLimit = $limit; }
-    public function getSubscriptionLimit(): ?int { return $this->subscriptionLimit; }
+    /** Replaces Symfony's default comparison so that disabling an account ends its open sessions. */
+    public function isEqualTo(UserInterface $user): bool
+    {
+        return $user instanceof self && $this
+            ->id
+            ->equals($user->id) && $this
+            ->emailNormalized === $user
+            ->emailNormalized && $this
+            ->passwordHash === $user
+            ->passwordHash && $this
+            ->getRoles() === $user
+            ->getRoles() && $this
+            ->isActive() === $user
+            ->isActive();
+    }
+
+    public function isActive(): bool
+    {
+        return 'active' === $this->status;
+    }
+
+    public function disable(): void
+    {
+        $this->status = 'disabled';
+        $this->disabledAt = new \DateTimeImmutable();
+    }
+
+    public function enable(): void
+    {
+        $this->status = 'active';
+        $this->disabledAt = null;
+    }
+
+    public function isAdmin(): bool
+    {
+        return in_array('ROLE_ADMIN', $this->roles, true);
+    }
+
+    public function removeAdminRole(): void
+    {
+        $this->roles = array_values(array_filter($this->roles, static fn (string $role): bool => 'ROLE_ADMIN' !== $role));
+    }
+
+    public function setSubscriptionLimit(?int $limit): void
+    {
+        if (null !== $limit && $limit < 1) {
+            throw new \App\Application\Exception\UserInputError('La limite doit être positive.');
+        }
+        $this->subscriptionLimit = $limit;
+    }
+
+    public function getSubscriptionLimit(): ?int
+    {
+        return $this->subscriptionLimit;
+    }
 }

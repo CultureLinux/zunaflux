@@ -2,6 +2,7 @@
 .github
 .github-stop
 .agents
+.claude
 .aws
 .codex
 .env
@@ -18,3 +19,4 @@ deploy
 AGENTS.md
 RECAP_LOTS.md
 ANALYSE_PROJET.md
+.grill

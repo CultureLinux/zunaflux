@@ -8,6 +8,14 @@ monolog:
             buffer_size: 50
         nested:
             type: stream
-            path: '%kernel.logs_dir%/%kernel.environment%.log'
+            # stderr by default (visible in `docker compose logs`); set ZUNAFLUX_LOG_PATH to a
+            # file path for installations outside Docker.
+            path: '%app.log_path%'
             level: warning
+            formatter: monolog.formatter.json
+        notification:
+            type: stream
+            path: '%app.log_path%'
+            level: info
+            channels: ['notification']
             formatter: monolog.formatter.json

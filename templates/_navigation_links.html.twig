@@ -1,7 +1,7 @@
 {% if section|default('all') in ['all', 'main'] %}
 <a class="block min-h-11 px-3 py-2 transition {{ current_route starts with 'app_articles' ? 'bg-accent-soft text-foreground border-l-2 border-accent' : 'text-foreground hover:text-accent' }}" href="{{ path('app_articles') }}">{{ "Lecture"|trans }}</a>
 <a class="block min-h-11 px-3 py-2 transition {{ current_route starts with 'app_subscriptions' ? 'bg-accent-soft text-foreground border-l-2 border-accent' : 'text-foreground hover:text-accent' }}" href="{{ path('app_subscriptions') }}">{{ "Sources"|trans }}</a>
-<a class="block min-h-11 px-3 py-2 transition {{ current_route starts with 'app_feed_explorer' ? 'bg-accent-soft text-foreground border-l-2 border-accent' : 'text-foreground hover:text-accent' }}" href="{{ path('app_feed_explorer') }}">Explorer</a>
+<a class="block min-h-11 px-3 py-2 transition {{ current_route starts with 'app_feed_explorer' ? 'bg-accent-soft text-foreground border-l-2 border-accent' : 'text-foreground hover:text-accent' }}" href="{{ path('app_feed_explorer') }}">{{ 'Explorer'|trans }}</a>
 {% endif %}
 {% if section|default('all') in ['all', 'account'] %}
 {% if is_granted('ROLE_ADMIN') %}<a class="block min-h-11 px-3 py-2 transition {{ current_route starts with 'app_admin' ? 'bg-accent-soft text-foreground border-l-2 border-accent' : 'text-foreground hover:text-accent' }}" href="{{ path('app_admin') }}">{{ "Administration"|trans }}</a>{% endif %}

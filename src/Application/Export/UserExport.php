@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Export;
 
+use App\Application\Time\Clock;
+use App\Application\Time\SystemClock;
 use App\Entity\ArticleState;
 use App\Entity\Category;
 use App\Entity\ReadingDailyStat;
@@ -16,34 +18,78 @@ use Doctrine\ORM\EntityManagerInterface;
 
 final readonly class UserExport
 {
-    public function __construct(private EntityManagerInterface $entityManager, private StreamingZipArchive $archive)
+    public function __construct(private EntityManagerInterface $entityManager, private StreamingZipArchive $archive, private Clock $clock = new SystemClock())
     {
     }
 
     /** @return array{filename: string, contents: string} */
     public function create(User $user): array
     {
-        $repository = fn (string $class) => $this->entityManager->getRepository($class);
-        $preference = $repository(UserPreference::class)->findOneBy(['user' => $user]);
-        $categories = $repository(Category::class)->findBy(['user' => $user], ['name' => 'ASC']);
-        $subscriptions = $repository(Subscription::class)->findBy(['user' => $user]);
-        $filters = $repository(SavedFilter::class)->findBy(['user' => $user]);
-        $states = $repository(ArticleState::class)->findBy(['user' => $user]);
-        $stats = $repository(ReadingDailyStat::class)->findBy(['user' => $user]);
-
+        $preference = $this->entityManager->getRepository(UserPreference::class)->findOneBy(['user' => $user]);
+        $categories = $this->entityManager->getRepository(Category::class)->findBy(['user' => $user], ['name' => 'ASC']);
+        $subscriptions = $this->entityManager->getRepository(Subscription::class)->findBy(['user' => $user]);
+        $filters = $this->entityManager->getRepository(SavedFilter::class)->findBy(['user' => $user]);
+        $states = $this->entityManager->getRepository(ArticleState::class)->findBy(['user' => $user]);
+        $stats = $this->entityManager->getRepository(ReadingDailyStat::class)->findBy(['user' => $user]);
         $entries = [
-            'manifest.json' => $this->json(['formatVersion' => 1, 'exportedAt' => (new \DateTimeImmutable())->format(DATE_ATOM), 'application' => 'Zunaflux']),
+            'manifest.json' => $this->json(['formatVersion' => 1, 'exportedAt' => $this->clock->now()->format(DATE_ATOM), 'application' => 'Zunaflux']),
             'profile.json' => $this->json(['email' => $user->getUserIdentifier()]),
-            'preferences.json' => $this->json($preference instanceof UserPreference ? ['locale' => $preference->getLocale(), 'theme' => $preference->getTheme(), 'density' => $preference->getDensity(), 'fontScale' => $preference->getFontScale(), 'accent' => $preference->getAccent(), 'readMode' => $preference->getReadMode(), 'sidebarCollapsed' => $preference->isSidebarCollapsed(), 'timezone' => $preference->getTimezone()] : null),
-            'categories.json' => $this->json(array_map(static fn (Category $category): array => ['id' => (string) $category->getId(), 'name' => $category->getName()], $categories)),
-            'subscriptions.json' => $this->json(array_map(static fn (Subscription $subscription): array => ['feedUrl' => $subscription->getFeed()->getCanonicalUrl(), 'title' => $subscription->getDisplayTitle(), 'enabled' => $subscription->isEnabled(), 'categoryId' => $subscription->getCategory() ? (string) $subscription->getCategory()->getId() : null], $subscriptions)),
-            'filters.json' => $this->json(array_map(static fn (SavedFilter $filter): array => ['name' => $filter->getName(), 'criteria' => $filter->getFilters()], $filters)),
-            'states.json' => $this->json(array_map(static fn (ArticleState $state): array => ['feedUrl' => $state->getArticle()->getFeed()->getCanonicalUrl(), 'articleUrl' => $state->getArticle()->getUrl(), 'isRead' => $state->isRead(), 'readAt' => $state->getReadAt()?->format(DATE_ATOM), 'isFavorite' => $state->isFavorite(), 'isSaved' => $state->isSaved()], $states)),
-            'statistics.json' => $this->json(array_map(static fn (ReadingDailyStat $stat): array => ['date' => $stat->getStatDate()->format('Y-m-d'), 'category' => $stat->getCategorySnapshot(), 'firstReads' => $stat->getFirstReads()], $stats)),
+            'preferences.json' => $this->json(
+                $preference instanceof UserPreference ? [
+                    'locale' => $preference->getLocale(),
+                    'theme' => $preference->getTheme(),
+                    'density' => $preference->getDensity(),
+                    'fontScale' => $preference->getFontScale(),
+                    'accent' => $preference->getAccent(),
+                    'readMode' => $preference->getReadMode(),
+                    'sidebarCollapsed' => $preference->isSidebarCollapsed(),
+                    'timezone' => $preference->getTimezone(),
+                ] : null,
+            ),
+            'categories.json' => $this->json(
+                array_map(static fn (Category $category): array => ['id' => (string) $category->getId(), 'name' => $category->getName()], $categories),
+            ),
+            'subscriptions.json' => $this->json(
+                array_map(
+                    static fn (Subscription $subscription): array => [
+                        'feedUrl' => $subscription->getFeed()->getCanonicalUrl(),
+                        'title' => $subscription->getDisplayTitle(),
+                        'enabled' => $subscription->isEnabled(),
+                        'categoryId' => $subscription->getCategory() ? (string) $subscription->getCategory()->getId() : null,
+                    ],
+                    $subscriptions,
+                ),
+            ),
+            'filters.json' => $this->json(
+                array_map(static fn (SavedFilter $filter): array => ['name' => $filter->getName(), 'criteria' => $filter->getFilters()], $filters),
+            ),
+            'states.json' => $this->json(
+                array_map(
+                    static fn (ArticleState $state): array => [
+                        'feedUrl' => $state->getArticle()->getFeed()->getCanonicalUrl(),
+                        'articleUrl' => $state->getArticle()->getUrl(),
+                        'isRead' => $state->isRead(),
+                        'readAt' => $state->getReadAt()?->format(DATE_ATOM),
+                        'isFavorite' => $state->isFavorite(),
+                        'isSaved' => $state->isSaved(),
+                    ],
+                    $states,
+                ),
+            ),
+            'statistics.json' => $this->json(
+                array_map(
+                    static fn (ReadingDailyStat $stat): array => [
+                        'date' => $stat->getStatDate()->format('Y-m-d'),
+                        'category' => $stat->getCategorySnapshot(),
+                        'firstReads' => $stat->getFirstReads(),
+                    ],
+                    $stats,
+                ),
+            ),
             'README.txt' => "Format d’export Zunaflux v1.\nLes états sont fournis à titre d’archive ; leur réimportation complète n’est pas prise en charge en v1.\n",
         ];
 
-        return ['filename' => 'zunaflux-export-'.(new \DateTimeImmutable())->format('Ymd').'.zip', 'contents' => $this->archive->create($entries)];
+        return ['filename' => 'zunaflux-export-'.$this->clock->now()->format('Ymd').'.zip', 'contents' => $this->archive->create($entries)];
     }
 
     public function createOpml(User $user): string
@@ -51,7 +97,11 @@ final readonly class UserExport
         $outlines = '';
         $categories = [];
         foreach ($this->entityManager->getRepository(Subscription::class)->findBy(['user' => $user]) as $subscription) {
-            $outline = sprintf("<outline type=\"rss\" text=\"%s\" xmlUrl=\"%s\" />", htmlspecialchars($subscription->getDisplayTitle(), \ENT_XML1 | \ENT_QUOTES, 'UTF-8'), htmlspecialchars($subscription->getFeed()->getCanonicalUrl(), \ENT_XML1 | \ENT_QUOTES, 'UTF-8'));
+            $outline = sprintf(
+                '<outline type="rss" text="%s" xmlUrl="%s" />',
+                htmlspecialchars($subscription->getDisplayTitle(), \ENT_XML1 | \ENT_QUOTES, 'UTF-8'),
+                htmlspecialchars($subscription->getFeed()->getCanonicalUrl(), \ENT_XML1 | \ENT_QUOTES, 'UTF-8'),
+            );
             $category = $subscription->getCategory();
             if (null === $category) {
                 $outlines .= '    '.$outline."\n";
@@ -59,7 +109,6 @@ final readonly class UserExport
                 $categories[$category->getName()][] = $outline;
             }
         }
-
         foreach ($categories as $name => $feeds) {
             $outlines .= sprintf("    <outline text=\"%s\">\n", htmlspecialchars($name, \ENT_XML1 | \ENT_QUOTES, 'UTF-8'));
             foreach ($feeds as $feed) {

@@ -33,7 +33,18 @@ final class FeedIncidentOccurrence
         $this->occurredAt = $occurredAt ?? new \DateTimeImmutable();
     }
 
-    public function getIncident(): FeedIncident { return $this->incident; }
-    public function getMessage(): string { return $this->message; }
-    public function getOccurredAt(): \DateTimeImmutable { return $this->occurredAt; }
+    public function getIncident(): FeedIncident
+    {
+        return $this->incident;
+    }
+
+    public function getMessage(): string
+    {
+        return $this->message;
+    }
+
+    public function getOccurredAt(): \DateTimeImmutable
+    {
+        return $this->occurredAt;
+    }
 }

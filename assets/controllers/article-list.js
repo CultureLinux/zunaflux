@@ -1,24 +1,16 @@
+import { fetchJson, sendJson } from '../reading/api.js';
+import { shareArticle } from '../reading/share.js';
 import { viewFromParams, setViewParams, updateSourceMarkReadControls, updateReadingSources } from '../reading/sources.js';
 
-const readingMarkers = (item, labels = { unread: 'Non lu', favorite: 'Favori', saved: 'À lire plus tard' }) => [
+const t = (key, params = {}) => (typeof window !== 'undefined' && window.zunaflux?.t ? window.zunaflux.t(key, params) : Object.entries(params).reduce((text, [name, value]) => text.replace(`%${name}%`, String(value)), key));
+
+const readingMarkers = (item, labels = { unread: t('Non lu'), favorite: t('Favori'), saved: t('À lire plus tard') }) => [
     ...(!item.isRead ? [labels.unread] : []),
     ...(item.isFavorite ? [labels.favorite] : []),
     ...(item.isSaved ? [labels.saved] : []),
 ];
 
 const formatReadingDate = (date, locale) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
-
-const shareArticle = (article) => {
-    try {
-        const url = new URL(article.url);
-        if (!['http:', 'https:'].includes(url.protocol)) return Promise.resolve(false);
-        if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') return navigator.share({ title: article.title, url: url.href }).then(() => 'shared').catch(() => false);
-        if (typeof navigator !== 'undefined' && typeof navigator.clipboard?.writeText === 'function') return navigator.clipboard.writeText(url.href).then(() => 'copied').catch(() => false);
-        return Promise.resolve(false);
-    } catch (_) {
-        return Promise.resolve(false);
-    }
-};
 
 const container = document.querySelector('[data-article-list]');
 
@@ -56,15 +48,15 @@ if (container) {
     let categoryFilter = new URLSearchParams(location.search).get('category') || '';
     let selectedSearch = !!new URLSearchParams(location.search).get('filterName');
     let sourceName = '';
-    let categoryName = categoryFilter ? new URLSearchParams(location.search).get('filterName') || 'Catégorie active' : '';
+    let categoryName = categoryFilter ? new URLSearchParams(location.search).get('filterName') || t('Catégorie active') : '';
     const updateSourceFilter = () => {
-        const categoryLabel = categoryName || 'Catégorie active';
+        const categoryLabel = categoryName || t('Catégorie active');
         sourceFilter.hidden = !subscriptionFilter && !categoryFilter;
         updateSourceMarkReadControls(sourceMarkReadForms, subscriptionFilter, categoryFilter);
-        sourceFilterLabel.textContent = categoryFilter ? `Catégorie : ${categoryLabel}` : sourceName ? `Flux : ${sourceName}` : 'Filtre sur un flux actif';
+        sourceFilterLabel.textContent = categoryFilter ? t('Catégorie : %name%', { name: categoryLabel }) : sourceName ? t('Flux : %name%', { name: sourceName }) : t('Filtre sur un flux actif');
         if (categoryContext) {
             categoryContext.hidden = !categoryFilter;
-            categoryContext.textContent = categoryFilter ? `Catégorie : ${categoryLabel}` : '';
+            categoryContext.textContent = categoryFilter ? t('Catégorie : %name%', { name: categoryLabel }) : '';
         }
         document.querySelectorAll('[data-reading-category]').forEach((link) => {
             if (link.dataset.readingCategory === categoryFilter) link.setAttribute('aria-current', 'page');
@@ -84,8 +76,8 @@ if (container) {
         const boxes = [...container.querySelectorAll('[data-article-select]')];
         const allSelected = boxes.length > 0 && boxes.every((box) => box.checked);
         selectAllButton.setAttribute('aria-pressed', String(allSelected));
-        selectAllButton.textContent = allSelected ? 'Désélectionner les articles chargés' : 'Sélectionner les articles chargés';
-        selectedCount.textContent = selectedIds.size ? `${selectedIds.size} sélectionné(s)` : '';
+        selectAllButton.textContent = allSelected ? t('Désélectionner les articles chargés') : t('Sélectionner les articles chargés');
+        selectedCount.textContent = selectedIds.size ? t('%count% sélectionné(s)', { count: selectedIds.size }) : '';
         selectAllButton.disabled = boxes.length === 0;
     };
     updateSelection();
@@ -115,7 +107,7 @@ if (container) {
         if (!badge) return;
         const count = Math.max(0, Number(badge.textContent) + (isRead ? -1 : 1));
         badge.textContent = String(count);
-        badge.setAttribute('aria-label', `${count} articles non lus`);
+        badge.setAttribute('aria-label', t('%count% articles non lus', { count }));
         const row = badge.closest('[data-reading-source]');
         if (row) { row.dataset.unread = String(count); row.dataset.read = String(Math.max(0, Number(row.dataset.read) + (isRead ? 1 : -1))); updateSources(); }
     };
@@ -133,8 +125,7 @@ if (container) {
         button.disabled = true;
         bulkError.hidden = true;
         try {
-            const response = await fetch(`${endpoint}/bulk`, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': actions.dataset.csrfToken }, body: JSON.stringify({ ids: [item.id], isRead: true }) });
-            if (!response.ok || (await response.json()).skipped) throw new Error();
+            if ((await sendJson(`${endpoint}/bulk`, 'POST', { ids: [item.id], isRead: true }, actions.dataset.csrfToken)).skipped) throw new Error();
             updateUnreadCount(item, true);
             item.isRead = true;
             document.dispatchEvent(new Event('article-state-changed'));
@@ -151,7 +142,7 @@ if (container) {
             }
             updateSelection();
         } catch (_) {
-            bulkError.textContent = 'Impossible de marquer cet article comme lu. Veuillez réessayer.';
+            bulkError.textContent = t('Impossible de marquer cet article comme lu. Veuillez réessayer.');
             bulkError.hidden = false;
         } finally {
             button.disabled = false;
@@ -163,8 +154,7 @@ if (container) {
         button.disabled = true;
         bulkError.hidden = true;
         try {
-            const response = await fetch(`${endpoint}/bulk`, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': actions.dataset.csrfToken }, body: JSON.stringify({ ids: [item.id], [property]: false }) });
-            if (!response.ok || (await response.json()).skipped) throw new Error();
+            if ((await sendJson(`${endpoint}/bulk`, 'POST', { ids: [item.id], [property]: false }, actions.dataset.csrfToken)).skipped) throw new Error();
             updatePersonalCount(item, property, false);
             item[property] = false;
             if (selectedArticle?.id === item.id) { selectedArticle[property] = false; setStateLabels(selectedArticle); }
@@ -177,7 +167,7 @@ if (container) {
             updateSelection();
             document.dispatchEvent(new Event('article-state-changed'));
         } catch (_) {
-            bulkError.textContent = 'Impossible d’enregistrer cette action. Veuillez réessayer.';
+            bulkError.textContent = t('Impossible d’enregistrer cette action. Veuillez réessayer.');
             bulkError.hidden = false;
         } finally { button.disabled = false; }
     };
@@ -185,7 +175,7 @@ if (container) {
     const bulk = async (changes) => {
         const ids = [...selectedIds];
         if (!ids.length) {
-            bulkError.textContent = 'Sélectionnez au moins un article.';
+            bulkError.textContent = t('Sélectionnez au moins un article.');
             bulkError.hidden = false;
             return;
         }
@@ -196,9 +186,7 @@ if (container) {
         try {
             for (let i = 0; i < ids.length; i += 100) {
                 const batch = ids.slice(i, i + 100);
-                const response = await fetch(`${endpoint}/bulk`, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': actions.dataset.csrfToken }, body: JSON.stringify({ ids: batch, ...changes }) });
-                if (!response.ok) throw new Error();
-                const result = await response.json();
+                const result = await sendJson(`${endpoint}/bulk`, 'POST', { ids: batch, ...changes }, actions.dataset.csrfToken);
                 if (result.skipped) throw new Error();
                 if (typeof changes.isRead === 'boolean') batch.forEach((id) => {
                     const item = loadedItems.find((entry) => String(entry.id) === String(id));
@@ -218,7 +206,7 @@ if (container) {
             document.dispatchEvent(new Event('article-state-changed'));
             await loadPage();
         } catch (_) {
-            bulkError.textContent = `L’action a échoué après ${processed} article(s). Actualisez la liste avant de réessayer.`;
+            bulkError.textContent = t('L’action a échoué après %count% article(s). Actualisez la liste avant de réessayer.', { count: processed });
             bulkError.hidden = false;
         } finally {
             buttons.forEach((button) => { button.disabled = false; });
@@ -234,9 +222,9 @@ if (container) {
     actions?.querySelector('[data-bulk-unsave]').addEventListener('click', () => bulk({ isSaved: false }));
     const setStateLabels = (article) => {
         for (const [buttons, active, on, off] of [
-            [readButtons, article.isRead, 'Marquer non lu', 'Marquer lu'],
-            [favoriteButtons, article.isFavorite, 'Retirer le favori', 'Ajouter aux favoris'],
-            [savedButtons, article.isSaved, 'Retirer de la liste', 'Lire plus tard'],
+            [readButtons, article.isRead, t('Marquer non lu'), t('Marquer lu')],
+            [favoriteButtons, article.isFavorite, t('Retirer le favori'), t('Ajouter aux favoris')],
+            [savedButtons, article.isSaved, t('Retirer de la liste'), t('Lire plus tard')],
         ]) {
             buttons.forEach((button) => {
                 const label = active ? on : off;
@@ -249,13 +237,8 @@ if (container) {
     const setActionDisabled = (disabled) => [...readButtons, ...favoriteButtons, ...savedButtons].forEach((button) => { button.disabled = disabled; });
     const updateState = (changes) => {
         const article = selectedArticle;
-        const update = fetch(`${endpoint}/${article.id}/state`, {
-            method: 'PATCH',
-            headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': article.csrfToken },
-            body: JSON.stringify(changes),
-        }).then((response) => {
-            if (!response.ok) throw new Error('La mise à jour de cet article a échoué.');
-            return response.json();
+        const update = sendJson(`${endpoint}/${article.id}/state`, 'PATCH', changes, article.csrfToken, {
+            fallbackMessage: t('La mise à jour de cet article a échoué.'),
         }).then((state) => {
             const item = loadedItems.find((entry) => entry.id === article.id);
             updateUnreadCount(item, state.isRead);
@@ -285,13 +268,34 @@ if (container) {
         return update.finally(() => pendingStateUpdates.delete(update));
     };
 
-    const openArticle = (id) => {
-        fetch(`${endpoint}/${id}`, { headers: { Accept: 'application/json' } })
-            .then((response) => {
-                if (!response.ok) throw new Error('Cet article est indisponible.');
+    // A source or a category chip filters the list; both share the same URL and state updates.
+    const applyFilter = ({ subscription = '', category = '', name }) => {
+        clearTimeout(searchTimer);
+        subscriptionFilter = subscription;
+        categoryFilter = category;
+        selectedSearch = true;
+        sourceName = subscription ? name : '';
+        categoryName = category ? name : '';
+        searchInput.value = name;
+        const current = new URL(location.href);
+        current.searchParams.delete('subscription');
+        current.searchParams.delete('category');
+        current.searchParams.delete('q');
+        if (subscription) current.searchParams.set('subscription', subscription);
+        if (category) current.searchParams.set('category', category);
+        current.searchParams.set('filterName', name);
+        history.replaceState(null, '', current);
+        updateSourceFilter();
+        updateSources();
+        loadPage();
+    };
 
-                return response.json();
-            })
+    let articleRequest = null;
+    const openArticle = (id) => {
+        // Rapid "next" clicks: only the latest request may render.
+        articleRequest?.abort();
+        const request = articleRequest = new AbortController();
+        fetchJson(`${endpoint}/${id}`, { signal: request.signal, fallbackMessage: t('Cet article est indisponible.') })
             .then((article) => {
                 selectedArticle = article;
                 const position = loadedItems.findIndex((item) => item.id === id);
@@ -300,7 +304,7 @@ if (container) {
                 dialogError.hidden = true;
                 setStateLabels(article);
                 dialogTitle.textContent = article.title;
-                dialogSource.textContent = article.source || 'Source sans titre';
+                dialogSource.textContent = article.source || t('Source sans titre');
                 dialogSummary.innerHTML = article.safeHtml;
                 dialogLinks.forEach((link) => { link.hidden = true; });
                 try {
@@ -315,13 +319,14 @@ if (container) {
                 if (readMode === 'on_preview' && !article.isRead) {
                     setActionDisabled(true);
                     updateState({ isRead: true }).catch(() => {
-                        dialogError.textContent = 'Impossible de marquer cet article comme lu.';
+                        dialogError.textContent = t('Impossible de marquer cet article comme lu.');
                         dialogError.hidden = false;
                     }).finally(() => { setActionDisabled(false); });
                 }
 
             })
             .catch((error) => {
+                if (error.name === 'AbortError') return;
                 const message = document.createElement('p');
                 message.className = 'border-l-2 border-danger bg-surface-muted p-4 text-danger';
                 message.setAttribute('role', 'alert');
@@ -335,7 +340,7 @@ if (container) {
         setActionDisabled(true);
         dialogError.hidden = true;
         updateState(changes).then(() => { if (dialog.open && selectedArticle?.id === articleId && !(workspace && desktopLayout.matches)) dialog.close(); }).catch(() => {
-            dialogError.textContent = 'Impossible d’enregistrer cette action. Veuillez réessayer.';
+            dialogError.textContent = t('Impossible d’enregistrer cette action. Veuillez réessayer.');
             dialogError.hidden = false;
         }).finally(() => { setActionDisabled(false); });
     };
@@ -345,7 +350,7 @@ if (container) {
     shareButtons.forEach((button) => button.addEventListener('click', () => {
         void shareArticle(selectedArticle).then((result) => {
             if (result !== 'copied') return;
-            window.dispatchEvent(new CustomEvent('zunaflux:toast', { detail: { type: 'success', message: 'Lien copié.' } }));
+            window.dispatchEvent(new CustomEvent('zunaflux:toast', { detail: { type: 'success', message: t('Lien copié.') } }));
         });
     }));
     mastodonShareButtons.forEach((button) => button.addEventListener('click', () => {
@@ -385,22 +390,20 @@ if (container) {
         if (categoryFilter) url.searchParams.set('category', categoryFilter);
         if (!append) { selectedIds.clear(); updateSelection(); }
 
-        return fetch(url, { headers: { Accept: 'application/json' }, signal: request.signal })
-        .then((response) => {
-            if (!response.ok) throw new Error('La liste des articles est indisponible.');
-
-            return response.json();
-        })
+        return fetchJson(url, { signal: request.signal, fallbackMessage: t('La liste des articles est indisponible.') })
         .then(({ items, nextCursor: receivedCursor, hasMore }) => {
             if (!append) loadedItems.length = 0;
             loadedItems.push(...items);
             nextCursor = receivedCursor;
             if (!append) container.replaceChildren();
+            const status = document.querySelector('[data-article-status]');
+            // Never repeat the empty-state message here: the visible paragraph already carries it.
+            if (status) status.textContent = (status.dataset.loadedLabel || '%count%').replace('%count%', String(items.length));
 
             if (items.length === 0) {
                 const empty = document.createElement('p');
                 empty.className = 'border border-line bg-surface p-6 text-muted';
-                empty.textContent = readFilter.value === '0' ? 'Aucun article non lu pour le moment.' : container.dataset.emptyFilteredLabel;
+                empty.textContent = readFilter.value === '0' ? t('Aucun article non lu pour le moment.') : container.dataset.emptyFilteredLabel;
                 moreButton.hidden = true;
                 container.append(empty);
                 updateSelection();
@@ -420,7 +423,7 @@ if (container) {
                 select.type = 'checkbox';
                 select.dataset.articleSelect = item.id;
                 select.className = 'shrink-0';
-                select.setAttribute('aria-label', `Sélectionner ${item.title}`);
+                select.setAttribute('aria-label', t('Sélectionner %title%', { title: item.title }));
                 select.addEventListener('change', () => { select.checked ? selectedIds.add(String(item.id)) : selectedIds.delete(String(item.id)); updateSelection(); });
                 const openButton = document.createElement('button');
                 openButton.type = 'button';
@@ -429,26 +432,9 @@ if (container) {
                 const source = document.createElement('button');
                 source.type = 'button';
                 source.className = 'min-w-0 break-words text-left font-mono text-xs uppercase tracking-[.16em] text-accent hover:underline';
-                source.textContent = item.source || 'Source sans titre';
-                source.setAttribute('aria-label', `Filtrer sur ${source.textContent}`);
-                source.addEventListener('click', () => {
-                    clearTimeout(searchTimer);
-                    subscriptionFilter = item.subscriptionId;
-                    categoryFilter = '';
-                    selectedSearch = true;
-                    sourceName = item.source || 'Source sans titre';
-                    categoryName = '';
-                    searchInput.value = sourceName;
-                    const current = new URL(location.href);
-                    current.searchParams.set('subscription', subscriptionFilter);
-                    current.searchParams.delete('category');
-                    current.searchParams.delete('q');
-                    current.searchParams.set('filterName', sourceName);
-                    history.replaceState(null, '', current);
-                    updateSourceFilter();
-                    updateSources();
-                    loadPage();
-                });
+                source.textContent = item.source || t('Source sans titre');
+                source.setAttribute('aria-label', t('Filtrer sur %name%', { name: source.textContent }));
+                source.addEventListener('click', () => applyFilter({ subscription: item.subscriptionId, name: item.source || t('Source sans titre') }));
                 const title = document.createElement('h2');
                 title.className = `mt-2 font-serif text-2xl ${item.isRead ? 'text-muted' : 'text-foreground'}`;
                 title.textContent = item.title;
@@ -496,8 +482,8 @@ if (container) {
                 markRead.dataset.markArticleRead = '';
                 markRead.className = 'flex h-11 w-11 items-center justify-center text-accent';
                 markRead.innerHTML = '<svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12s3-6 9-6 9 6 9 6-3 6-9 6-9-6-9-6Z"/><circle cx="12" cy="12" r="2.5"/></svg>';
-                markRead.title = 'Marquer comme lu';
-                markRead.setAttribute('aria-label', `Marquer comme lu : ${item.title}`);
+                markRead.title = t('Marquer comme lu');
+                markRead.setAttribute('aria-label', t('Marquer comme lu : %title%', { title: item.title }));
                 markRead.hidden = item.isRead;
                 markRead.addEventListener('click', () => markArticleRead(item, row, markRead));
                 const selectLabel = document.createElement('label');
@@ -512,25 +498,8 @@ if (container) {
                     category.type = 'button';
                     category.className = source.className;
                     category.textContent = item.categoryName;
-                    category.setAttribute('aria-label', `Filtrer sur ${item.categoryName}`);
-                    category.addEventListener('click', () => {
-                        clearTimeout(searchTimer);
-                        subscriptionFilter = '';
-                        categoryFilter = item.categoryId;
-                        selectedSearch = true;
-                        sourceName = '';
-                        categoryName = item.categoryName;
-                        searchInput.value = item.categoryName;
-                        const current = new URL(location.href);
-                        current.searchParams.delete('subscription');
-                        current.searchParams.delete('q');
-                        current.searchParams.set('category', categoryFilter);
-                        current.searchParams.set('filterName', item.categoryName);
-                        history.replaceState(null, '', current);
-                        updateSourceFilter();
-                        updateSources();
-                        loadPage();
-                    });
+                    category.setAttribute('aria-label', t('Filtrer sur %name%', { name: item.categoryName }));
+                    category.addEventListener('click', () => applyFilter({ category: item.categoryId, name: item.categoryName }));
                     const separator = document.createElement('span');
                     separator.textContent = '/';
                     separator.className = 'text-muted';
@@ -549,7 +518,7 @@ if (container) {
                     const imageButton = document.createElement('button');
                     imageButton.type = 'button';
                     imageButton.className = 'article-list-image';
-                    imageButton.setAttribute('aria-label', `Ouvrir ${item.title}`);
+                    imageButton.setAttribute('aria-label', t('Ouvrir %title%', { title: item.title }));
                     imageButton.addEventListener('click', () => openArticle(item.id));
                     const image = document.createElement('img');
                     image.src = item.imageUrl;

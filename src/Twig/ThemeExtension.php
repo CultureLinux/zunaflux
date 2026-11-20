@@ -12,7 +12,9 @@ use Twig\TwigFunction;
 
 final class ThemeExtension extends AbstractExtension
 {
-    public function __construct(private readonly EntityManagerInterface $entityManager) {}
+    public function __construct(private readonly EntityManagerInterface $entityManager)
+    {
+    }
 
     public function getFunctions(): array
     {
@@ -21,7 +23,9 @@ final class ThemeExtension extends AbstractExtension
 
     public function accent(?User $user): string
     {
-        if (!$user instanceof User) return 'cyan';
+        if (!$user instanceof User) {
+            return 'cyan';
+        }
         $preference = $this->entityManager->getRepository(UserPreference::class)->findOneBy(['user' => $user]);
 
         return $preference instanceof UserPreference ? $preference->getAccent() : 'cyan';
@@ -29,7 +33,9 @@ final class ThemeExtension extends AbstractExtension
 
     public function theme(?User $user): string
     {
-        if (!$user instanceof User) return 'system';
+        if (!$user instanceof User) {
+            return 'system';
+        }
         $preference = $this->entityManager->getRepository(UserPreference::class)->findOneBy(['user' => $user]);
 
         return $preference instanceof UserPreference ? $preference->getTheme() : 'system';

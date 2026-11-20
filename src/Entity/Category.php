@@ -53,7 +53,7 @@ final class Category
     {
         $name = trim($name);
         if ('' === $name || mb_strlen($name) > 100) {
-            throw new \InvalidArgumentException('Le nom de catégorie doit contenir entre 1 et 100 caractères.');
+            throw new \App\Application\Exception\UserInputError('Le nom de catégorie doit contenir entre 1 et 100 caractères.');
         }
         $this->name = $name;
     }

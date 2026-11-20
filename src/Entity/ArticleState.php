@@ -9,6 +9,9 @@ use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'article_state')]
+#[ORM\Index(name: 'idx_article_state_user_read', columns: ['user_id', 'is_read'])]
+#[ORM\Index(name: 'idx_article_state_user_favorite_article', columns: ['user_id', 'is_favorite', 'article_id'])]
+#[ORM\Index(name: 'idx_article_state_user_saved_article', columns: ['user_id', 'is_saved', 'article_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_article_state_user_article', columns: ['user_id', 'article_id'])]
 final class ArticleState
 {
@@ -47,19 +50,42 @@ final class ArticleState
         $this->updatedAt = new \DateTimeImmutable();
     }
 
-    public function isRead(): bool { return $this->isRead; }
-    public function isFavorite(): bool { return $this->isFavorite; }
-    public function isSaved(): bool { return $this->isSaved; }
-    public function getReadAt(): ?\DateTimeImmutable { return $this->readAt; }
-    public function getArticle(): Article { return $this->article; }
-    public function getUser(): User { return $this->user; }
+    public function isRead(): bool
+    {
+        return $this->isRead;
+    }
 
-    public function markRead(): void
+    public function isFavorite(): bool
+    {
+        return $this->isFavorite;
+    }
+
+    public function isSaved(): bool
+    {
+        return $this->isSaved;
+    }
+
+    public function getReadAt(): ?\DateTimeImmutable
+    {
+        return $this->readAt;
+    }
+
+    public function getArticle(): Article
+    {
+        return $this->article;
+    }
+
+    public function getUser(): User
+    {
+        return $this->user;
+    }
+
+    public function markRead(?\DateTimeImmutable $now = null): void
     {
         if (!$this->isRead) {
             $this->isRead = true;
-            $this->readAt = new \DateTimeImmutable();
-            $this->touch();
+            $this->readAt = $now ?? new \DateTimeImmutable();
+            $this->touch($now);
         }
     }
 
@@ -88,5 +114,8 @@ final class ArticleState
         }
     }
 
-    private function touch(): void { $this->updatedAt = new \DateTimeImmutable(); }
+    private function touch(?\DateTimeImmutable $now = null): void
+    {
+        $this->updatedAt = $now ?? new \DateTimeImmutable();
+    }
 }

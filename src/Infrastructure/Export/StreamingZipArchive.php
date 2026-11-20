@@ -25,12 +25,12 @@ final class StreamingZipArchive
             if ($crc < 0) {
                 $crc += 4294967296;
             }
-            $local = pack('VvvvvvVVVvv', 0x04034b50, 20, 0, 0, 0, 0, $crc, $size, $size, $nameLength, 0).$name.$contents;
+            $local = pack('VvvvvvVVVvv', 0x04034B50, 20, 0, 0, 0, 0, $crc, $size, $size, $nameLength, 0).$name.$contents;
             $body .= $local;
-            $directory .= pack('VvvvvvvVVVvvvvvVV', 0x02014b50, 20, 20, 0, 0, 0, 0, $crc, $size, $size, $nameLength, 0, 0, 0, 0, 0, $offset).$name;
+            $directory .= pack('VvvvvvvVVVvvvvvVV', 0x02014B50, 20, 20, 0, 0, 0, 0, $crc, $size, $size, $nameLength, 0, 0, 0, 0, 0, $offset).$name;
             $offset += strlen($local);
         }
 
-        return $body.$directory.pack('VvvvvVVv', 0x06054b50, 0, 0, count($entries), count($entries), strlen($directory), strlen($body), 0);
+        return $body.$directory.pack('VvvvvVVv', 0x06054B50, 0, 0, count($entries), count($entries), strlen($directory), strlen($body), 0);
     }
 }

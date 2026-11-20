@@ -10,6 +10,8 @@ use Minishlink\WebPush\MessageSentReport;
 interface PushSender
 {
     public function configured(): bool;
+
     public function send(PushSubscription $subscription, string $payload): MessageSentReport;
+
     public function record(PushSubscription $subscription, MessageSentReport $report): void;
 }

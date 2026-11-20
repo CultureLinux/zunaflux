@@ -10,11 +10,13 @@ use App\Application\Administration\RegistrationLimit;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 
 final class SecurityController extends AbstractController
 {
@@ -22,13 +24,15 @@ final class SecurityController extends AbstractController
     public function setup(
         Request $request,
         CreateInitialAdministrator $initialAdministrator,
+        #[Autowire('%app.setup_token%')] string $setupToken,
     ): Response {
         if (!$initialAdministrator->isRequired()) {
             throw $this->createNotFoundException();
         }
+        $tokenRequired = '' !== $setupToken;
 
         if ($request->isMethod('GET')) {
-            return $this->render('security/setup.html.twig', ['data' => [], 'errors' => []]);
+            return $this->render('security/setup.html.twig', ['data' => [], 'errors' => [], 'tokenRequired' => $tokenRequired]);
         }
 
         if (!$this->isCsrfTokenValid('initial-setup', $request->request->getString('_token'))) {
@@ -40,6 +44,10 @@ final class SecurityController extends AbstractController
         ];
         $password = $request->request->getString('password');
         $errors = [];
+        // When ZUNAFLUX_SETUP_TOKEN is set, whoever reaches /setup first still needs the secret.
+        if ($tokenRequired && !hash_equals($setupToken, $request->request->getString('setup_token'))) {
+            $errors['setup_token'] = 'Jeton d’installation invalide.';
+        }
         if (filter_var($data['email'], FILTER_VALIDATE_EMAIL) === false) {
             $errors['email'] = 'Saisissez une adresse e-mail valide.';
         }
@@ -47,7 +55,7 @@ final class SecurityController extends AbstractController
             $errors['password'] = 'Le mot de passe doit contenir au moins 12 caractères.';
         }
         if ([] !== $errors) {
-            return $this->render('security/setup.html.twig', ['data' => $data, 'errors' => $errors], new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY));
+            return $this->render('security/setup.html.twig', ['data' => $data, 'errors' => $errors, 'tokenRequired' => $tokenRequired], new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY));
         }
 
         if (!$initialAdministrator->create($data['email'], $password)) {
@@ -76,12 +84,16 @@ final class SecurityController extends AbstractController
         UserPasswordHasherInterface $passwordHasher,
         bool $publicRegistration,
         RegistrationLimit $registrationLimit,
+        #[Autowire(service: 'limiter.register')] RateLimiterFactoryInterface $registerLimiter,
     ): Response {
         if (!$publicRegistration) {
             throw $this->createNotFoundException();
         }
         if ($request->isMethod('GET')) {
-            if ($registrationLimit->isFull()) return $this->render('security/registration_full.html.twig', [], new Response(status: Response::HTTP_FORBIDDEN));
+            if ($registrationLimit->isFull()) {
+                return $this->render('security/registration_full.html.twig', [], new Response(status: Response::HTTP_FORBIDDEN));
+            }
+
             return $this->render('security/register.html.twig');
         }
 
@@ -104,6 +116,13 @@ final class SecurityController extends AbstractController
             return $this->redirectToRoute('app_register');
         }
 
+        // Counted once the submission is well-formed, so typos do not exhaust the quota.
+        if (!$registerLimiter->create($request->getClientIp() ?? 'unknown')->consume()->isAccepted()) {
+            $this->addFlash('error', 'Trop de tentatives d’inscription depuis cette connexion. Réessayez plus tard.');
+
+            return $this->render('security/register.html.twig', [], new Response(status: Response::HTTP_TOO_MANY_REQUESTS));
+        }
+
         $user = new User($email);
         if ($users->findOneBy(['emailNormalized' => $user->getUserIdentifier()]) !== null) {
             $this->addFlash('error', 'Un compte existe déjà pour cette adresse e-mail.');
@@ -113,12 +132,17 @@ final class SecurityController extends AbstractController
 
         $user->setPasswordHash($passwordHasher->hashPassword($user, $password));
         $created = $entityManager->wrapInTransaction(function () use ($registrationLimit, $entityManager, $user): bool {
-            if ($registrationLimit->isFull(true)) return false;
+            if ($registrationLimit->isFull(true)) {
+                return false;
+            }
             $entityManager->persist($user);
             $entityManager->flush();
+
             return true;
         });
-        if (!$created) return $this->render('security/registration_full.html.twig', [], new Response(status: Response::HTTP_FORBIDDEN));
+        if (!$created) {
+            return $this->render('security/registration_full.html.twig', [], new Response(status: Response::HTTP_FORBIDDEN));
+        }
 
         $this->addFlash('success', 'Votre compte est créé. Vous pouvez maintenant vous connecter.');
 

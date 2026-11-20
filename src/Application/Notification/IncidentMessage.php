@@ -4,13 +4,33 @@ declare(strict_types=1);
 
 namespace App\Application\Notification;
 
+use App\Infrastructure\Http\HttpFailure;
+use App\Infrastructure\Http\HttpFetchFailed;
+
 final class IncidentMessage
 {
+    /** Uses the failure type when the error carries one, the message otherwise. */
+    public function describeError(\Throwable $error): string
+    {
+        if ($error instanceof HttpFetchFailed) {
+            return match ($error->reason) {
+                HttpFailure::TooLarge => 'Le flux dépasse la taille autorisée.',
+                HttpFailure::TooManyRedirects, HttpFailure::BadRedirect => 'La redirection du flux est invalide ou trop longue.',
+                HttpFailure::Transport => $this->describe($error->getMessage()),
+            };
+        }
+
+        return $this->describe($error->getMessage());
+    }
+
     public function describe(string $message): string
     {
-        if (preg_match('/timed?\s*out|timeout|délai dépassé/i', $message)) return 'Le site a mis trop de temps à répondre.';
+        if (preg_match('/timed?\s*out|timeout|délai dépassé/i', $message)) {
+            return 'Le site a mis trop de temps à répondre.';
+        }
         if (preg_match('/returned HTTP\s+(\d{3})/i', $message, $matches)) {
             $code = (int) $matches[1];
+
             return match (true) {
                 404 === $code || 410 === $code => sprintf('Le flux est introuvable sur le site (HTTP %d).', $code),
                 401 === $code || 403 === $code => sprintf('Le site refuse l’accès au flux (HTTP %d).', $code),
@@ -19,13 +39,28 @@ final class IncidentMessage
                 default => sprintf('Le site a répondu avec une erreur HTTP %d.', $code),
             };
         }
-        if (preg_match('/cannot be resolved|could not resolve|name or service not known/i', $message)) return 'Le nom de domaine du site ne peut pas être résolu.';
-        if (preg_match('/certificate|ssl|tls/i', $message)) return 'La connexion sécurisée au site a échoué.';
-        if (preg_match('/connection refused|failed to connect|could not connect/i', $message)) return 'La connexion au site a échoué.';
-        if (preg_match('/not valid XML|DOCTYPE|entities/i', $message)) return 'Le contenu du flux est invalide ou non autorisé.';
-        if (preg_match('/size limit|too large/i', $message)) return 'Le flux dépasse la taille autorisée.';
-        if (preg_match('/private or reserved|forbidden port/i', $message)) return 'L’adresse du flux est bloquée pour des raisons de sécurité.';
-        if (preg_match('/redirect/i', $message)) return 'La redirection du flux est invalide ou trop longue.';
+        if (preg_match('/cannot be resolved|could not resolve|name or service not known/i', $message)) {
+            return 'Le nom de domaine du site ne peut pas être résolu.';
+        }
+        if (preg_match('/certificate|ssl|tls/i', $message)) {
+            return 'La connexion sécurisée au site a échoué.';
+        }
+        if (preg_match('/connection refused|failed to connect|could not connect/i', $message)) {
+            return 'La connexion au site a échoué.';
+        }
+        if (preg_match('/not valid XML|DOCTYPE|entities/i', $message)) {
+            return 'Le contenu du flux est invalide ou non autorisé.';
+        }
+        if (preg_match('/size limit|too large/i', $message)) {
+            return 'Le flux dépasse la taille autorisée.';
+        }
+        if (preg_match('/private or reserved|forbidden port/i', $message)) {
+            return 'L’adresse du flux est bloquée pour des raisons de sécurité.';
+        }
+        if (preg_match('/redirect/i', $message)) {
+            return 'La redirection du flux est invalide ou trop longue.';
+        }
+
         return 'Une erreur est survenue pendant la collecte du flux.';
     }
 }

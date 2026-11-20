@@ -37,4 +37,14 @@ final class OpmlSubscriptionParserTest extends TestCase
 
         $parser->parse('<!DOCTYPE opml [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><opml version="2.0"/>');
     }
+
+    public function testAUtf16DocumentWithADoctypeIsRefusedEvenThoughTheTextualPrecheckCannotSeeIt(): void
+    {
+        $xml = '<?xml version="1.0" encoding="UTF-16"?><!DOCTYPE opml [<!ENTITY x "expanded">]><opml version="2.0"><body><outline text="&x;" xmlUrl="https://example.test/feed"/></body></opml>';
+        $utf16 = "\xFF\xFE".mb_convert_encoding($xml, 'UTF-16LE', 'UTF-8');
+        self::assertSame(0, preg_match('/<!DOCTYPE|<!ENTITY/i', $utf16));
+
+        $this->expectException(\InvalidArgumentException::class);
+        (new OpmlSubscriptionParser())->parse($utf16);
+    }
 }

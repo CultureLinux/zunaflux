@@ -16,7 +16,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 final readonly class UserLocaleSubscriber implements EventSubscriberInterface
 {
-    public function __construct(private Security $security, private EntityManagerInterface $entityManager, private TranslatorInterface $translator) {}
+    public function __construct(private Security $security, private EntityManagerInterface $entityManager, private TranslatorInterface $translator)
+    {
+    }
 
     public static function getSubscribedEvents(): array
     {
@@ -25,13 +27,19 @@ final readonly class UserLocaleSubscriber implements EventSubscriberInterface
 
     public function onRequest(RequestEvent $event): void
     {
-        if (!$event->isMainRequest()) return;
+        if (!$event->isMainRequest()) {
+            return;
+        }
         $user = $this->security->getUser();
-        if (!$user instanceof User) return;
+        if (!$user instanceof User) {
+            return;
+        }
         $preference = $this->entityManager->getRepository(UserPreference::class)->findOneBy(['user' => $user]);
         if ($preference instanceof UserPreference) {
             $event->getRequest()->setLocale($preference->getLocale());
-            if ($this->translator instanceof LocaleAwareInterface) $this->translator->setLocale($preference->getLocale());
+            if ($this->translator instanceof LocaleAwareInterface) {
+                $this->translator->setLocale($preference->getLocale());
+            }
         }
     }
 }

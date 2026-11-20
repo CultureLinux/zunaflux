@@ -1,8 +1,8 @@
 {% extends 'base.html.twig' %}
-{% block title %}Administration · Zunaflux{% endblock %}
+{% block title %}{{ 'Administration'|trans }} · Zunaflux{% endblock %}
 {% block body %}
-<main class="mx-auto min-h-screen max-w-6xl px-6 py-16">
- <p class="font-mono text-xs uppercase tracking-[.25em] text-muted">{{ "Administration"|trans }}</p><div class="mt-4 flex flex-wrap items-center gap-3"><h1 class="font-serif text-5xl text-foreground">{{ 'Comptes & santé'|trans }}</h1><span class="inline-flex min-h-9 items-center gap-2 rounded-lg border px-3 text-sm {{ workerActive ? 'border-success text-success' : 'border-danger text-danger' }}"><span aria-hidden="true">{{ workerActive ? '●' : '○' }}</span>{{ workerActive ? 'Worker actif' : 'Worker arrêté' }}</span><span class="inline-flex min-h-9 items-center rounded-lg border border-line px-3 text-sm text-muted">{{ queueCount }} message{{ queueCount > 1 ? 's' }} en attente</span></div>
+<main id="main" tabindex="-1" class="mx-auto min-h-screen max-w-6xl px-6 py-16">
+ <p class="font-mono text-xs uppercase tracking-[.25em] text-muted">{{ "Administration"|trans }}</p><div class="mt-4 flex flex-wrap items-center gap-3"><h1 class="font-serif text-5xl text-foreground">{{ 'Comptes & santé'|trans }}</h1><span class="inline-flex min-h-9 items-center gap-2 rounded-lg border px-3 text-sm {{ workerActive ? 'border-success text-success' : 'border-danger text-danger' }}"><span aria-hidden="true">{{ workerActive ? '●' : '○' }}</span>{{ (workerActive ? 'Worker actif' : 'Worker arrêté')|trans }}</span><span class="inline-flex min-h-9 items-center rounded-lg border border-line px-3 text-sm text-muted">{{ '%count% message(s) en attente'|trans({'%count%': queueCount}) }}</span></div>
  <p class="mt-4 text-muted">{{ '%users% comptes · %subscriptions% abonnements · %feeds% flux partagés'|trans({'%users%': users|length, '%subscriptions%': subscriptionCount, '%feeds%': feedCount}) }}</p>
  <nav class="admin-section-nav mt-8" id="admin-navigation" aria-label="{{ 'Rubriques de l’administration'|trans }}" hidden>
   <button type="button" data-admin-section="configuration" aria-controls="admin-configuration">{{ 'Configuration'|trans }}</button>

@@ -6,5 +6,7 @@ namespace App\Message;
 
 final readonly class CollectFeedMessage
 {
-    public function __construct(public string $feedId, public ?string $syncRunId = null) {}
+    public function __construct(public string $feedId, public ?string $syncRunId = null, public bool $clearIncident = false)
+    {
+    }
 }

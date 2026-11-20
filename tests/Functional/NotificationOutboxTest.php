@@ -72,15 +72,32 @@ final class NotificationOutboxTest extends KernelTestCase
         self::assertCount(1, $this->pending());
     }
 
+    public function testARepeatedIdentityInTheSameFeedIsStoredOnce(): void
+    {
+        $collector = $this->collector('<item><guid>duplicate</guid></item><item><guid>duplicate</guid></item>');
+
+        self::assertSame(1, $collector->collect($this->feed));
+        self::assertSame(1, $this->articleCount());
+        self::assertCount(1, $this->pending());
+        self::assertSame(1, (int) $this->pending()[0]['article_count']);
+    }
+
     public function testFailedArticleFlushRollsBackTheEventAndFeedValidators(): void
     {
-        // Two distinct ORM entities with the same source identity fail the real
-        // MariaDB unique constraint after the outbox INSERT has been attempted.
-        $collector = $this->collector('<item><guid>duplicate</guid></item><item><guid>duplicate</guid></item>');
+        // The outbox INSERT happens inside the transaction before the ORM flush. A flush
+        // failure (here injected by a listener) must roll back both.
+        $failure = new class () {
+            public function onFlush(): void
+            {
+                throw new \RuntimeException('Injected flush failure.');
+            }
+        };
+        $this->em->getEventManager()->addEventListener([\Doctrine\ORM\Events::onFlush], $failure);
+        $collector = $this->collector('<item><guid>first</guid></item>');
         try {
             $collector->collect($this->feed);
-            self::fail('The duplicate source identity must fail the transaction.');
-        } catch (\Doctrine\DBAL\Exception\UniqueConstraintViolationException) {
+            self::fail('The injected flush failure must fail the transaction.');
+        } catch (\RuntimeException) {
             self::assertFalse($this->em->isOpen());
         }
         self::assertSame(0, $this->articleCount());
@@ -92,7 +109,7 @@ final class NotificationOutboxTest extends KernelTestCase
     public function testAnEmptyOrNotModifiedFeedDoesNotCreateAnEvent(): void
     {
         self::assertSame(0, $this->collector('')->collect($this->feed));
-        $fetcher = new class implements FeedFetcherInterface {
+        $fetcher = new class () implements FeedFetcherInterface {
             public function fetch(string $url, ?string $etag = null, ?string $lastModified = null): FetchedFeed
             {
                 return new FetchedFeed(304, null, 'unchanged', null, $url);
@@ -248,7 +265,7 @@ final class NotificationOutboxTest extends KernelTestCase
     private function collector(string $items): CollectFeed
     {
         $xml = '<rss version="2.0"><channel><title>Outbox</title>'.$items.'</channel></rss>';
-        $fetcher = new class($xml) implements FeedFetcherInterface {
+        $fetcher = new class ($xml) implements FeedFetcherInterface {
             public function __construct(private readonly string $xml)
             {
             }
@@ -258,6 +275,7 @@ final class NotificationOutboxTest extends KernelTestCase
                 return new FetchedFeed(200, $this->xml, 'new-etag', null, $url);
             }
         };
+
         return new CollectFeed($this->em, $fetcher, new FeedParser(), new NotificationOutbox($this->db, $this->clock));
     }
 
@@ -274,7 +292,7 @@ final class NotificationOutboxTest extends KernelTestCase
 
     private function recordingBus(bool $interrupt = false): MessageBusInterface
     {
-        return new class($interrupt) implements MessageBusInterface {
+        return new class ($interrupt) implements MessageBusInterface {
             /** @var list<NotifyFeedMessage> */
             public array $messages = [];
 
@@ -291,6 +309,7 @@ final class NotificationOutboxTest extends KernelTestCase
                 if ($this->interrupt) {
                     throw new \RuntimeException('Interrupted after acceptance.');
                 }
+
                 return new Envelope($message, $stamps);
             }
         };

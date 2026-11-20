@@ -8,7 +8,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 final readonly class PushMessage
 {
-    public function __construct(private TranslatorInterface $translator) {}
+    public function __construct(private TranslatorInterface $translator)
+    {
+    }
 
     public function articles(int $count, string $locale): string
     {

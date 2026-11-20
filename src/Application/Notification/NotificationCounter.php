@@ -21,7 +21,12 @@ final readonly class NotificationCounter
     public function recordAccepted(): void
     {
         try {
-            $this->connection->executeStatement('INSERT INTO notification_daily_count (day, total) VALUES (?, 1) ON DUPLICATE KEY UPDATE total = total + 1', [$this->clock->now()->format('Y-m-d')]);
+            $this
+                ->connection
+                ->executeStatement(
+                    'INSERT INTO notification_daily_count (day, total) VALUES (?, 1) ON DUPLICATE KEY UPDATE total = total + 1',
+                    [$this->clock->now()->format('Y-m-d')],
+                );
         } catch (\Throwable) {
             $this->logger->error('Impossible de comptabiliser une notification envoyée.');
         }
