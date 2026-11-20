@@ -12,6 +12,7 @@ document.querySelectorAll('[data-feed-sync-form]').forEach(form => {
             if (!response.ok) throw {stage: 'lancement', status: response.status};
             const {runId} = await response.json();
             const poll = async () => {
+                if (dialog.open === false) return;
                 const status = await fetch(`/admin/feed-sync/${runId}`);
                 if (!status.ok) throw {stage: 'suivi', status: status.status};
                 const result = await status.json();
@@ -25,7 +26,7 @@ document.querySelectorAll('[data-feed-sync-form]').forEach(form => {
                     const text = document.createElement('span'); text.className = 'min-w-0 break-words'; text.textContent = `${entry.title || entry.canonical_url} — ${status}${articles}${entry.detail ? ` · ${entry.detail}` : ''}`;
                     row.append(marker, text); log.append(row);
                 }
-                if (!result.complete) window.setTimeout(poll, 1000);
+                if (!result.complete && dialog.open !== false) window.setTimeout(() => { poll().catch(() => { log.textContent = form.dataset.feedSyncNetworkError; }); }, 1000);
             };
             await poll();
         } catch (error) {

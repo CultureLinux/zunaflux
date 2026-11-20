@@ -46,7 +46,9 @@ final class MarkAllReadTest extends WebTestCase
             self::assertResponseRedirects('/articles');
             self::assertSame(3, (int) $db->fetchOne('SELECT COUNT(*) FROM article_state WHERE user_id = ? AND is_read = 1', [$reader->getId()->toBinary()]));
             self::assertSame(0, (int) $db->fetchOne('SELECT COUNT(*) FROM article_state WHERE user_id = ?', [$other->getId()->toBinary()]));
-            self::assertStringContainsString('3 article(s) marqué(s) comme lu(s).', (string) $client->followRedirect()->filter('.toast')->text());
+            $toast = $client->followRedirect()->filter('.toast[role="status"]');
+            self::assertCount(1, $toast, 'Flash messages are announced through role="status" (the browser tests rely on it).');
+            self::assertStringContainsString('3 article(s) marqué(s) comme lu(s).', $toast->text());
         } finally {
             $db->executeStatement('DELETE FROM app_user WHERE id IN (?, ?)', [$reader->getId()->toBinary(), $other->getId()->toBinary()]);
             $db->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);

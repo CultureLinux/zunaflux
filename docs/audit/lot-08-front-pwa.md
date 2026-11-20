@@ -49,3 +49,22 @@ du -h public/images/* | sort -h | tail
 - Le logo et les icônes pèsent moins de 50 Ko.
 - La PWA s'installe et un clic sur une notification focalise un onglet existant.
 - Les tests JS et Playwright sont verts.
+
+## Statut d'avancement
+
+*Mis à jour le 20 novembre 2026. Tests PHP et JavaScript exécutés en local ; **Playwright, `tailwind:build`, `asset-map:compile` et le rendu navigateur non exécutés**. En attente du retour de validation du développeur.*
+
+| ID | État | Note |
+|---|---|---|
+| 8.1 | Appliqué | `assets/reading/api.js` : `fetchJson()` (session expirée → redirection vers `/login`, réponse non JSON, erreurs HTTP, réseau, `AbortError` conservé), utilisé par `article-list.js` (liste, article, état) et `zen.js` (liste, article, état, compteur). **Non converti :** les appels `bulk`, `feed-sync.js`, `subscription-refresh.js`, `subscription-page.js`, `feed-retry.js`, `mastodon-share.js` et `zen-nav-count.js` (script non-module). Tests `fetch-json.test.cjs`. |
+| 8.2 | Appliqué | Un `AbortController` par ouverture d'article (liste et mode zen) ; le polling de synchronisation s'arrête à la fermeture du dialogue et ses erreurs sont rattrapées. |
+| 8.3 | Partiel | Logo d'en-tête, page « À propos » et mode zen : `livre-rss-transparent-320.webp` (6,8 Ko, transparence conservée) au lieu du PNG de 521 Ko. Accueil : `livre-rss-960.webp` (8,4 Ko) au lieu de 1,1 Mo. Icône de notification : `icone-pwa-192.png` (25 Ko) au lieu de 1,2 Mo ; entrée de 1254 px retirée du manifest. **Les anciens PNG sont conservés** (non supprimés). **Non fait :** icône `maskable`, dimensions explicites des vignettes d'articles, `srcset`. |
+| 8.4 | Partiel | `notificationclick` focalise un onglet existant (ou le fait naviguer vers la cible), n'accepte qu'une URL de même origine ; `lang` ajouté au manifest ; tests `service-worker.test.cjs`. **Décision (20 novembre 2026) :** un refus d'installation ne doit plus jamais être reproposé : comportement déjà en place, la constante inutilisée `dismissDuration` a été retirée. **Non fait :** enregistrement global du service worker, page hors ligne et caches (à valider avec un vrai navigateur), icône `maskable`. |
+| 8.5 | Appliqué | Modules partagés : `assets/reading/api.js` (`fetchJson`, `sendJson` avec l'en-tête CSRF, `fetchCounters`, `articlesEndpoint`) et `assets/reading/share.js` (`shareArticle`, qui remplace `shareArticle` et `shareZenArticle`). Les deux gestionnaires de filtres quasi identiques d'`article-list.js` sont fusionnés en `applyFilter()`. Les appels `bulk` passent par `sendJson`. `zen-nav-count.js` devient un module qui utilise `fetchCounters`. Les tests VM utilisent `tests/Support/reading-api.cjs`. **Non converti :** `feed-sync.js`, `subscription-refresh.js`, `subscription-page.js`, `feed-retry.js`, `mastodon-share.js`. |
+| 8.6 | Appliqué | `tailwind.config.js` (format v3, ignoré par Tailwind v4) supprimé. |
+| 8.7 | Appliqué | **Décision (20 novembre 2026) :** une seule occurrence. L'inclusion de la barre de filtre est conservée, celle du bas de liste est supprimée ; `ArticleControllerTest` attend désormais 1 formulaire. |
+| 8.8 | Appliqué | Une seule bannière d'imitation (conditions fusionnées). |
+| 8.9 | Appliqué | Deux balises `theme-color` (`#F8F8F6` clair, `#0F1419` sombre). |
+| 8.10 | Appliqué | `maxlength` retiré du champ Mastodon ; validation JS en points de code (1 à 500), identique à la règle serveur. |
+| 8.11 | **En attente de décision** | Implications détaillées dans le compte rendu du 20 novembre 2026 : cache navigateur (`private, max-age`, avec hash de l'URL source), cache disque serveur, ou les deux. |
+

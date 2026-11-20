@@ -1,3 +1,5 @@
+import { articlesEndpoint, fetchCounters, fetchJson, sendJson } from '../reading/api.js';
+import { shareArticle } from '../reading/share.js';
 const t = (key, params = {}) => (typeof window !== 'undefined' && window.zunaflux?.t ? window.zunaflux.t(key, params) : Object.entries(params).reduce((text, [name, value]) => text.replace(`%${name}%`, String(value)), key));
 
 const classifyZenGesture = (dx, dy) => {
@@ -10,18 +12,6 @@ const formatZenCount = (count, singular, plural) => (count === 1 ? singular : pl
 const requestZenFullscreen = (element, isMobile) => {
     if (!isMobile || !document.fullscreenEnabled || document.fullscreenElement || typeof element?.requestFullscreen !== 'function') return Promise.resolve();
     return Promise.resolve(element.requestFullscreen()).catch(() => {});
-};
-
-const shareZenArticle = (article) => {
-    try {
-        const url = new URL(article.url);
-        if (!['http:', 'https:'].includes(url.protocol)) return Promise.resolve(false);
-        if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') return navigator.share({ title: article.title, url: url.href }).then(() => 'shared').catch(() => false);
-        if (typeof navigator !== 'undefined' && typeof navigator.clipboard?.writeText === 'function') return navigator.clipboard.writeText(url.href).then(() => 'copied').catch(() => false);
-        return Promise.resolve(false);
-    } catch (_) {
-        return Promise.resolve(false);
-    }
 };
 
 const zen = document.querySelector('[data-zen-dialog]');
@@ -48,9 +38,7 @@ if (zen) {
     let items = [], cursor = null, hasMore = false, index = -1, article = null, busy = false, changed = false, finished = false;
     const refreshCount = async () => {
         try {
-            const response = await fetch('/api/statistics/counters', { headers: { Accept: 'application/json' } });
-            if (!response.ok) throw new Error();
-            const data = await response.json();
+            const data = await fetchCounters();
             count.textContent = String(data.all.unread_count);
             remaining.textContent = formatZenCount(data.all.unread_count, messages.remainingOne, messages.remainingMany);
             open.setAttribute('aria-label', formatZenCount(data.all.unread_count, messages.openOne, messages.openMany));
@@ -61,20 +49,19 @@ if (zen) {
         zen.close();
     };
     const loadMore = async () => {
-        const url = new URL('/api/articles', location.origin);
+        const url = new URL(articlesEndpoint, location.origin);
         url.searchParams.set('read', '0');
         if (cursor) url.searchParams.set('cursor', cursor);
-        const response = await fetch(url, { headers: { Accept: 'application/json' } });
-        if (!response.ok) throw new Error(messages.loadArticles);
-        const page = await response.json();
+        const page = await fetchJson(url, { fallbackMessage: messages.loadArticles });
         items.push(...page.items.filter(item => !items.some(existing => existing.id === item.id)));
         cursor = page.nextCursor;
         hasMore = page.hasMore;
     };
+    let showRequest = null;
     const show = async () => {
-        const response = await fetch(`/api/articles/${encodeURIComponent(items[index].id)}?zen=1`, { headers: { Accept: 'application/json' } });
-        if (!response.ok) throw new Error(messages.loadArticle);
-        article = await response.json();
+        showRequest?.abort();
+        const request = showRequest = new AbortController();
+        article = await fetchJson(`${articlesEndpoint}/${encodeURIComponent(items[index].id)}?zen=1`, { signal: request.signal, fallbackMessage: messages.loadArticle });
         finished = false; complete.hidden = true; title.hidden = false; body.hidden = false; message.classList.remove('sr-only');
         title.textContent = article.title;
         original.hidden = true;
@@ -90,11 +77,7 @@ if (zen) {
         message.textContent = '';
     };
     const update = async changes => {
-        const response = await fetch(`/api/articles/${encodeURIComponent(article.id)}/state`, {
-            method: 'PATCH', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': article.csrfToken }, body: JSON.stringify(changes),
-        });
-        if (!response.ok) throw new Error(messages.updateError);
-        Object.assign(article, await response.json());
+        Object.assign(article, await sendJson(`${articlesEndpoint}/${encodeURIComponent(article.id)}/state`, 'PATCH', changes, article.csrfToken, { fallbackMessage: messages.updateError }));
         changed = true;
         if (!zen.open) document.dispatchEvent(new Event('zen-state-changed'));
     };
@@ -118,7 +101,7 @@ if (zen) {
                 content.animate?.([{ opacity: 0.7, transform: `translateX(${action === 'next' ? '12px' : '-12px'})` }, { opacity: 1, transform: 'translateX(0)' }], { duration: 200, easing: 'ease-out' });
             }
             if (action === 'next') await refreshCount();
-        } catch (error) { message.textContent = error.message || messages.error; }
+        } catch (error) { if (error.name !== 'AbortError') message.textContent = error.message || messages.error; }
         finally { busy = false; controls.forEach(button => { button.disabled = finished; }); previous.disabled = !finished && index <= 0; }
     };
     open.addEventListener('click', async () => {
@@ -132,7 +115,7 @@ if (zen) {
         title.textContent = messages.title; original.hidden = true; source.textContent = ''; body.replaceChildren(); message.textContent = messages.loading;
         busy = true; controls.forEach(button => { button.disabled = true; });
         try { await loadMore(); if (items.length) { index = 0; await show(); } else message.textContent = messages.empty; }
-        catch (error) { message.textContent = error.message || messages.loadArticles; }
+        catch (error) { if (error.name !== 'AbortError') message.textContent = error.message || messages.loadArticles; }
         finally { busy = false; controls.forEach(button => { button.disabled = !article; }); previous.disabled = index <= 0; }
     });
     zen.querySelector('[data-zen-close]').addEventListener('click', closeZen);
@@ -144,7 +127,7 @@ if (zen) {
     next.addEventListener('click', () => act('next'));
     favorite.addEventListener('click', () => act('favorite'));
     save.addEventListener('click', () => act('save'));
-    share.addEventListener('click', () => { void shareZenArticle(article).then((result) => { if (result === 'copied') window.dispatchEvent(new CustomEvent('zunaflux:toast', { detail: { type: 'success', message: t('Lien copié.') } })); }); });
+    share.addEventListener('click', () => { void shareArticle(article).then((result) => { if (result === 'copied') window.dispatchEvent(new CustomEvent('zunaflux:toast', { detail: { type: 'success', message: t('Lien copié.') } })); }); });
     mastodonShare?.addEventListener('click', () => { if (article) window.dispatchEvent(new CustomEvent('zunaflux:mastodon-share', { detail: article })); });
     let start = null;
     content.addEventListener('touchstart', event => { start = event.touches.length === 1 ? [event.touches[0].clientX, event.touches[0].clientY] : null; }, { passive: true });

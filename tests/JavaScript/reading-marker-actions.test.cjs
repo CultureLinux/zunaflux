@@ -2,6 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
+const { installReadingApi, jsonResponse } = require('../Support/reading-api.cjs');
 
 test('removing a favorite updates the server and removes it from the favorites view', async () => {
     const source = fs.readFileSync('assets/controllers/article-list.js', 'utf8');
@@ -13,10 +14,11 @@ test('removing a favorite updates the server and removes it from the favorites v
     const context = {
         t: (key, params = {}) => Object.entries(params).reduce((text, [name, value]) => text.replace(`%${name}%`, value), key),
         endpoint: '/api/articles', actions: { dataset: { csrfToken: 'token' } },
-        fetch: async (url, options) => { assert.equal(url, '/api/articles/bulk'); assert.deepEqual(JSON.parse(options.body), { ids: ['42'], isFavorite: false }); return { ok: true, json: async () => ({ skipped: 0 }) }; },
+        fetch: async (url, options) => { assert.equal(url, '/api/articles/bulk'); assert.deepEqual(JSON.parse(options.body), { ids: ['42'], isFavorite: false }); return jsonResponse({ skipped: 0 }); },
         bulkError: {}, readFilter: { value: 'favorite' }, loadedItems: [item], selectedIds: new Set(['42']), selectedArticle: null,
         document: { dispatchEvent() {} }, Event: class {}, updatePersonalCount() {}, updateSelection() {},
     };
+    installReadingApi(context);
     vm.runInNewContext(source.slice(start, end) + '\nthis.run = removeReadingMarker;', context);
     await context.run(item, { remove() { removed = true; } }, {}, 'favorite');
     assert.equal(item.isFavorite, false);
@@ -34,9 +36,10 @@ test('a failed removal keeps a saved article in the list and reports the error',
     const context = {
         t: (key, params = {}) => Object.entries(params).reduce((text, [name, value]) => text.replace(`%${name}%`, value), key),
         endpoint: '/api/articles', actions: { dataset: { csrfToken: 'token' } },
-        fetch: async (url, options) => { assert.deepEqual(JSON.parse(options.body), { ids: ['42'], isSaved: false }); return { ok: false }; },
+        fetch: async (url, options) => { assert.deepEqual(JSON.parse(options.body), { ids: ['42'], isSaved: false }); return jsonResponse({}, { ok: false, status: 500 }); },
         bulkError: {}, readFilter: { value: 'saved' }, loadedItems: [item], selectedIds: new Set(), selectedArticle: null, updatePersonalCount() {},
     };
+    installReadingApi(context);
     vm.runInNewContext(source.slice(start, end) + '\nthis.run = removeReadingMarker;', context);
     await context.run(item, { remove() { removed = true; } }, button, 'saved');
     assert.equal(item.isSaved, true);

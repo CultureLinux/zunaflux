@@ -31,6 +31,8 @@ const t = (key, params = {}) => (typeof window !== 'undefined' && window.zunaflu
         const toast = document.createElement('div');
         const type = event.detail.type === 'error' ? 'error' : 'success';
         toast.className = `toast toast--${type}`;
+        // The role is the single announcement mechanism (no live region around the stack).
+        toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
         toast.append(document.createTextNode(event.detail.message));
         const close = document.createElement('button');
         close.type = 'button';

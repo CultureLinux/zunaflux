@@ -619,5 +619,7 @@
   "Tous vos articles non lus, dans toutes vos sources, seront marqués comme lus. Cette action ne peut pas être annulée.": "All your unread articles, across all your sources, will be marked as read. This action cannot be undone.",
   "Marquer tout comme lu": "Mark all as read",
   "%count% article(s) marqué(s) comme lu(s).": "%count% article(s) marked as read.",
-  "Rattrapage": "Catch up"
+  "Rattrapage": "Catch up",
+  "Connexion au serveur impossible. Vérifiez votre réseau.": "Cannot reach the server. Check your network.",
+  "Le serveur a renvoyé une réponse inattendue.": "The server returned an unexpected response."
 }

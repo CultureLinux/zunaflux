@@ -6,7 +6,6 @@
     const help = prompt.querySelector('[data-pwa-install-help]');
     let deferred;
     const isFirefoxAndroid = /Android/i.test(navigator.userAgent) && /Firefox/i.test(navigator.userAgent);
-    const dismissDuration = 30 * 24 * 60 * 60 * 1000;
     let dismissed = false;
     try {
         const dismissedAt = Number(localStorage.getItem('zunaflux-install-dismissed-at'));

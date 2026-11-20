@@ -2,6 +2,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
+const { installReadingApi, jsonResponse } = require('../Support/reading-api.cjs');
 
 test('marking an unread article updates the server and removes it from the unread list', async () => {
     const source = fs.readFileSync('assets/controllers/article-list.js', 'utf8');
@@ -18,12 +19,13 @@ test('marking an unread article updates the server and removes it from the unrea
         fetch: async (url, options) => {
             assert.equal(url, '/api/articles/bulk');
             assert.deepEqual(JSON.parse(options.body), { ids: ['42'], isRead: true });
-            return { ok: true, json: async () => ({ skipped: 0 }) };
+            return jsonResponse({ skipped: 0 });
         },
         readFilter: { value: '0' }, loadedItems: [item], selectedIds,
         document: { dispatchEvent() {} }, Event: class {},
         updateUnreadCount() {}, updateSelection() {}, bulkError: {},
     };
+    installReadingApi(context);
     vm.runInNewContext(source.slice(start, end) + '\nthis.run = markArticleRead;', context);
     await context.run(item, row, button);
     assert.equal(item.isRead, true);

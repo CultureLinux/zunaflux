@@ -33,7 +33,7 @@ final class ArticleControllerTest extends WebTestCase
         try {
             $client->loginUser($owner);
             $crawler = $client->request('GET', '/articles');
-            self::assertSelectorCount(2, 'form[data-category-id="'.$category->getId().'"]');
+            self::assertSelectorCount(1, 'form[data-category-id="'.$category->getId().'"]');
             $token = $crawler->filter('form[data-category-id="'.$category->getId().'"] input[name="_token"]')->first()->attr('value');
             $client->request('POST', $path, ['_token' => 'invalid']);
             self::assertResponseStatusCodeSame(403);
@@ -71,7 +71,7 @@ final class ArticleControllerTest extends WebTestCase
             $client->loginUser($user);
             $client->request('GET', '/articles');
             self::assertResponseIsSuccessful();
-            self::assertSelectorCount(2, 'form[data-source-mark-read][action="/subscriptions/'.$subscription->getId().'/mark-read"] input[name="_token"]');
+            self::assertSelectorCount(1, 'form[data-source-mark-read][action="/subscriptions/'.$subscription->getId().'/mark-read"] input[name="_token"]');
         } finally {
             $em->getConnection()->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
             $em->getConnection()->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);

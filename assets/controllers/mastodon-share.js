@@ -54,6 +54,11 @@ if (dialog) {
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
         if (!article || submit.disabled) return;
+        const length = [...status.value.trim()].length;
+        if (length < 1 || length > 500) {
+            setError(t('Le message Mastodon doit contenir entre 1 et 500 caractères.'));
+            return;
+        }
         if ('direct' === visibility.value && !hasDirectRecipient(status.value)) {
             setError(t('Un message direct doit mentionner au moins un destinataire.'));
             return;

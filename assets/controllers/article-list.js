@@ -1,3 +1,5 @@
+import { fetchJson, sendJson } from '../reading/api.js';
+import { shareArticle } from '../reading/share.js';
 import { viewFromParams, setViewParams, updateSourceMarkReadControls, updateReadingSources } from '../reading/sources.js';
 
 const t = (key, params = {}) => (typeof window !== 'undefined' && window.zunaflux?.t ? window.zunaflux.t(key, params) : Object.entries(params).reduce((text, [name, value]) => text.replace(`%${name}%`, String(value)), key));
@@ -9,18 +11,6 @@ const readingMarkers = (item, labels = { unread: t('Non lu'), favorite: t('Favor
 ];
 
 const formatReadingDate = (date, locale) => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
-
-const shareArticle = (article) => {
-    try {
-        const url = new URL(article.url);
-        if (!['http:', 'https:'].includes(url.protocol)) return Promise.resolve(false);
-        if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') return navigator.share({ title: article.title, url: url.href }).then(() => 'shared').catch(() => false);
-        if (typeof navigator !== 'undefined' && typeof navigator.clipboard?.writeText === 'function') return navigator.clipboard.writeText(url.href).then(() => 'copied').catch(() => false);
-        return Promise.resolve(false);
-    } catch (_) {
-        return Promise.resolve(false);
-    }
-};
 
 const container = document.querySelector('[data-article-list]');
 
@@ -135,8 +125,7 @@ if (container) {
         button.disabled = true;
         bulkError.hidden = true;
         try {
-            const response = await fetch(`${endpoint}/bulk`, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': actions.dataset.csrfToken }, body: JSON.stringify({ ids: [item.id], isRead: true }) });
-            if (!response.ok || (await response.json()).skipped) throw new Error();
+            if ((await sendJson(`${endpoint}/bulk`, 'POST', { ids: [item.id], isRead: true }, actions.dataset.csrfToken)).skipped) throw new Error();
             updateUnreadCount(item, true);
             item.isRead = true;
             document.dispatchEvent(new Event('article-state-changed'));
@@ -165,8 +154,7 @@ if (container) {
         button.disabled = true;
         bulkError.hidden = true;
         try {
-            const response = await fetch(`${endpoint}/bulk`, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': actions.dataset.csrfToken }, body: JSON.stringify({ ids: [item.id], [property]: false }) });
-            if (!response.ok || (await response.json()).skipped) throw new Error();
+            if ((await sendJson(`${endpoint}/bulk`, 'POST', { ids: [item.id], [property]: false }, actions.dataset.csrfToken)).skipped) throw new Error();
             updatePersonalCount(item, property, false);
             item[property] = false;
             if (selectedArticle?.id === item.id) { selectedArticle[property] = false; setStateLabels(selectedArticle); }
@@ -198,9 +186,7 @@ if (container) {
         try {
             for (let i = 0; i < ids.length; i += 100) {
                 const batch = ids.slice(i, i + 100);
-                const response = await fetch(`${endpoint}/bulk`, { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': actions.dataset.csrfToken }, body: JSON.stringify({ ids: batch, ...changes }) });
-                if (!response.ok) throw new Error();
-                const result = await response.json();
+                const result = await sendJson(`${endpoint}/bulk`, 'POST', { ids: batch, ...changes }, actions.dataset.csrfToken);
                 if (result.skipped) throw new Error();
                 if (typeof changes.isRead === 'boolean') batch.forEach((id) => {
                     const item = loadedItems.find((entry) => String(entry.id) === String(id));
@@ -251,13 +237,8 @@ if (container) {
     const setActionDisabled = (disabled) => [...readButtons, ...favoriteButtons, ...savedButtons].forEach((button) => { button.disabled = disabled; });
     const updateState = (changes) => {
         const article = selectedArticle;
-        const update = fetch(`${endpoint}/${article.id}/state`, {
-            method: 'PATCH',
-            headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': article.csrfToken },
-            body: JSON.stringify(changes),
-        }).then((response) => {
-            if (!response.ok) throw new Error(t('La mise à jour de cet article a échoué.'));
-            return response.json();
+        const update = sendJson(`${endpoint}/${article.id}/state`, 'PATCH', changes, article.csrfToken, {
+            fallbackMessage: t('La mise à jour de cet article a échoué.'),
         }).then((state) => {
             const item = loadedItems.find((entry) => entry.id === article.id);
             updateUnreadCount(item, state.isRead);
@@ -287,13 +268,34 @@ if (container) {
         return update.finally(() => pendingStateUpdates.delete(update));
     };
 
-    const openArticle = (id) => {
-        fetch(`${endpoint}/${id}`, { headers: { Accept: 'application/json' } })
-            .then((response) => {
-                if (!response.ok) throw new Error(t('Cet article est indisponible.'));
+    // A source or a category chip filters the list; both share the same URL and state updates.
+    const applyFilter = ({ subscription = '', category = '', name }) => {
+        clearTimeout(searchTimer);
+        subscriptionFilter = subscription;
+        categoryFilter = category;
+        selectedSearch = true;
+        sourceName = subscription ? name : '';
+        categoryName = category ? name : '';
+        searchInput.value = name;
+        const current = new URL(location.href);
+        current.searchParams.delete('subscription');
+        current.searchParams.delete('category');
+        current.searchParams.delete('q');
+        if (subscription) current.searchParams.set('subscription', subscription);
+        if (category) current.searchParams.set('category', category);
+        current.searchParams.set('filterName', name);
+        history.replaceState(null, '', current);
+        updateSourceFilter();
+        updateSources();
+        loadPage();
+    };
 
-                return response.json();
-            })
+    let articleRequest = null;
+    const openArticle = (id) => {
+        // Rapid "next" clicks: only the latest request may render.
+        articleRequest?.abort();
+        const request = articleRequest = new AbortController();
+        fetchJson(`${endpoint}/${id}`, { signal: request.signal, fallbackMessage: t('Cet article est indisponible.') })
             .then((article) => {
                 selectedArticle = article;
                 const position = loadedItems.findIndex((item) => item.id === id);
@@ -324,6 +326,7 @@ if (container) {
 
             })
             .catch((error) => {
+                if (error.name === 'AbortError') return;
                 const message = document.createElement('p');
                 message.className = 'border-l-2 border-danger bg-surface-muted p-4 text-danger';
                 message.setAttribute('role', 'alert');
@@ -387,12 +390,7 @@ if (container) {
         if (categoryFilter) url.searchParams.set('category', categoryFilter);
         if (!append) { selectedIds.clear(); updateSelection(); }
 
-        return fetch(url, { headers: { Accept: 'application/json' }, signal: request.signal })
-        .then((response) => {
-            if (!response.ok) throw new Error(t('La liste des articles est indisponible.'));
-
-            return response.json();
-        })
+        return fetchJson(url, { signal: request.signal, fallbackMessage: t('La liste des articles est indisponible.') })
         .then(({ items, nextCursor: receivedCursor, hasMore }) => {
             if (!append) loadedItems.length = 0;
             loadedItems.push(...items);
@@ -435,24 +433,7 @@ if (container) {
                 source.className = 'min-w-0 break-words text-left font-mono text-xs uppercase tracking-[.16em] text-accent hover:underline';
                 source.textContent = item.source || t('Source sans titre');
                 source.setAttribute('aria-label', t('Filtrer sur %name%', { name: source.textContent }));
-                source.addEventListener('click', () => {
-                    clearTimeout(searchTimer);
-                    subscriptionFilter = item.subscriptionId;
-                    categoryFilter = '';
-                    selectedSearch = true;
-                    sourceName = item.source || t('Source sans titre');
-                    categoryName = '';
-                    searchInput.value = sourceName;
-                    const current = new URL(location.href);
-                    current.searchParams.set('subscription', subscriptionFilter);
-                    current.searchParams.delete('category');
-                    current.searchParams.delete('q');
-                    current.searchParams.set('filterName', sourceName);
-                    history.replaceState(null, '', current);
-                    updateSourceFilter();
-                    updateSources();
-                    loadPage();
-                });
+                source.addEventListener('click', () => applyFilter({ subscription: item.subscriptionId, name: item.source || t('Source sans titre') }));
                 const title = document.createElement('h2');
                 title.className = `mt-2 font-serif text-2xl ${item.isRead ? 'text-muted' : 'text-foreground'}`;
                 title.textContent = item.title;
@@ -517,24 +498,7 @@ if (container) {
                     category.className = source.className;
                     category.textContent = item.categoryName;
                     category.setAttribute('aria-label', t('Filtrer sur %name%', { name: item.categoryName }));
-                    category.addEventListener('click', () => {
-                        clearTimeout(searchTimer);
-                        subscriptionFilter = '';
-                        categoryFilter = item.categoryId;
-                        selectedSearch = true;
-                        sourceName = '';
-                        categoryName = item.categoryName;
-                        searchInput.value = item.categoryName;
-                        const current = new URL(location.href);
-                        current.searchParams.delete('subscription');
-                        current.searchParams.delete('q');
-                        current.searchParams.set('category', categoryFilter);
-                        current.searchParams.set('filterName', item.categoryName);
-                        history.replaceState(null, '', current);
-                        updateSourceFilter();
-                        updateSources();
-                        loadPage();
-                    });
+                    category.addEventListener('click', () => applyFilter({ category: item.categoryId, name: item.categoryName }));
                     const separator = document.createElement('span');
                     separator.textContent = '/';
                     separator.className = 'text-muted';
