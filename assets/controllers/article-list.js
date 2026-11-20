@@ -397,7 +397,8 @@ if (container) {
             nextCursor = receivedCursor;
             if (!append) container.replaceChildren();
             const status = document.querySelector('[data-article-status]');
-            if (status) status.textContent = items.length > 0 ? (status.dataset.loadedLabel || '%count%').replace('%count%', String(items.length)) : (container.dataset.emptyFilteredLabel || '');
+            // Never repeat the empty-state message here: the visible paragraph already carries it.
+            if (status) status.textContent = (status.dataset.loadedLabel || '%count%').replace('%count%', String(items.length));
 
             if (items.length === 0) {
                 const empty = document.createElement('p');

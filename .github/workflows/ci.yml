@@ -65,7 +65,7 @@ jobs:
         id: composer-cache
         run: echo "dir=$(php85 /usr/bin/composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
       - name: Cache Composer downloads
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
@@ -96,7 +96,7 @@ jobs:
         run: php85 vendor/bin/phpunit --log-junit var/reports/phpunit.xml
       - name: Preserve PHPUnit report
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: phpunit-${{ github.run_id }}-${{ github.run_attempt }}
           path: var/reports/phpunit.xml
@@ -207,7 +207,7 @@ jobs:
         run: sh tests/Restoration/run.sh clinuxfr/zunaflux:ci-${{ github.sha }}
       - name: Preserve restoration report
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: restoration-${{ github.run_id }}-${{ github.run_attempt }}
           path: var/restoration/
@@ -345,7 +345,7 @@ jobs:
         run: npm run test:browser
       - name: Preserve browser failure diagnostics
         if: ${{ always() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: browser-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
