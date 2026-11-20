@@ -45,7 +45,16 @@ final class CspReportController
             return new Response(status: Response::HTTP_BAD_REQUEST);
         }
         $report = $payload['csp-report'] ?? $payload[0]['body'] ?? [];
-        $field = static fn (string ...$names): string => mb_substr((string) (array_values(array_filter(array_map(static fn (string $name): mixed => is_array($report) ? ($report[$name] ?? null) : null, $names), is_scalar(...)))[0] ?? ''), 0, 200);
+        // First scalar value found under any of the given keys (the two report formats name them differently), trimmed.
+        $field = static function (string ...$names) use ($report): string {
+            foreach ($names as $name) {
+                if (is_array($report) && isset($report[$name]) && is_scalar($report[$name])) {
+                    return mb_substr((string) $report[$name], 0, 200);
+                }
+            }
+
+            return '';
+        };
         $this->logger->warning('CSP violation reported.', [
             'directive' => $field('violated-directive', 'effectiveDirective', 'effective-directive'),
             'blocked' => $field('blocked-uri', 'blockedURL'),

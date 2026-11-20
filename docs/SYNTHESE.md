@@ -12,7 +12,7 @@ La restauration SQL/médias/clés, la reprise interne des traitements et le reto
 
 ## Installation et mise à jour Docker
 
-Image `clinuxfr/zunaflux`, FrankenPHP sur le port 8080, derrière un proxy HTTPS. Préparer `docker/.env` depuis `docker/env.example`, remplacer les identifiants et sélectionner une version précise, idéalement un digest validé.
+Image `clinuxfr/zunaflux`, FrankenPHP sur le port 8080, publié par défaut sur `127.0.0.1` (`ZUNAFLUX_HTTP_BIND`), derrière un proxy HTTPS. Préparer `docker/.env` depuis `docker/env.example`, remplacer les identifiants et choisir une version précise : `ZUNAFLUX_IMAGE_TAG` est obligatoire, sans valeur par défaut.
 
 Contrôle sans modification des données :
 
@@ -24,14 +24,16 @@ docker compose --env-file docker/.env -f compose.yaml config --quiet
 
 ```bash
 docker compose --env-file docker/.env -f compose.yaml pull
+docker compose --env-file docker/.env -f compose.yaml up -d database
+docker compose --env-file docker/.env -f compose.yaml --profile migrate run --rm migrations
 docker compose --env-file docker/.env -f compose.yaml up -d
 ```
 
-Le service `migrations` applique automatiquement les migrations : les examiner sur une copie isolée avant tout `up` de production. Le premier administrateur se crée via `/setup`. Installation manuelle : [README](../README.md#installer-zunaflux).
+Les migrations ne sont **jamais** appliquées par `up` : le service `migrations` est sous le profil `migrate` et se lance à la main, à chaque installation et à chaque mise à jour, après lecture des notes de version et sauvegarde. Un `up` sans migration laisse `/healthz` en 503 tant que le schéma n'est pas à jour. Le premier administrateur se crée via `/setup` (protégé par `ZUNAFLUX_SETUP_TOKEN` s'il est défini). Installation manuelle : [README](../README.md#installer-zunaflux).
 
 ## Exploitation et sauvegardes
 
-Compose supervise application, worker, collecte et notifications. Hors Docker, superviser `messenger:consume async`, planifier `app:feeds:collect` et exécuter `app:notifications:send` chaque minute, lancer `app:maintenance:purge-articles --max-seconds=60` périodiquement (par exemple chaque heure ; dans Docker, `collect-feeds.sh` s’en charge), via `php85 bin/console … --env=prod`. Adapter l’[unité systemd](../deploy/systemd/zunaflux-messenger.service) fournie.
+Compose supervise application, worker, collecte et notifications, avec un contrôle de santé par service : `/healthz` pour l'application, `app:worker:healthcheck` (battement du worker) pour le worker, et un fichier de vie rafraîchi à chaque cycle pour la collecte et les notifications. `php bin/console app:status --env=prod` (option `--json`) résume le worker, la file, les messages en échec et les incidents de flux, avec un code de sortie 1 si quelque chose demande de l'attention. Les conteneurs applicatifs sont en lecture seule (`read_only`), sans capacités Linux, avec des limites de mémoire et de CPU. Hors Docker, superviser `messenger:consume async`, planifier `app:feeds:collect` et exécuter `app:notifications:send` chaque minute, lancer `app:maintenance:purge-articles --max-seconds=60` périodiquement (par exemple chaque heure ; dans Docker, `collect-feeds.sh` s’en charge), via `php85 bin/console … --env=prod`. Adapter l’[unité systemd](../deploy/systemd/zunaflux-messenger.service) fournie.
 
 L’outbox conserve les événements à relayer ; `failed` conserve les échecs définitifs. Inspecter avec `php85 bin/console messenger:failed:show --env=prod`. Le rejeu nécessite une décision humaine et peut renotifier ; un envoi externe et son curseur ne forment pas une transaction unique.
 
@@ -43,7 +45,7 @@ Contrôler `docker compose --env-file docker/.env -f compose.yaml ps -a` et les 
 
 ## Configuration, validation et limites
 
-Web Push : HTTPS, activation par appareil, fichiers VAPID montés dans les services concernés et `ZUNAFLUX_VAPID_SUBJECT`. Fournisseurs autorisés : Chrome et Firefox. Mastodon : origine publique et clé base64 stable de 32 octets, à conserver avec les sauvegardes.
+Web Push : HTTPS, activation par appareil, fichiers VAPID déposés dans `docker/secrets/` (`vapid-public.txt`, `vapid-private.pem`, répertoire non versionné monté en lecture seule dans `app`, `worker` et `notifications`) et `ZUNAFLUX_VAPID_SUBJECT`. Fournisseurs autorisés : Chrome et Firefox. Mastodon : origine publique et clé base64 stable de 32 octets, à conserver avec les sauvegardes.
 
 Les commandes de validation sont dans [la CI](../.github/workflows/ci.yml). Tests fonctionnels, migrations, navigateur et performance : bases dédiées exclusivement. Playwright nécessite Node 24. Assets : `php85 bin/console tailwind:build`, puis `php85 bin/console asset-map:compile`. Dépendances : `php85 /usr/bin/composer install`, selon le verrou.
 

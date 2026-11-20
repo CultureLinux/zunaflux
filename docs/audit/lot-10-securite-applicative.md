@@ -36,7 +36,7 @@ Tests PHPUnit (cookie, jeton de `/setup`, imitation), puis contrôle manuel derr
 | 3.8 | Appliqué | `ZUNAFLUX_SETUP_TOKEN` facultatif, comparé à temps constant, champ affiché seulement s'il est défini. |
 | 3.10 | Confirmé | Le refus de rétrograder le dernier administrateur est couvert par `AdminUserRoutesTest`. |
 
-**Retour du développeur (20 novembre 2026) :** commandes de validation Linux réussies ; derrière un nginx, connexion, déconnexion, reconnexion et changement de langue sans erreur. **Pas encore contrôlés :** l'imitation d'utilisateur (bouton « Imiter » puis « Revenir à mon compte »), la présence du drapeau `Secure` dans les outils du navigateur et les lignes `CSP violation reported.` dans les logs.
+**Retour du développeur (20 novembre 2026) :** commandes de validation Linux réussies ; derrière un nginx, connexion, déconnexion, reconnexion et changement de langue sans erreur. **Contrôlés ensuite :** drapeau `Secure` du cookie, imitation d'utilisateur (« Imiter » puis « Revenir à mon compte ») et journal CSP : les trois points sont OK. **Lot validé.**
 
 **Rappel de validation :** README, section « Changements incompatibles ».
 

@@ -111,6 +111,9 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64,linux/arm64
+          # Supply-chain evidence published next to the image.
+          sbom: true
+          provenance: mode=max
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           cache-from: type=gha

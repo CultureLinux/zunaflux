@@ -198,6 +198,14 @@ jobs:
         run: sh tests/Container/restoration-preflight.sh
       - name: Build production image without publishing
         run: docker build --tag clinuxfr/zunaflux:ci-${{ github.sha }} .
+      - name: Scan the image for fixable HIGH and CRITICAL vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: clinuxfr/zunaflux:ci-${{ github.sha }}
+          severity: HIGH,CRITICAL
+          # A CVE without an upstream fix must not block the project: only fixable ones fail.
+          ignore-unfixed: true
+          exit-code: '1'
       - name: Verify image and Compose topology
         run: |
           sh tests/Container/docker-image-smoke.sh clinuxfr/zunaflux:ci-${{ github.sha }}
