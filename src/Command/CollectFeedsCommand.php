@@ -13,7 +13,6 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
-use Symfony\Component\Uid\Uuid;
 
 #[AsCommand(name: 'app:feeds:collect', description: 'Queues collection for every due feed that has an active subscriber.')]
 final class CollectFeedsCommand extends Command
@@ -37,7 +36,7 @@ final class CollectFeedsCommand extends Command
 
         foreach ($query->toIterable() as $row) {
             $id = $row['id'];
-            $this->messageBus->dispatch(new CollectFeedMessage($id instanceof Uuid ? $id->toRfc4122() : (string) $id));
+            $this->messageBus->dispatch(new CollectFeedMessage((string) $id));
             ++$count;
         }
         $output->writeln(sprintf('%d feed(s) queued.', $count));

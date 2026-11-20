@@ -84,7 +84,7 @@ final readonly class FeedFetcher implements FeedFetcherInterface
             }
 
             if ($status >= 300 && $status < 400 && 304 !== $status && preg_match('/^Location:\s*(.+)$/im', $responseHeaders, $matches)) {
-                $currentUrl = $this->resolveLocation($currentUrl, trim($matches[1]));
+                $currentUrl = (new FeedDiscovery())->resolve(trim($matches[1]), $currentUrl) ?? throw new \RuntimeException('Feed redirect is not absolute.');
 
                 continue;
             }
@@ -96,36 +96,6 @@ final readonly class FeedFetcher implements FeedFetcherInterface
         }
 
         throw new \RuntimeException('Feed redirect limit exceeded.');
-    }
-
-    /**
-     * Resolves a Location header (RFC 9110 allows relative references) against the
-     * current URL. The result is validated again by UrlSafetyValidator on the next hop.
-     */
-    private function resolveLocation(string $base, string $location): string
-    {
-        $baseParts = parse_url($base);
-        if (false === $baseParts || !isset($baseParts['scheme'], $baseParts['host'])) {
-            throw new \RuntimeException('Feed redirect is not absolute.');
-        }
-        $origin = strtolower($baseParts['scheme']).'://'.$baseParts['host'].(isset($baseParts['port']) ? ':'.$baseParts['port'] : '');
-
-        if (preg_match('#^[a-z][a-z0-9+.-]*://#i', $location)) {
-            $resolved = $location;
-        } elseif (str_starts_with($location, '//')) {
-            $resolved = strtolower($baseParts['scheme']).':'.$location;
-        } elseif (str_starts_with($location, '/')) {
-            $resolved = $origin.$location;
-        } else {
-            $directory = preg_replace('#[^/]*$#', '', $baseParts['path'] ?? '/') ?: '/';
-            $resolved = $origin.$directory.$location;
-        }
-
-        if (!filter_var($resolved, FILTER_VALIDATE_URL)) {
-            throw new \RuntimeException('Feed redirect is not absolute.');
-        }
-
-        return $resolved;
     }
 
     private function header(string $headers, string $name): ?string

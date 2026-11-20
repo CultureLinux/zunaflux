@@ -6,6 +6,8 @@ namespace App\Domain\Feed;
 
 final class FeedParser
 {
+    private const RSS_LINK = '*[local-name()="link" and namespace-uri()!="http://www.w3.org/2005/Atom"]';
+
     public function parse(string $xml): ParsedFeed
     {
         // A plain DOCTYPE is legitimate (RSS 0.91 feeds declare one) and harmless with
@@ -55,7 +57,7 @@ final class FeedParser
     {
         $items = [];
         foreach ($xpath->query('/*[local-name()="rss" or local-name()="RDF"]/*[local-name()="channel"]/*[local-name()="item"] | /*[local-name()="RDF"]/*[local-name()="item"]') ?: [] as $item) {
-            $url = $this->text($xpath, './*[local-name()="link" and namespace-uri()!="http://www.w3.org/2005/Atom"]', $item);
+            $url = $this->text($xpath, './'.self::RSS_LINK, $item);
             $guid = $this->text($xpath, './*[local-name()="guid"]', $item);
             $title = $this->text($xpath, './*[local-name()="title"]', $item) ?? '(sans titre)';
             $identity = $guid ?: ($url ? hash('sha256', $url) : hash('sha256', $title.$this->text($xpath, './*[local-name()="pubDate"]', $item)));
@@ -63,7 +65,7 @@ final class FeedParser
         }
         $channel = '/*[local-name()="rss" or local-name()="RDF"]/*[local-name()="channel"]';
 
-        return new ParsedFeed($this->text($xpath, $channel.'/*[local-name()="title"]'), $this->text($xpath, $channel.'/*[local-name()="link" and namespace-uri()!="http://www.w3.org/2005/Atom"]'), $items);
+        return new ParsedFeed($this->text($xpath, $channel.'/*[local-name()="title"]'), $this->text($xpath, $channel.'/'.self::RSS_LINK), $items);
     }
 
     private function text(\DOMXPath $xpath, string $query, ?\DOMNode $context = null): ?string { $node = $xpath->query($query, $context)->item(0); $value = $node ? trim($node->textContent) : ''; return '' === $value ? null : $value; }

@@ -51,12 +51,12 @@ final readonly class CollectFeed
         $parsed = 304 === $fetched->statusCode || null === $fetched->body ? null : $this->parser->parse($fetched->body);
 
         return $this->entityManager->wrapInTransaction(function () use ($feed, $fetched, $parsed): int {
-            if (304 === $fetched->statusCode) {
-                // A 304 may omit the validators: keep the ones that produced it.
-                $feed->recordFetchValidators($fetched->etag ?? $feed->getEtag(), $fetched->lastModified ?? $feed->getLastModified());
-            } else {
-                $feed->recordFetchValidators($fetched->etag, $fetched->lastModified);
-            }
+            // A 304 may omit the validators: keep the ones that produced it.
+            $notModified = 304 === $fetched->statusCode;
+            $feed->recordFetchValidators(
+                $fetched->etag ?? ($notModified ? $feed->getEtag() : null),
+                $fetched->lastModified ?? ($notModified ? $feed->getLastModified() : null),
+            );
             $new = 0;
             if (null !== $parsed) {
                 $feed->refreshMetadata($parsed->title, $parsed->siteUrl);
