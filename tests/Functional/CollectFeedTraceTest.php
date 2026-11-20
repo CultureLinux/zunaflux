@@ -61,8 +61,9 @@ final class CollectFeedTraceTest extends KernelTestCase
     {
         self::bootKernel();
         $original = self::getContainer()->get(EntityManagerInterface::class);
-        $queryLogger = new class extends AbstractLogger {
+        $queryLogger = new class () extends AbstractLogger {
             public int $selects = 0;
+
             public function log($level, \Stringable|string $message, array $context = []): void
             {
                 if (isset($context['sql']) && preg_match('/^\s*SELECT\b(?!\s+(?:GET|RELEASE)_LOCK)/i', $context['sql'])) {
@@ -103,14 +104,15 @@ final class CollectFeedTraceTest extends KernelTestCase
             $em->flush();
             $feedId = $feed->getId();
             $em->clear();
-            $logger = new class extends AbstractLogger {
+            $logger = new class () extends AbstractLogger {
                 public array $entries = [];
+
                 public function log($level, \Stringable|string $message, array $context = []): void
                 {
                     $this->entries[] = $context;
                 }
             };
-            $fetcher = new class implements FeedFetcherInterface {
+            $fetcher = new class () implements FeedFetcherInterface {
                 public function fetch(string $url, ?string $etag = null, ?string $lastModified = null): FetchedFeed
                 {
                     return new FetchedFeed(304, null, null, null, $url);

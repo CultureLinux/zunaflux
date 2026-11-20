@@ -10,11 +10,8 @@ use Doctrine\DBAL\Connection;
 
 final readonly class ArticleRetention
 {
-    public function __construct(
-        private Connection $connection,
-        private int $retentionMonths,
-        private Clock $clock = new SystemClock(),
-    ) {
+    public function __construct(private Connection $connection, private int $retentionMonths, private Clock $clock = new SystemClock())
+    {
         if ($retentionMonths < 1) {
             throw new \InvalidArgumentException('La durée de rétention doit être positive.');
         }
@@ -47,11 +44,16 @@ final readonly class ArticleRetention
         // collected_at only: an item still present in its feed must stay older than the
         // retention window before deletion, otherwise the next collection re-inserts it as new.
         $cutoff = $this->clock->now()->modify(sprintf('-%d months', $this->retentionMonths));
-        $protected = 'EXISTS (SELECT 1 FROM article_state st INNER JOIN subscription sub ON sub.user_id = st.user_id AND sub.feed_id = %1$s.feed_id AND sub.enabled = 1 WHERE st.article_id = %1$s.id AND (st.is_favorite = 1 OR st.is_saved = 1))';
+        $protected = 'EXISTS (SELECT 1 FROM article_state st INNER JOIN subscription sub ON sub.user_id = st.user_id'
+            .' AND sub.feed_id = %1$s.feed_id AND sub.enabled = 1'
+            .' WHERE st.article_id = %1$s.id AND (st.is_favorite = 1 OR st.is_saved = 1))';
 
         return $this->connection->transactional(function (Connection $connection) use ($cutoff, $batchSize, $protected): int {
             $ids = $connection->fetchFirstColumn(
-                'SELECT a.id FROM article a WHERE a.collected_at < ? AND NOT '.sprintf($protected, 'a').' ORDER BY a.collected_at ASC, a.id ASC LIMIT '.$batchSize,
+                'SELECT a.id FROM article a WHERE a.collected_at < ? AND NOT '.sprintf(
+                    $protected,
+                    'a',
+                ).' ORDER BY a.collected_at ASC, a.id ASC LIMIT '.$batchSize,
                 [$cutoff],
                 [\Doctrine\DBAL\Types\Types::DATETIME_IMMUTABLE],
             );
@@ -60,7 +62,7 @@ final readonly class ArticleRetention
             }
 
             // Protection is re-checked in the DELETE: a favorite added since the SELECT survives.
-            return $connection->executeStatement(
+            return$connection->executeStatement(
                 'DELETE FROM article WHERE id IN (?) AND NOT '.sprintf($protected, 'article'),
                 [$ids],
                 [\Doctrine\DBAL\ArrayParameterType::BINARY],

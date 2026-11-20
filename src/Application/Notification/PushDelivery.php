@@ -16,7 +16,9 @@ use Symfony\Component\HttpClient\Psr18Client;
 
 final readonly class PushDelivery implements PushSender
 {
-    public function __construct(private EntityManagerInterface $em, private string $pushPrivateFile, private string $pushSubject) {}
+    public function __construct(private EntityManagerInterface $em, private string $pushPrivateFile, private string $pushSubject)
+    {
+    }
 
     public function configured(): bool
     {
@@ -31,7 +33,13 @@ final readonly class PushDelivery implements PushSender
         $factory = new Psr17Factory();
         $client = new Psr18Client(HttpClient::create(['max_redirects' => 0, 'timeout' => 10]), $factory, $factory);
         $push = new WebPush(['VAPID' => ['subject' => $this->pushSubject, 'pemFile' => $this->pushPrivateFile]], [], $client, $factory, $factory);
-        $recipient = Subscription::create(['endpoint' => $subscription->getEndpoint(), 'keys' => ['p256dh' => $subscription->getPublicKey(), 'auth' => $subscription->getAuthSecret()], 'contentEncoding' => 'aes128gcm']);
+        $recipient = Subscription::create(
+            [
+                'endpoint' => $subscription->getEndpoint(),
+                'keys' => ['p256dh' => $subscription->getPublicKey(), 'auth' => $subscription->getAuthSecret()],
+                'contentEncoding' => 'aes128gcm',
+            ],
+        );
 
         return $push->sendOneNotification($recipient, $payload);
     }

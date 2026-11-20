@@ -27,7 +27,7 @@ final class CollectFeedHandlerTest extends TestCase
     public function testATransientFailureIsRecordedOnceAndNeverRethrown(): void
     {
         $feed = new Feed('https://example.test/failing');
-        $fetcher = new class implements FeedFetcherInterface {
+        $fetcher = new class () implements FeedFetcherInterface {
             public int $calls = 0;
 
             public function fetch(string $url, ?string $etag = null, ?string $lastModified = null): FetchedFeed
@@ -56,7 +56,7 @@ final class CollectFeedHandlerTest extends TestCase
     public function testTheSynchronousEntryPointStillReportsTheFailure(): void
     {
         $feed = new Feed('https://example.test/failing');
-        $fetcher = new class implements FeedFetcherInterface {
+        $fetcher = new class () implements FeedFetcherInterface {
             public function fetch(string $url, ?string $etag = null, ?string $lastModified = null): FetchedFeed
             {
                 throw new \RuntimeException('Feed request returned HTTP 503.');
@@ -79,7 +79,7 @@ final class CollectFeedHandlerTest extends TestCase
     public function testAFeedAlreadyBeingCollectedIsSkippedWithoutRecordingAFailure(): void
     {
         $feed = new Feed('https://example.test/locked');
-        $fetcher = new class implements FeedFetcherInterface {
+        $fetcher = new class () implements FeedFetcherInterface {
             public int $calls = 0;
 
             public function fetch(string $url, ?string $etag = null, ?string $lastModified = null): FetchedFeed

@@ -42,7 +42,18 @@ final class ReadingDailyStat
         ++$this->firstReads;
     }
 
-    public function getFirstReads(): int { return $this->firstReads; }
-    public function getCategorySnapshot(): string { return $this->categorySnapshot; }
-    public function getStatDate(): \DateTimeImmutable { return $this->statDate; }
+    public function getFirstReads(): int
+    {
+        return $this->firstReads;
+    }
+
+    public function getCategorySnapshot(): string
+    {
+        return $this->categorySnapshot;
+    }
+
+    public function getStatDate(): \DateTimeImmutable
+    {
+        return $this->statDate;
+    }
 }

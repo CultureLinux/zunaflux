@@ -91,5 +91,17 @@ Socle ajouté : `tests/Support/RollbackKernelTestCase.php` (transaction annulée
 
 **Non couvert :** chemin de succès de `DiscoverFeedHandler` (requiert le réseau), chemins d'échec des commandes de relais (les classes sont `final`, pas de double possible), quatre routes d'administration annexes (incidents, quotas, synchronisation).
 
-### 9.A à 9.C : à faire
+### 9.A Reformatage : appliqué (en attente de commit isolé)
+
+- **Dépendance validée :** `friendsofphp/php-cs-fixer` (v3.95.32, `require-dev`) ; ses dépendances (`react/*`, `composer/*`…) sont toutes de développement. Aucune version existante n'a changé dans `composer.lock`.
+- **Configuration :** `.php-cs-fixer.dist.php` (`@Symfony` + `@PSR12`, hors `yoda_style`, `phpdoc_summary`, `phpdoc_to_comment`, `single_line_throw`) sur `src/` et `tests/`. Les migrations ne sont pas reformatées (déjà appliquées).
+- **Méthode :**
+  1. Les 35 fichiers à lignes de plus de 200 caractères ont été ré-imprimés par `nikic/php-parser`, avec **comparaison de l'arbre syntaxique avant et après** (identique).
+  2. Un second passage a coupé les lignes encore trop longues (virgules d'arguments et de tableaux, chaînes `->`, opérateurs `||` et `&&`, longues requêtes SQL découpées en chaînes concaténées), avec la même vérification d'arbre (la concaténation de chaînes littérales est repliée avant comparaison).
+  3. PHP-CS-Fixer a ensuite harmonisé le style ; 7 lignes restantes ont été coupées à la main (SQL, tableau de choix des préférences).
+- **Résultat :** 0 ligne de plus de 200 caractères dans `src/` (109 avant) ; `php-cs-fixer fix --dry-run` sans écart ; 275 tests et PHPStan inchangés.
+- **CI :** étape « Check code style with PHP-CS-Fixer » ajoutée au job `php` (clôt le point 6.5 du lot 6).
+- **À faire par le développeur :** commiter ce reformatage **seul**, puis ajouter son SHA à `.git-blame-ignore-revs` (fichier créé) et lancer `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
+
+### 9.B et 9.C : à faire (après le commit de 9.A)
 

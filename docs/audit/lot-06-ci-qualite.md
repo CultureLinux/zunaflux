@@ -62,7 +62,7 @@ Les tests `tests/Container/*workflow*.sh` vérifient la structure des workflows.
 | 6.2 | Partiel | `composer audit --locked` ajouté au job `php` (aucune vulnérabilité trouvée en local). **Non fait :** scan d'image Trivy/Grype, SBOM, provenance. |
 | 6.3 | **Non traité** | Épinglage des actions par SHA et `environment: production` : demande de résoudre les SHA (réseau) et de créer l'environnement GitHub. |
 | 6.4 | Appliqué | `.github/dependabot.yml` : composer, npm, docker, github-actions, hebdomadaire, mises à jour mineures groupées. À activer côté dépôt GitHub. |
-| 6.5 | **Non traité** | PHP-CS-Fixer : nouvelle dépendance, et à faire après le reformatage du lot 9. |
+| 6.5 | Appliqué | PHP-CS-Fixer ajouté (accepté le 20 novembre 2026) avec une étape de contrôle en CI, après le reformatage du lot 9.A. |
 | 6.6 | **Non traité** | `doctrine:schema:validate` échoue encore (dérive, voir 4.6) : l'ajouter à la CI la casserait. |
 | 6.7 | Appliqué | Cache Composer (clé `composer.lock`) ; `develop` ajouté aux branches de `push`. |
 | 6.8 | **Non traité** | `shellcheck` en CI : outil absent ici, non testable ; les scripts pourraient déclencher des alertes à traiter d'abord. |

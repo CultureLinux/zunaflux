@@ -84,7 +84,10 @@ final class SecurityController extends AbstractController
             throw $this->createNotFoundException();
         }
         if ($request->isMethod('GET')) {
-            if ($registrationLimit->isFull()) return $this->render('security/registration_full.html.twig', [], new Response(status: Response::HTTP_FORBIDDEN));
+            if ($registrationLimit->isFull()) {
+                return $this->render('security/registration_full.html.twig', [], new Response(status: Response::HTTP_FORBIDDEN));
+            }
+
             return $this->render('security/register.html.twig');
         }
 
@@ -123,12 +126,17 @@ final class SecurityController extends AbstractController
 
         $user->setPasswordHash($passwordHasher->hashPassword($user, $password));
         $created = $entityManager->wrapInTransaction(function () use ($registrationLimit, $entityManager, $user): bool {
-            if ($registrationLimit->isFull(true)) return false;
+            if ($registrationLimit->isFull(true)) {
+                return false;
+            }
             $entityManager->persist($user);
             $entityManager->flush();
+
             return true;
         });
-        if (!$created) return $this->render('security/registration_full.html.twig', [], new Response(status: Response::HTTP_FORBIDDEN));
+        if (!$created) {
+            return $this->render('security/registration_full.html.twig', [], new Response(status: Response::HTTP_FORBIDDEN));
+        }
 
         $this->addFlash('success', 'Votre compte est créé. Vous pouvez maintenant vous connecter.');
 

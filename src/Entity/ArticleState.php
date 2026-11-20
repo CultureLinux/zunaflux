@@ -50,12 +50,35 @@ final class ArticleState
         $this->updatedAt = new \DateTimeImmutable();
     }
 
-    public function isRead(): bool { return $this->isRead; }
-    public function isFavorite(): bool { return $this->isFavorite; }
-    public function isSaved(): bool { return $this->isSaved; }
-    public function getReadAt(): ?\DateTimeImmutable { return $this->readAt; }
-    public function getArticle(): Article { return $this->article; }
-    public function getUser(): User { return $this->user; }
+    public function isRead(): bool
+    {
+        return $this->isRead;
+    }
+
+    public function isFavorite(): bool
+    {
+        return $this->isFavorite;
+    }
+
+    public function isSaved(): bool
+    {
+        return $this->isSaved;
+    }
+
+    public function getReadAt(): ?\DateTimeImmutable
+    {
+        return $this->readAt;
+    }
+
+    public function getArticle(): Article
+    {
+        return $this->article;
+    }
+
+    public function getUser(): User
+    {
+        return $this->user;
+    }
 
     public function markRead(): void
     {
@@ -91,5 +114,8 @@ final class ArticleState
         }
     }
 
-    private function touch(): void { $this->updatedAt = new \DateTimeImmutable(); }
+    private function touch(): void
+    {
+        $this->updatedAt = new \DateTimeImmutable();
+    }
 }

@@ -21,18 +21,35 @@ use Symfony\Component\Uid\Uuid;
 final class PushDeviceController extends AbstractController
 {
     #[Route('/preferences/push-device/{id}/{action}', name: 'app_push_device_action', requirements: ['action' => 'test|delete'], methods: ['POST'])]
-    public function device(string $id, string $action, Request $request, EntityManagerInterface $em, PushDelivery $delivery, PushMessage $messages, NotificationDiagnostics $diagnostics, NotificationCounter $counter): Response
-    {
+    public function device(
+        string $id,
+        string $action,
+        Request $request,
+        EntityManagerInterface $em,
+        PushDelivery $delivery,
+        PushMessage $messages,
+        NotificationDiagnostics $diagnostics,
+        NotificationCounter $counter,
+    ): Response {
         $user = $this->getUser();
-        if (!$user instanceof User || !$this->isCsrfTokenValid('push-device-'.$id, $request->request->getString('_token'))) throw $this->createAccessDeniedException();
-        if (!Uuid::isValid($id)) throw $this->createNotFoundException();
+        if (!$user instanceof User || !$this->isCsrfTokenValid('push-device-'.$id, $request->request->getString('_token'))) {
+            throw $this->createAccessDeniedException();
+        }
+        if (!Uuid::isValid($id)) {
+            throw $this->createNotFoundException();
+        }
         $subscription = $em->getRepository(PushSubscription::class)->findOneBy(['id' => Uuid::fromString($id), 'user' => $user]);
-        if (!$subscription instanceof PushSubscription) throw $this->createNotFoundException();
+        if (!$subscription instanceof PushSubscription) {
+            throw $this->createNotFoundException();
+        }
         if ('delete' === $action) {
             $em->remove($subscription);
             $em->flush();
-            if ($request->headers->get('Accept') === 'application/json') return $this->json(['ok' => true]);
+            if ($request->headers->get('Accept') === 'application/json') {
+                return $this->json(['ok' => true]);
+            }
             $this->addFlash('success', 'Appareil supprimé des notifications.');
+
             return $this->redirectToRoute('app_preferences');
         }
         try {
@@ -45,7 +62,10 @@ final class PushDeviceController extends AbstractController
                 $this->addFlash('success', 'Test accepté par le service de notifications. Vérifiez l’appareil.');
             } else {
                 $diagnostics->failure('test-appareil', $report);
-                $this->addFlash('error', $report->isSubscriptionExpired() ? 'Cet abonnement a expiré. Réactivez les notifications sur cet appareil.' : 'Le service de notifications a refusé le test.');
+                $this->addFlash(
+                    'error',
+                    $report->isSubscriptionExpired() ? 'Cet abonnement a expiré. Réactivez les notifications sur cet appareil.' : 'Le service de notifications a refusé le test.',
+                );
             }
         } catch (\Throwable $exception) {
             $subscription->recordResult('failed');
@@ -61,12 +81,19 @@ final class PushDeviceController extends AbstractController
     public function dismiss(string $id, Request $request, EntityManagerInterface $em): Response
     {
         $user = $this->getUser();
-        if (!$user instanceof User || !$this->isCsrfTokenValid('push-notice-'.$id, $request->request->getString('_token'))) throw $this->createAccessDeniedException();
-        if (!Uuid::isValid($id)) throw $this->createNotFoundException();
+        if (!$user instanceof User || !$this->isCsrfTokenValid('push-notice-'.$id, $request->request->getString('_token'))) {
+            throw $this->createAccessDeniedException();
+        }
+        if (!Uuid::isValid($id)) {
+            throw $this->createNotFoundException();
+        }
         $notice = $em->getRepository(PushExpiredNotice::class)->findOneBy(['id' => Uuid::fromString($id), 'user' => $user]);
-        if (!$notice instanceof PushExpiredNotice) throw $this->createNotFoundException();
+        if (!$notice instanceof PushExpiredNotice) {
+            throw $this->createNotFoundException();
+        }
         $em->remove($notice);
         $em->flush();
+
         return $this->redirectToRoute('app_preferences');
     }
 }

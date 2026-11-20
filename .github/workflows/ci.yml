@@ -80,6 +80,8 @@ jobs:
         run: find src tests migrations public bin -type f -name '*.php' -print0 | xargs -0 -n1 php85 -l
       - name: Analyse src with PHPStan
         run: php85 vendor/bin/phpstan analyse --configuration=phpstan.neon.dist --no-progress --memory-limit=1G
+      - name: Check code style with PHP-CS-Fixer
+        run: php85 vendor/bin/php-cs-fixer fix --dry-run --diff
       - name: Validate Symfony configuration
         run: |
           php85 bin/console lint:container

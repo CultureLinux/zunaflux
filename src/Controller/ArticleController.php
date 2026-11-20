@@ -30,7 +30,6 @@ final class ArticleController extends AbstractController
     public function __construct(private readonly TranslatorInterface $translator)
     {
     }
-
     private const PAGE_SIZE = 30;
 
     #[Route('/articles', name: 'app_articles', methods: ['GET'])]
@@ -46,13 +45,39 @@ final class ArticleController extends AbstractController
         $subscriptions = $entityManager->getRepository(Subscription::class)->findBy(['user' => $user, 'enabled' => true]);
         $readingCounts = [];
         if ($preference->isSidebarCollapsed()) {
-            $counts = $entityManager->getConnection()->fetchAllAssociative('SELECT s.id, COUNT(a.id) AS total, COALESCE(SUM(CASE WHEN a.id IS NOT NULL AND COALESCE(st.is_read, 0) = 0 THEN 1 ELSE 0 END), 0) AS unread, COALESCE(SUM(CASE WHEN COALESCE(st.is_favorite, 0) = 1 THEN 1 ELSE 0 END), 0) AS favorite, COALESCE(SUM(CASE WHEN COALESCE(st.is_saved, 0) = 1 THEN 1 ELSE 0 END), 0) AS saved FROM subscription s LEFT JOIN article a ON a.feed_id = s.feed_id LEFT JOIN article_state st ON st.article_id = a.id AND st.user_id = s.user_id WHERE s.user_id = ? AND s.enabled = 1 GROUP BY s.id', [$user->getId()->toBinary()], [\Doctrine\DBAL\ParameterType::BINARY]);
-            foreach ($counts as $count) $readingCounts[(string) Uuid::fromBinary($count['id'])] = ['unread' => (int) $count['unread'], 'read' => (int) $count['total'] - (int) $count['unread'], 'favorite' => (int) $count['favorite'], 'saved' => (int) $count['saved']];
+            $counts = $entityManager
+                ->getConnection()
+                ->fetchAllAssociative(
+                    'SELECT s.id, COUNT(a.id) AS total, COALESCE(SUM(CASE WHEN a.id IS NOT NULL AND COALESCE(st.is_read, '
+.'0) = 0 THEN 1 ELSE 0 END), 0) AS unread, COALESCE(SUM(CASE WHEN COALESCE(st.is_favorite, 0) = 1 '
+.'THEN 1 ELSE 0 END), 0) AS favorite, COALESCE(SUM(CASE WHEN COALESCE(st.is_saved, 0) = 1 THEN 1 ELSE '
+.'0 END), 0) AS saved FROM subscription s LEFT JOIN article a ON a.feed_id = s.feed_id LEFT JOIN '
+.'article_state st ON st.article_id = a.id AND st.user_id = s.user_id WHERE s.user_id = ? AND '
+.'s.enabled = 1 GROUP BY s.id',
+                    [$user->getId()->toBinary()],
+                    [\Doctrine\DBAL\ParameterType::BINARY],
+                );
+            foreach ($counts as $count) {
+                $readingCounts[(string) Uuid::fromBinary($count['id'])] = [
+                    'unread' => (int) $count['unread'],
+                    'read' => (int) $count['total'] - (int) $count['unread'],
+                    'favorite' => (int) $count['favorite'],
+                    'saved' => (int) $count['saved'],
+                ];
+            }
         }
-
         $categories = $entityManager->getRepository(Category::class)->findBy(['user' => $user]);
 
-        return $this->render('article/index.html.twig', ['preference' => $preference, 'readingSubscriptions' => $subscriptions, 'readingCategories' => $categories, 'readingCounts' => $readingCounts, 'mastodonConnected' => null !== $entityManager->getRepository(MastodonAccount::class)->findOneBy(['user' => $user])]);
+        return $this->render(
+            'article/index.html.twig',
+            [
+                'preference' => $preference,
+                'readingSubscriptions' => $subscriptions,
+                'readingCategories' => $categories,
+                'readingCounts' => $readingCounts,
+                'mastodonConnected' => null !== $entityManager->getRepository(MastodonAccount::class)->findOneBy(['user' => $user]),
+            ],
+        );
     }
 
     #[Route('/subscriptions/{id}/mark-read', name: 'app_subscription_mark_read', methods: ['POST'])]
@@ -117,8 +142,12 @@ final class ArticleController extends AbstractController
     {
         $user = $this->currentUser();
         $cursor = $this->decodeCursor($request->query->getString('cursor'));
-        $query = $entityManager->createQueryBuilder()
-            ->select('a.id AS id, a.title AS title, a.url AS url, a.summary AS summary, a.content AS content, a.publishedAt AS publishedAt, a.collectedAt AS collectedAt, f.title AS source, subscription.id AS subscriptionId, subscription.customTitle AS subscriptionTitle, category.id AS categoryId, category.name AS categoryName, s.isRead AS isRead, s.isFavorite AS isFavorite, s.isSaved AS isSaved')
+        $query = $entityManager
+            ->createQueryBuilder()
+            ->select('a.id AS id, a.title AS title, a.url AS url, a.summary AS summary, a.content AS content, '
+.'a.publishedAt AS publishedAt, a.collectedAt AS collectedAt, f.title AS source, subscription.id AS '
+.'subscriptionId, subscription.customTitle AS subscriptionTitle, category.id AS categoryId, '
+.'category.name AS categoryName, s.isRead AS isRead, s.isFavorite AS isFavorite, s.isSaved AS isSaved')
             ->from(Article::class, 'a')
             ->innerJoin('a.feed', 'f')
             ->innerJoin(Subscription::class, 'subscription', 'WITH', 'subscription.feed = f AND subscription.user = :user AND subscription.enabled = true')
@@ -128,48 +157,55 @@ final class ArticleController extends AbstractController
             ->orderBy('a.collectedAt', 'DESC')
             ->addOrderBy('a.id', 'DESC')
             ->setMaxResults(self::PAGE_SIZE + 1);
-
         if (null !== $cursor) {
             $query
                 ->andWhere('a.collectedAt < :cursorDate OR (a.collectedAt = :cursorDate AND a.id < :cursorId)')
                 ->setParameter('cursorDate', new \DateTimeImmutable($cursor['collectedAt']))
                 ->setParameter('cursorId', Uuid::fromString($cursor['id']), 'uuid');
         }
-
         $search = trim($request->query->getString('q'));
         if ('' !== $search) {
-            $query->andWhere('LOWER(a.title) LIKE :search OR LOWER(a.summary) LIKE :search OR LOWER(f.title) LIKE :search OR LOWER(subscription.customTitle) LIKE :search')
+            $query
+                ->andWhere('LOWER(a.title) LIKE :search OR LOWER(a.summary) LIKE :search OR LOWER(f.title) LIKE :search OR '
+.'LOWER(subscription.customTitle) LIKE :search')
                 ->setParameter('search', '%'.mb_strtolower($search).'%');
         }
-        if ('' !== $request->query->getString('subscription')) $query->andWhere('subscription.id = :subscription')->setParameter('subscription', $this->queryUuid($request, 'subscription'), 'uuid');
-        if ('' !== $request->query->getString('category')) $query->andWhere('IDENTITY(subscription.category) = :category')->setParameter('category', $this->queryUuid($request, 'category'), 'uuid');
-        foreach (['read' => 'isRead', 'favorite' => 'isFavorite', 'saved' => 'isSaved'] as $parameter => $field) { if (in_array($request->query->getString($parameter), ['0','1'], true)) $query->andWhere('COALESCE(s.'.$field.', false) = :'.$parameter)->setParameter($parameter, '1' === $request->query->getString($parameter)); }
-        if ('' !== $request->query->getString('from')) $query->andWhere('COALESCE(a.publishedAt, a.collectedAt) >= :from')->setParameter('from', $this->queryDate($request, 'from'));
-        if ('' !== $request->query->getString('to')) $query->andWhere('COALESCE(a.publishedAt, a.collectedAt) <= :to')->setParameter('to', $this->queryDate($request, 'to'));
-
+        if ('' !== $request->query->getString('subscription')) {
+            $query->andWhere('subscription.id = :subscription')->setParameter('subscription', $this->queryUuid($request, 'subscription'), 'uuid');
+        }
+        if ('' !== $request->query->getString('category')) {
+            $query->andWhere('IDENTITY(subscription.category) = :category')->setParameter('category', $this->queryUuid($request, 'category'), 'uuid');
+        }
+        foreach (['read' => 'isRead', 'favorite' => 'isFavorite', 'saved' => 'isSaved'] as $parameter => $field) {
+            if (in_array($request->query->getString($parameter), ['0', '1'], true)) {
+                $query->andWhere('COALESCE(s.'.$field.', false) = :'.$parameter)->setParameter($parameter, '1' === $request->query->getString($parameter));
+            }
+        }
+        if ('' !== $request->query->getString('from')) {
+            $query->andWhere('COALESCE(a.publishedAt, a.collectedAt) >= :from')->setParameter('from', $this->queryDate($request, 'from'));
+        }
+        if ('' !== $request->query->getString('to')) {
+            $query->andWhere('COALESCE(a.publishedAt, a.collectedAt) <= :to')->setParameter('to', $this->queryDate($request, 'to'));
+        }
         $items = $query->getQuery()->getArrayResult();
         $hasMore = count($items) > self::PAGE_SIZE;
         if ($hasMore) {
             array_pop($items);
         }
-
         $nextCursor = null;
         if ($hasMore && [] !== $items) {
             $last = $items[array_key_last($items)];
             $nextCursor = $this->encodeCursor($last['collectedAt']->format(DATE_ATOM), (string) $last['id']);
         }
 
-        return $this->json([
-            'items' => array_map(function (array $item) use ($sanitizer): array {
-                $serialized = $this->serializeListItem($item);
-                $serialized['imageUrl'] = [] !== $sanitizer->imageUrls($item['content'] ?: $item['summary'] ?: '')
-                    ? $this->generateUrl('app_api_article_image', ['id' => $item['id'], 'index' => 0])
-                    : null;
-                return $serialized;
-            }, $items),
-            'nextCursor' => $nextCursor,
-            'hasMore' => $hasMore,
-        ]);
+        return $this->json(['items' => array_map(function (array $item) use ($sanitizer): array {
+            $serialized = $this->serializeListItem($item);
+            $serialized['imageUrl'] = [] !== $sanitizer
+                ->imageUrls(($item['content'] ?: $item['summary']) ?: '') ? $this
+                ->generateUrl('app_api_article_image', ['id' => $item['id'], 'index' => 0]) : null;
+
+            return $serialized;
+        }, $items), 'nextCursor' => $nextCursor, 'hasMore' => $hasMore]);
     }
 
     #[Route('/api/articles/{id}', name: 'app_api_article_show', methods: ['GET'])]
@@ -179,13 +215,13 @@ final class ArticleController extends AbstractController
         $state = $entityManager->getRepository(ArticleState::class)->findOneBy(['user' => $this->currentUser(), 'article' => $article]);
         $content = $article->getContent();
         $summary = $article->getSummary();
-        $imagePath = fn (int $index, bool $fromSummary = false): string => $this->generateUrl('app_api_article_image', [
-            'id' => $article->getId(),
-            'index' => $index,
-            ...($fromSummary ? ['summary' => 1] : []),
-        ]);
+        $imagePath = fn (int $index, bool $fromSummary = false): string => $this->generateUrl(
+            'app_api_article_image',
+            ['id' => $article->getId(), 'index' => $index, ...$fromSummary ? ['summary' => 1] : []],
+        );
         $renderedImages = [];
-        $safeHtml = $sanitizer->sanitize($content ?: $summary ?: $this->translator->trans('Aucun résumé disponible.'), static function (int $index, string $url) use ($imagePath, &$renderedImages): string {
+        $body = ($content ?: $summary) ?: $this->translator->trans('Aucun résumé disponible.');
+        $safeHtml = $sanitizer->sanitize($body, static function (int $index, string $url) use ($imagePath, &$renderedImages): string {
             $renderedImages[$url] = true;
 
             return $imagePath($index);
@@ -201,41 +237,56 @@ final class ArticleController extends AbstractController
             }, imagesOnly: true);
         }
 
-        return $this->json([
-            'id' => (string) $article->getId(),
-            'title' => html_entity_decode($article->getTitle(), ENT_QUOTES | ENT_HTML5, 'UTF-8'),
-            'url' => $article->getUrl(),
-            'summary' => $article->getSummary(),
-            'content' => $article->getContent(),
-            'safeHtml' => $safeHtml,
-            'publishedAt' => $article->getPublishedAt()?->format(DATE_ATOM),
-            'source' => $article->getFeed()->getTitle() ?? $article->getFeed()->getCanonicalUrl(),
-            'isRead' => $state?->isRead() ?? false,
-            'isFavorite' => $state?->isFavorite() ?? false,
-            'isSaved' => $state?->isSaved() ?? false,
-            'csrfToken' => $this->container->get('security.csrf.token_manager')->getToken('article-state-'.$article->getId())->getValue(),
-            'mastodonCsrfToken' => $this->container->get('security.csrf.token_manager')->getToken('mastodon-status-'.$article->getId())->getValue(),
-        ]);
+        return $this->json(
+            [
+                'id' => (string) $article->getId(),
+                'title' => html_entity_decode($article->getTitle(), ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+                'url' => $article->getUrl(),
+                'summary' => $article->getSummary(),
+                'content' => $article->getContent(),
+                'safeHtml' => $safeHtml,
+                'publishedAt' => $article->getPublishedAt()?->format(DATE_ATOM),
+                'source' => $article->getFeed()->getTitle() ?? $article->getFeed()->getCanonicalUrl(),
+                'isRead' => $state?->isRead() ?? false,
+                'isFavorite' => $state?->isFavorite() ?? false,
+                'isSaved' => $state?->isSaved() ?? false,
+                'csrfToken' => $this->container->get('security.csrf.token_manager')->getToken('article-state-'.$article->getId())->getValue(),
+                'mastodonCsrfToken' => $this->container->get('security.csrf.token_manager')->getToken('mastodon-status-'.$article->getId())->getValue(),
+            ],
+        );
     }
 
     #[Route('/api/articles/{id}/images/{index}', name: 'app_api_article_image', requirements: ['index' => '\d+'], methods: ['GET'])]
-    public function image(string $id, int $index, Request $request, EntityManagerInterface $entityManager, FeedHtmlSanitizer $sanitizer, FeedImageFetcher $fetcher): Response
-    {
+    public function image(
+        string $id,
+        int $index,
+        Request $request,
+        EntityManagerInterface $entityManager,
+        FeedHtmlSanitizer $sanitizer,
+        FeedImageFetcher $fetcher,
+    ): Response {
         $article = $this->accessibleArticle($id, $entityManager);
         $html = $request->query->getBoolean('summary') ? $article->getSummary() : ($article->getContent() ?: $article->getSummary());
         $urls = $sanitizer->imageUrls($html ?: '');
-        if (!isset($urls[$index])) throw $this->createNotFoundException();
+        if (!isset($urls[$index])) {
+            throw $this->createNotFoundException();
+        }
         try {
             $image = $fetcher->fetch($urls[$index]);
         } catch (\InvalidArgumentException|\RuntimeException) {
             throw $this->createNotFoundException();
         }
-        return new Response($image['body'], Response::HTTP_OK, [
-            'Content-Type' => $image['type'],
-            'X-Content-Type-Options' => 'nosniff',
-            'Content-Security-Policy' => "default-src 'none'; sandbox",
-            'Cache-Control' => 'private, no-store',
-        ]);
+
+        return new Response(
+            $image['body'],
+            Response::HTTP_OK,
+            [
+                'Content-Type' => $image['type'],
+                'X-Content-Type-Options' => 'nosniff',
+                'Content-Security-Policy' => "default-src 'none'; sandbox",
+                'Cache-Control' => 'private, no-store',
+            ],
+        );
     }
 
     #[Route('/api/articles/{id}/state', name: 'app_api_article_state', methods: ['PATCH'])]
@@ -245,18 +296,15 @@ final class ArticleController extends AbstractController
         if (!$this->isCsrfTokenValid('article-state-'.$article->getId(), $request->headers->get('X-CSRF-Token'))) {
             throw $this->createAccessDeniedException('Jeton CSRF invalide.');
         }
-
         try {
             $payload = json_decode($request->getContent(), true, 32, \JSON_THROW_ON_ERROR);
         } catch (\JsonException) {
             return $this->json(['error' => $this->translator->trans('JSON invalide.')], Response::HTTP_BAD_REQUEST);
         }
-
         $changes = array_intersect_key($payload, array_flip(['isRead', 'isFavorite', 'isSaved']));
         if ([] === $changes || array_filter($changes, static fn (mixed $value): bool => !is_bool($value)) !== []) {
             return $this->json(['error' => $this->translator->trans('État invalide.')], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
-
         $state = $articleStateService->update($this->currentUser(), $article, $changes);
 
         return $this->json(['isRead' => $state->isRead(), 'isFavorite' => $state->isFavorite(), 'isSaved' => $state->isSaved()]);
@@ -265,15 +313,35 @@ final class ArticleController extends AbstractController
     #[Route('/api/articles/bulk', name: 'app_api_articles_bulk', methods: ['POST'])]
     public function bulk(Request $request, EntityManagerInterface $entityManager, ArticleStateService $articleStateService): JsonResponse
     {
-        if (!$this->isCsrfTokenValid('article-bulk', $request->headers->get('X-CSRF-Token'))) { throw $this->createAccessDeniedException(); }
-        try { $payload = json_decode($request->getContent(), true, 32, \JSON_THROW_ON_ERROR); } catch (\JsonException) { return $this->json(['error' => $this->translator->trans('JSON invalide.')], 400); }
+        if (!$this->isCsrfTokenValid('article-bulk', $request->headers->get('X-CSRF-Token'))) {
+            throw $this->createAccessDeniedException();
+        }
+        try {
+            $payload = json_decode($request->getContent(), true, 32, \JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return $this->json(['error' => $this->translator->trans('JSON invalide.')], 400);
+        }
         $ids = $payload['ids'] ?? null;
         $changes = is_array($payload) ? array_intersect_key($payload, array_flip(['isRead', 'isFavorite', 'isSaved'])) : [];
-        if (!is_array($ids) || [] === $ids || count($ids) > 100 || [] === $changes || array_filter($changes, static fn (mixed $value): bool => !is_bool($value)) !== []) return $this->json(['error' => $this->translator->trans('Action invalide.')], 422);
+        if (
+            !is_array($ids)
+            || [] === $ids
+            || count($ids) > 100
+            || [] === $changes
+            || array_filter($changes, static fn (mixed $value): bool => !is_bool($value)) !== []
+        ) {
+            return $this->json(['error' => $this->translator->trans('Action invalide.')], 422);
+        }
         $changed = 0;
         foreach ($ids as $id) {
-            if (!is_string($id)) continue;
-            try { $articleStateService->update($this->currentUser(), $this->accessibleArticle($id, $entityManager), $changes); ++$changed; } catch (\DomainException|\Symfony\Component\HttpKernel\Exception\NotFoundHttpException) { }
+            if (!is_string($id)) {
+                continue;
+            }
+            try {
+                $articleStateService->update($this->currentUser(), $this->accessibleArticle($id, $entityManager), $changes);
+                ++$changed;
+            } catch (\DomainException|\Symfony\Component\HttpKernel\Exception\NotFoundHttpException) {
+            }
         }
 
         return $this->json(['matched' => count($ids), 'changed' => $changed, 'skipped' => count($ids) - $changed]);
@@ -282,8 +350,15 @@ final class ArticleController extends AbstractController
     #[Route('/api/articles/mark-before', name: 'app_api_articles_mark_before', methods: ['POST'])]
     public function markBefore(Request $request, MarkSubscriptionRead $markRead): JsonResponse
     {
-        if (!$this->isCsrfTokenValid('article-bulk', $request->headers->get('X-CSRF-Token'))) { throw $this->createAccessDeniedException(); }
-        try { $payload = json_decode($request->getContent(), true, 16, \JSON_THROW_ON_ERROR); $before = new \DateTimeImmutable((string) ($payload['before'] ?? '')); } catch (\Exception) { return $this->json(['error' => $this->translator->trans('Date invalide.')], 422); }
+        if (!$this->isCsrfTokenValid('article-bulk', $request->headers->get('X-CSRF-Token'))) {
+            throw $this->createAccessDeniedException();
+        }
+        try {
+            $payload = json_decode($request->getContent(), true, 16, \JSON_THROW_ON_ERROR);
+            $before = new \DateTimeImmutable((string) ($payload['before'] ?? ''));
+        } catch (\Exception) {
+            return $this->json(['error' => $this->translator->trans('Date invalide.')], 422);
+        }
         $changed = $markRead->markBefore($this->currentUser(), $before);
 
         return $this->json(['matched' => $changed, 'changed' => $changed, 'skipped' => 0]);
@@ -291,16 +366,24 @@ final class ArticleController extends AbstractController
 
     private function accessibleArticle(string $id, EntityManagerInterface $entityManager): Article
     {
-        try { $articleId = Uuid::fromString($id); } catch (\InvalidArgumentException) { throw $this->createNotFoundException(); }
-        $article = $entityManager->createQueryBuilder()
+        try {
+            $articleId = Uuid::fromString($id);
+        } catch (\InvalidArgumentException) {
+            throw $this->createNotFoundException();
+        }
+        $article = $entityManager
+            ->createQueryBuilder()
             ->select('a')
             ->from(Article::class, 'a')
             ->innerJoin(Subscription::class, 'subscription', 'WITH', 'subscription.feed = a.feed AND subscription.user = :user AND subscription.enabled = true')
             ->where('a.id = :id')
             ->setParameter('user', $this->currentUser()->getId(), 'uuid')
             ->setParameter('id', $articleId, 'uuid')
-            ->getQuery()->getOneOrNullResult();
-        if (!$article instanceof Article) { throw $this->createNotFoundException(); }
+            ->getQuery()
+            ->getOneOrNullResult();
+        if (!$article instanceof Article) {
+            throw $this->createNotFoundException();
+        }
 
         return $article;
     }
@@ -324,12 +407,27 @@ final class ArticleController extends AbstractController
     /** @return array{collectedAt: string, id: string}|null */
     private function decodeCursor(string $cursor): ?array
     {
-        if ('' === $cursor) { return null; }
+        if ('' === $cursor) {
+            return null;
+        }
         $decoded = base64_decode(strtr($cursor, '-_', '+/').str_repeat('=', (4 - strlen($cursor) % 4) % 4), true);
-        if (false === $decoded) { throw $this->createNotFoundException(); }
-        try { $value = json_decode($decoded, true, 4, \JSON_THROW_ON_ERROR); } catch (\JsonException) { throw $this->createNotFoundException(); }
-        if (!is_array($value) || !isset($value['collectedAt'], $value['id']) || !is_string($value['collectedAt']) || !is_string($value['id'])) { throw $this->createNotFoundException(); }
-        try { new \DateTimeImmutable($value['collectedAt']); Uuid::fromString($value['id']); } catch (\Exception) { throw $this->createNotFoundException(); }
+        if (false === $decoded) {
+            throw $this->createNotFoundException();
+        }
+        try {
+            $value = json_decode($decoded, true, 4, \JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            throw $this->createNotFoundException();
+        }
+        if (!is_array($value) || !isset($value['collectedAt'], $value['id']) || !is_string($value['collectedAt']) || !is_string($value['id'])) {
+            throw $this->createNotFoundException();
+        }
+        try {
+            new \DateTimeImmutable($value['collectedAt']);
+            Uuid::fromString($value['id']);
+        } catch (\Exception) {
+            throw $this->createNotFoundException();
+        }
 
         return $value;
     }
@@ -341,17 +439,34 @@ final class ArticleController extends AbstractController
 
     /**
      * @param array<string, mixed> $item
+     *
      * @return array<string, mixed>
      */
     private function serializeListItem(array $item): array
     {
-        return ['id' => (string) $item['id'], 'title' => html_entity_decode($item['title'], ENT_QUOTES | ENT_HTML5, 'UTF-8'), 'url' => $item['url'], 'summary' => null === $item['summary'] ? null : html_entity_decode(strip_tags($item['summary']), ENT_QUOTES | ENT_HTML5, 'UTF-8'), 'source' => $item['subscriptionTitle'] ?? $item['source'], 'subscriptionId' => (string) $item['subscriptionId'], 'categoryId' => null === $item['categoryId'] ? null : (string) $item['categoryId'], 'categoryName' => $item['categoryName'], 'publishedAt' => $item['publishedAt']?->format(DATE_ATOM), 'collectedAt' => $item['collectedAt']->format(DATE_ATOM), 'isRead' => (bool) ($item['isRead'] ?? false), 'isFavorite' => (bool) ($item['isFavorite'] ?? false), 'isSaved' => (bool) ($item['isSaved'] ?? false)];
+        return [
+            'id' => (string) $item['id'],
+            'title' => html_entity_decode($item['title'], ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+            'url' => $item['url'],
+            'summary' => null === $item['summary'] ? null : html_entity_decode(strip_tags($item['summary']), ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+            'source' => $item['subscriptionTitle'] ?? $item['source'],
+            'subscriptionId' => (string) $item['subscriptionId'],
+            'categoryId' => null === $item['categoryId'] ? null : (string) $item['categoryId'],
+            'categoryName' => $item['categoryName'],
+            'publishedAt' => $item['publishedAt']?->format(DATE_ATOM),
+            'collectedAt' => $item['collectedAt']->format(DATE_ATOM),
+            'isRead' => (bool) ($item['isRead'] ?? false),
+            'isFavorite' => (bool) ($item['isFavorite'] ?? false),
+            'isSaved' => (bool) ($item['isSaved'] ?? false),
+        ];
     }
 
     private function currentUser(): User
     {
         $user = $this->getUser();
-        if (!$user instanceof User) { throw $this->createAccessDeniedException(); }
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
 
         return $user;
     }

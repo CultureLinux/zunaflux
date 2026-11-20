@@ -10,7 +10,7 @@ final class FeedHtmlSanitizer
     private const ALLOWED = ['p', 'br', 'strong', 'b', 'em', 'i', 's', 'blockquote', 'ul', 'ol', 'li', 'h2', 'h3', 'h4', 'pre', 'code', 'a', 'hr'];
     private const DROP = ['script', 'style', 'svg', 'math', 'iframe', 'object', 'embed', 'form', 'template', 'noscript'];
 
-    /** @param null|callable(int, string): ?string $imagePath */
+    /** @param callable(int, string): ?string|null $imagePath */
     public function sanitize(string $html, ?callable $imagePath = null, bool $imagesOnly = false): string
     {
         $document = new \DOMDocument('1.0', 'UTF-8');
@@ -19,6 +19,7 @@ final class FeedHtmlSanitizer
             $document->loadHTML('<?xml encoding="UTF-8"><html><body>'.$html.'</body></html>', LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING);
             $body = $document->getElementsByTagName('body')->item(0);
             $urls = $this->urlsFromDocument($document);
+
             return null === $body ? '' : $this->children($body, $urls, $imagePath, $imagesOnly);
         } finally {
             libxml_clear_errors();
@@ -33,6 +34,7 @@ final class FeedHtmlSanitizer
         $previous = libxml_use_internal_errors(true);
         try {
             $document->loadHTML('<?xml encoding="UTF-8"><html><body>'.$html.'</body></html>', LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING);
+
             return $this->urlsFromDocument($document);
         } finally {
             libxml_clear_errors();
@@ -47,10 +49,17 @@ final class FeedHtmlSanitizer
         foreach ($document->getElementsByTagName('img') as $image) {
             $url = trim($image->getAttribute('src'));
             $parts = parse_url($url);
-            if (filter_var($url, FILTER_VALIDATE_URL) && is_array($parts) && in_array(strtolower($parts['scheme'] ?? ''), ['http', 'https'], true) && !isset($parts['user']) && !isset($parts['pass'])) {
+            if (
+                filter_var($url, FILTER_VALIDATE_URL)
+                && is_array($parts)
+                && in_array(strtolower($parts['scheme'] ?? ''), ['http', 'https'], true)
+                && !isset($parts['user'])
+                && !isset($parts['pass'])
+            ) {
                 $urls[] = $url;
             }
         }
+
         return $urls;
     }
 
@@ -90,7 +99,11 @@ final class FeedHtmlSanitizer
             if ('a' === $tag) {
                 $url = trim($child->getAttribute('href'));
                 if (filter_var($url, FILTER_VALIDATE_URL) && in_array(strtolower((string) parse_url($url, PHP_URL_SCHEME)), ['http', 'https'], true)) {
-                    $attributes = ' href="'.htmlspecialchars($url, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8').'" rel="noopener noreferrer" target="_blank"';
+                    $attributes = ' href="'.htmlspecialchars(
+                        $url,
+                        ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5,
+                        'UTF-8',
+                    ).'" rel="noopener noreferrer" target="_blank"';
                 }
             }
             $result .= '<'.$tag.$attributes.'>';
@@ -98,6 +111,7 @@ final class FeedHtmlSanitizer
                 $result .= $this->children($child, $urls, $imagePath, $imagesOnly).'</'.$tag.'>';
             }
         }
+
         return $result;
     }
 }

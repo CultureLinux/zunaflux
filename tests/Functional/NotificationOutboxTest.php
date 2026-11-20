@@ -86,7 +86,7 @@ final class NotificationOutboxTest extends KernelTestCase
     {
         // The outbox INSERT happens inside the transaction before the ORM flush. A flush
         // failure (here injected by a listener) must roll back both.
-        $failure = new class {
+        $failure = new class () {
             public function onFlush(): void
             {
                 throw new \RuntimeException('Injected flush failure.');
@@ -109,7 +109,7 @@ final class NotificationOutboxTest extends KernelTestCase
     public function testAnEmptyOrNotModifiedFeedDoesNotCreateAnEvent(): void
     {
         self::assertSame(0, $this->collector('')->collect($this->feed));
-        $fetcher = new class implements FeedFetcherInterface {
+        $fetcher = new class () implements FeedFetcherInterface {
             public function fetch(string $url, ?string $etag = null, ?string $lastModified = null): FetchedFeed
             {
                 return new FetchedFeed(304, null, 'unchanged', null, $url);
@@ -265,7 +265,7 @@ final class NotificationOutboxTest extends KernelTestCase
     private function collector(string $items): CollectFeed
     {
         $xml = '<rss version="2.0"><channel><title>Outbox</title>'.$items.'</channel></rss>';
-        $fetcher = new class($xml) implements FeedFetcherInterface {
+        $fetcher = new class ($xml) implements FeedFetcherInterface {
             public function __construct(private readonly string $xml)
             {
             }
@@ -275,6 +275,7 @@ final class NotificationOutboxTest extends KernelTestCase
                 return new FetchedFeed(200, $this->xml, 'new-etag', null, $url);
             }
         };
+
         return new CollectFeed($this->em, $fetcher, new FeedParser(), new NotificationOutbox($this->db, $this->clock));
     }
 
@@ -291,7 +292,7 @@ final class NotificationOutboxTest extends KernelTestCase
 
     private function recordingBus(bool $interrupt = false): MessageBusInterface
     {
-        return new class($interrupt) implements MessageBusInterface {
+        return new class ($interrupt) implements MessageBusInterface {
             /** @var list<NotifyFeedMessage> */
             public array $messages = [];
 
@@ -308,6 +309,7 @@ final class NotificationOutboxTest extends KernelTestCase
                 if ($this->interrupt) {
                     throw new \RuntimeException('Interrupted after acceptance.');
                 }
+
                 return new Envelope($message, $stamps);
             }
         };

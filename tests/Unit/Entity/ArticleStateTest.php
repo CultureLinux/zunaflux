@@ -44,7 +44,12 @@ final class ArticleStateTest extends TestCase
     public function testFavoriteAndSavedStatesAreIndependentFromReadingState(): void
     {
         $state = new ArticleState(new User('reader@example.test'), new Article(new Feed('https://example.test/feed.xml'), new ParsedFeedItem(
-            'article-2', 'Article de test', null, null, null, null,
+            'article-2',
+            'Article de test',
+            null,
+            null,
+            null,
+            null,
         )));
 
         $state->setFavorite(true);

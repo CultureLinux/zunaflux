@@ -59,7 +59,8 @@ final class SecurityControllerTest extends WebTestCase
             if (0 === $count) {
                 $user = new User('limit-'.bin2hex(random_bytes(8)).'@example.test');
                 $em = static::getContainer()->get(EntityManagerInterface::class);
-                $em->persist($user); $em->flush();
+                $em->persist($user);
+                $em->flush();
             }
             $client->request('GET', '/register');
             self::assertResponseStatusCodeSame(403);
@@ -68,7 +69,9 @@ final class SecurityControllerTest extends WebTestCase
             self::assertResponseStatusCodeSame(403);
         } finally {
             $connection->executeStatement('UPDATE registration_settings SET account_limit = ? WHERE id = 1', [$old]);
-            if (isset($user)) $connection->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
+            if (isset($user)) {
+                $connection->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
+            }
         }
     }
 
@@ -103,7 +106,9 @@ final class SecurityControllerTest extends WebTestCase
             self::assertGreaterThanOrEqual(time() + 604790, $expires);
             self::assertLessThanOrEqual(time() + 604810, $expires);
             foreach ($client->getCookieJar()->all() as $otherCookie) {
-                if ('REMEMBERME' !== $otherCookie->getName()) $client->getCookieJar()->expire($otherCookie->getName(), $otherCookie->getPath(), $otherCookie->getDomain());
+                if ('REMEMBERME' !== $otherCookie->getName()) {
+                    $client->getCookieJar()->expire($otherCookie->getName(), $otherCookie->getPath(), $otherCookie->getDomain());
+                }
             }
             $client->request('GET', '/articles');
             self::assertResponseIsSuccessful();
@@ -170,10 +175,14 @@ final class SecurityControllerTest extends WebTestCase
         $client = static::createClient();
         $entityManager = static::getContainer()->get(EntityManagerInterface::class);
         $user = new User('admin-boundary-'.bin2hex(random_bytes(8)).'@example.test');
-        $entityManager->persist($user); $entityManager->flush();
+        $entityManager->persist($user);
+        $entityManager->flush();
         try {
-            $client->loginUser($user); $client->request('GET', '/admin');
+            $client->loginUser($user);
+            $client->request('GET', '/admin');
             self::assertResponseStatusCodeSame(403);
-        } finally { $entityManager->getConnection()->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]); }
+        } finally {
+            $entityManager->getConnection()->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
+        }
     }
 }

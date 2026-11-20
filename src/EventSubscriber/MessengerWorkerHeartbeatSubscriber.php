@@ -12,7 +12,9 @@ final class MessengerWorkerHeartbeatSubscriber implements EventSubscriberInterfa
 {
     private int $lastRecordedAt = 0;
 
-    public function __construct(private readonly Connection $connection) {}
+    public function __construct(private readonly Connection $connection)
+    {
+    }
 
     public static function getSubscribedEvents(): array
     {
@@ -21,8 +23,15 @@ final class MessengerWorkerHeartbeatSubscriber implements EventSubscriberInterfa
 
     public function record(): void
     {
-        if ($this->lastRecordedAt > time() - 30) return;
-        $this->connection->executeStatement('INSERT INTO messenger_worker_heartbeat (name, last_seen_at) VALUES (?, NOW()) ON DUPLICATE KEY UPDATE last_seen_at = VALUES(last_seen_at)', ['async']);
+        if ($this->lastRecordedAt > time() - 30) {
+            return;
+        }
+        $this
+            ->connection
+            ->executeStatement(
+                'INSERT INTO messenger_worker_heartbeat (name, last_seen_at) VALUES (?, NOW()) ON DUPLICATE KEY UPDATE last_seen_at = VALUES(last_seen_at)',
+                ['async'],
+            );
         $this->lastRecordedAt = time();
     }
 }

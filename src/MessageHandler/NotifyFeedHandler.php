@@ -30,13 +30,19 @@ final readonly class NotifyFeedHandler
     public function __invoke(NotifyFeedMessage $message): void
     {
         $feed = $this->em->getRepository(Feed::class)->find(Uuid::fromString($message->feedId));
-        if (!$feed instanceof Feed || 'articles' !== $message->kind || $message->count < 1) return;
+        if (!$feed instanceof Feed || 'articles' !== $message->kind || $message->count < 1) {
+            return;
+        }
         // Drain old messages before deployment: they do not carry a stable event identity.
         $event = $message->eventId ?? (string) Uuid::v7();
         foreach ($this->em->getRepository(Subscription::class)->findBy(['feed' => $feed, 'enabled' => true]) as $subscription) {
             $user = $subscription->getUser();
-            if (!$user->isActive()) continue;
-            if (!$this->queue->lock($user->getId())) throw new \RuntimeException('Notification digest busy.');
+            if (!$user->isActive()) {
+                continue;
+            }
+            if (!$this->queue->lock($user->getId())) {
+                throw new \RuntimeException('Notification digest busy.');
+            }
             try {
                 $context = ['feed_id' => $message->feedId, 'user_email' => $user->getUserIdentifier(), 'article_count' => $message->count];
                 if (0 === $this->em->getRepository(PushSubscription::class)->count(['user' => $user])) {

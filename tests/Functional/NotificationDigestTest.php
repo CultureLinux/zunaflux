@@ -33,7 +33,9 @@ final class NotificationDigestTest extends KernelTestCase
         $otherDevice = new PushSubscription($other, 'https://fcm.googleapis.com/fcm/send/'.bin2hex(random_bytes(8)), 'key', 'auth');
         $preference = new UserPreference($user);
         $preference->update(['timezone' => 'UTC', 'quiet_start' => '22:00', 'quiet_end' => '08:00']);
-        foreach ([$user, $other, ...$feeds, $first, $second, $otherDevice, $preference, new Subscription($user, $feeds[0]), new Subscription($user, $feeds[1]), new Subscription($other, $feeds[0])] as $entity) $em->persist($entity);
+        foreach ([$user, $other, ...$feeds, $first, $second, $otherDevice, $preference, new Subscription($user, $feeds[0]), new Subscription($user, $feeds[1]), new Subscription($other, $feeds[0])] as $entity) {
+            $em->persist($entity);
+        }
         $em->flush();
         try {
             $handler = new NotifyFeedHandler($em, $queue, $logger, $clock);
@@ -53,6 +55,7 @@ final class NotificationDigestTest extends KernelTestCase
                 $id = (string) $device->getId();
                 $attempts[$id][] = json_decode($payload, true, 512, JSON_THROW_ON_ERROR)['body'];
                 $success = !$device->getId()->equals($second->getId()) || count($attempts[$id]) > 1;
+
                 return new MessageSentReport(new Request('POST', $device->getEndpoint()), new Response($success ? 201 : 503), $success);
             });
             $realDelivery = new PushDelivery($em, '', '');
@@ -94,7 +97,9 @@ final class NotificationDigestTest extends KernelTestCase
 
         } finally {
             $em->getConnection()->executeStatement('DELETE FROM app_user WHERE id IN (?, ?)', [$user->getId()->toBinary(), $other->getId()->toBinary()]);
-            foreach ($feeds as $feed) $em->getConnection()->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);
+            foreach ($feeds as $feed) {
+                $em->getConnection()->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);
+            }
         }
     }
 }

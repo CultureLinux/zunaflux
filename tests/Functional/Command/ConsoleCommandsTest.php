@@ -32,7 +32,7 @@ final class ConsoleCommandsTest extends RollbackKernelTestCase
         $this->subscribe($reader, $later);
         $this->em->flush();
         $this->db->executeStatement('UPDATE feed SET next_collection_at = ? WHERE id = ?', ['2999-01-01 00:00:00', $later->getId()->toBinary()]);
-        $bus = new class implements MessageBusInterface {
+        $bus = new class () implements MessageBusInterface {
             /** @var list<object> */
             public array $messages = [];
 

@@ -9,7 +9,9 @@ use Psr\Log\LoggerInterface;
 
 final readonly class NotificationDiagnostics
 {
-    public function __construct(private LoggerInterface $logger) {}
+    public function __construct(private LoggerInterface $logger)
+    {
+    }
 
     public function subscriptionActivated(): void
     {
@@ -23,7 +25,9 @@ final readonly class NotificationDiagnostics
 
     public function configuration(string $source, bool $fileReadable, bool $subjectSet): void
     {
-        $this->logger->warning('Configuration Web Push indisponible.', ['source' => $source, 'private_key_readable' => $fileReadable, 'subject_set' => $subjectSet]);
+        $this
+            ->logger
+            ->warning('Configuration Web Push indisponible.', ['source' => $source, 'private_key_readable' => $fileReadable, 'subject_set' => $subjectSet]);
     }
 
     public function failure(string $source, MessageSentReport $report): void
@@ -49,6 +53,7 @@ final readonly class NotificationDiagnostics
     private static function classify(string $message): string
     {
         $message = strtolower($message);
+
         return match (true) {
             str_contains($message, 'timed out'), str_contains($message, 'timeout') => 'timeout',
             str_contains($message, 'resolve host'), str_contains($message, 'name resolution'), str_contains($message, 'dns') => 'dns',

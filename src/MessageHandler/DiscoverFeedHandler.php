@@ -13,12 +13,16 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 #[AsMessageHandler]
 final readonly class DiscoverFeedHandler
 {
-    public function __construct(private DiscoveryFetcher $fetcher, private FeedDiscovery $discovery, private CacheItemPoolInterface $cache) {}
+    public function __construct(private DiscoveryFetcher $fetcher, private FeedDiscovery $discovery, private CacheItemPoolInterface $cache)
+    {
+    }
 
     public function __invoke(DiscoverFeedMessage $message): void
     {
         $item = $this->cache->getItem($message->key);
-        if (!$item->isHit()) return;
+        if (!$item->isHit()) {
+            return;
+        }
         try {
             $page = $this->fetcher->fetch($message->url);
             $result = ['status' => 'complete', 'feeds' => $this->discovery->find($page['body'], $page['url'])];

@@ -37,13 +37,17 @@ final class SendNotificationsCommand extends Command
             $relayFailed = true;
             $output->writeln('<error>Notification relay failed; pending events are retained.</error>');
         }
-        $users = $this->em->getConnection()->fetchFirstColumn('SELECT DISTINCT s.user_id FROM subscription s JOIN notification_pending p ON p.subscription_id = s.id');
+        $users = $this
+            ->em
+            ->getConnection()
+            ->fetchFirstColumn('SELECT DISTINCT s.user_id FROM subscription s JOIN notification_pending p ON p.subscription_id = s.id');
         $sent = 0;
         foreach ($users as $user) {
             $sent += $this->sender->send(Uuid::fromBinary($user), $this->clock->now()->setTimezone(new \DateTimeZone('UTC')));
             $this->em->clear();
         }
         $output->writeln(sprintf('%d notification(s) accepted.', $sent));
+
         return $relayFailed ? Command::FAILURE : Command::SUCCESS;
     }
 }

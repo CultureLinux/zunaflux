@@ -17,7 +17,9 @@ final class NotificationScheduleTest extends WebTestCase
         $em = self::getContainer()->get(EntityManagerInterface::class);
         $user = new User('schedule-'.bin2hex(random_bytes(8)).'@example.test');
         $other = new User('schedule-other-'.bin2hex(random_bytes(8)).'@example.test');
-        foreach ([$user, $other, new UserPreference($other)] as $entity) $em->persist($entity);
+        foreach ([$user, $other, new UserPreference($other)] as $entity) {
+            $em->persist($entity);
+        }
         $em->flush();
         try {
             $client->loginUser($user);

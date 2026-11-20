@@ -26,7 +26,9 @@ final class ArticleControllerTest extends WebTestCase
         $article = new Article($feed, new ParsedFeedItem('one', 'Article', null, null, null, null));
         $subscription = new Subscription($owner, $feed);
         $subscription->assignCategory($category);
-        foreach ([$owner, $other, $category, $feed, $article, $subscription, new Subscription($other, $feed)] as $entity) $em->persist($entity);
+        foreach ([$owner, $other, $category, $feed, $article, $subscription, new Subscription($other, $feed)] as $entity) {
+            $em->persist($entity);
+        }
         $em->flush();
         $path = '/categories/'.$category->getId().'/mark-read';
 
@@ -64,7 +66,9 @@ final class ArticleControllerTest extends WebTestCase
         $user = new User('source-controls-'.bin2hex(random_bytes(8)).'@example.test');
         $feed = new Feed('https://example.test/'.bin2hex(random_bytes(8)));
         $subscription = new Subscription($user, $feed);
-        foreach ([$user, $feed, $subscription] as $entity) $em->persist($entity);
+        foreach ([$user, $feed, $subscription] as $entity) {
+            $em->persist($entity);
+        }
         $em->flush();
 
         try {
@@ -85,7 +89,9 @@ final class ArticleControllerTest extends WebTestCase
         $user = new User('zen-count-'.bin2hex(random_bytes(8)).'@example.test');
         $feed = new Feed('https://example.test/'.bin2hex(random_bytes(8)));
         $article = new Article($feed, new ParsedFeedItem('one', 'Article', null, null, null, null));
-        foreach ([$user, $feed, $article, new Subscription($user, $feed)] as $entity) $em->persist($entity);
+        foreach ([$user, $feed, $article, new Subscription($user, $feed)] as $entity) {
+            $em->persist($entity);
+        }
         $em->flush();
         try {
             $client->loginUser($user);
@@ -99,6 +105,7 @@ final class ArticleControllerTest extends WebTestCase
             $em->getConnection()->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);
         }
     }
+
     public function testListExposesOnlyLocalImagePathsForArticlesWithImages(): void
     {
         $client = static::createClient();
@@ -107,7 +114,9 @@ final class ArticleControllerTest extends WebTestCase
         $feed = new Feed('https://example.test/'.bin2hex(random_bytes(8)));
         $withImage = new Article($feed, new ParsedFeedItem('image', 'Avec image', null, null, '<img src="https://example.test/image.jpg">', null));
         $withoutImage = new Article($feed, new ParsedFeedItem('plain', 'Sans image', null, null, '<p>Texte</p>', null));
-        foreach ([$user, $feed, $withImage, $withoutImage, new Subscription($user, $feed)] as $entity) $em->persist($entity);
+        foreach ([$user, $feed, $withImage, $withoutImage, new Subscription($user, $feed)] as $entity) {
+            $em->persist($entity);
+        }
         $em->flush();
         try {
             $client->loginUser($user);
@@ -121,6 +130,7 @@ final class ArticleControllerTest extends WebTestCase
             $em->getConnection()->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);
         }
     }
+
     public function testZenIncludesImagesFromTheSummaryAlongsideTheFullContent(): void
     {
         $client = static::createClient();
@@ -222,7 +232,9 @@ final class ArticleControllerTest extends WebTestCase
         $otherSubscription = new Subscription($other, $feed);
         $preference = new UserPreference($owner);
         $preference->update(['sidebarCollapsed' => true]);
-        foreach ([$owner, $other, $feed, $article, $subscription, $otherSubscription, $preference] as $entity) $em->persist($entity);
+        foreach ([$owner, $other, $feed, $article, $subscription, $otherSubscription, $preference] as $entity) {
+            $em->persist($entity);
+        }
         $em->flush();
         try {
             $client->loginUser($owner);
@@ -266,7 +278,9 @@ final class ArticleControllerTest extends WebTestCase
         $privateCategory = new \App\Entity\Category($other, 'Catégorie privée');
         $subscription = new Subscription($user, $feed);
         $subscription->assignCategory($category);
-        foreach ([$user, $other, $feed, $otherFeed, $preference, $category, $privateCategory, $subscription, new Subscription($other, $otherFeed)] as $entity) $em->persist($entity);
+        foreach ([$user, $other, $feed, $otherFeed, $preference, $category, $privateCategory, $subscription, new Subscription($other, $otherFeed)] as $entity) {
+            $em->persist($entity);
+        }
         $em->flush();
         try {
             $client->loginUser($user);

@@ -23,7 +23,9 @@ final class ExportController extends AbstractController
         }
         $archive = $export->create($user);
 
-        return new StreamedResponse(static function () use ($archive): void { echo $archive['contents']; }, Response::HTTP_OK, [
+        return new StreamedResponse(static function () use ($archive): void {
+            echo $archive['contents'];
+        }, Response::HTTP_OK, [
             'Content-Type' => 'application/zip',
             'Content-Disposition' => 'attachment; filename="'.$archive['filename'].'"',
             'X-Content-Type-Options' => 'nosniff',

@@ -46,10 +46,27 @@ final class PushSubscription
     #[ORM\Column(name: 'digest_sent_timestamp', type: 'bigint', nullable: true)]
     private ?int $digestSentTimestamp = null;
 
-    public function getDigestCursor(): int { return $this->digestCursor; }
-    public function getDigestSentAt(): ?\DateTimeImmutable { return null === $this->digestSentTimestamp ? null : new \DateTimeImmutable('@'.$this->digestSentTimestamp); }
-    public function startDigestAt(int $cursor): void { $this->digestCursor = $cursor; $this->digestSentTimestamp = null; }
-    public function recordDigest(int $cursor, \DateTimeImmutable $now): void { $this->digestCursor = $cursor; $this->digestSentTimestamp = $now->getTimestamp(); }
+    public function getDigestCursor(): int
+    {
+        return $this->digestCursor;
+    }
+
+    public function getDigestSentAt(): ?\DateTimeImmutable
+    {
+        return null === $this->digestSentTimestamp ? null : new \DateTimeImmutable('@'.$this->digestSentTimestamp);
+    }
+
+    public function startDigestAt(int $cursor): void
+    {
+        $this->digestCursor = $cursor;
+        $this->digestSentTimestamp = null;
+    }
+
+    public function recordDigest(int $cursor, \DateTimeImmutable $now): void
+    {
+        $this->digestCursor = $cursor;
+        $this->digestSentTimestamp = $now->getTimestamp();
+    }
 
     public function __construct(User $user, string $endpoint, string $publicKey, string $authSecret)
     {
@@ -71,14 +88,54 @@ final class PushSubscription
         $this->authSecret = $authSecret;
     }
 
-    public function getUser(): User { return $this->user; }
-    public function getId(): Uuid { return $this->id; }
-    public function getEndpoint(): string { return $this->endpoint; }
-    public function getPublicKey(): string { return $this->publicKey; }
-    public function getAuthSecret(): string { return $this->authSecret; }
-    public function getDeviceLabel(): string { return $this->deviceLabel; }
-    public function getLastResult(): ?string { return $this->lastResult; }
-    public function getLastResultAt(): ?\DateTimeImmutable { return $this->lastResultAt; }
-    public function setDeviceLabel(string $label): void { $this->deviceLabel = $label; }
-    public function recordResult(string $result): void { $this->lastResult = $result; $this->lastResultAt = new \DateTimeImmutable(); }
+    public function getUser(): User
+    {
+        return $this->user;
+    }
+
+    public function getId(): Uuid
+    {
+        return $this->id;
+    }
+
+    public function getEndpoint(): string
+    {
+        return $this->endpoint;
+    }
+
+    public function getPublicKey(): string
+    {
+        return $this->publicKey;
+    }
+
+    public function getAuthSecret(): string
+    {
+        return $this->authSecret;
+    }
+
+    public function getDeviceLabel(): string
+    {
+        return $this->deviceLabel;
+    }
+
+    public function getLastResult(): ?string
+    {
+        return $this->lastResult;
+    }
+
+    public function getLastResultAt(): ?\DateTimeImmutable
+    {
+        return $this->lastResultAt;
+    }
+
+    public function setDeviceLabel(string $label): void
+    {
+        $this->deviceLabel = $label;
+    }
+
+    public function recordResult(string $result): void
+    {
+        $this->lastResult = $result;
+        $this->lastResultAt = new \DateTimeImmutable();
+    }
 }

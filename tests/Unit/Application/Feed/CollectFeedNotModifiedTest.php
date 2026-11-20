@@ -53,7 +53,7 @@ final class CollectFeedNotModifiedTest extends TestCase
     public function testACollectionAlreadyRunningIsRefusedBeforeAnyNetworkCall(): void
     {
         $feed = new Feed('https://example.test/feed');
-        $fetcher = new class implements FeedFetcherInterface {
+        $fetcher = new class () implements FeedFetcherInterface {
             public int $calls = 0;
 
             public function fetch(string $url, ?string $etag = null, ?string $lastModified = null): FetchedFeed
@@ -80,7 +80,7 @@ final class CollectFeedNotModifiedTest extends TestCase
         $entityManager->method('getConnection')->willReturn($connection);
         $entityManager->method('wrapInTransaction')->willReturnCallback(static fn (callable $callback): mixed => $callback($entityManager));
 
-        $fetcher ??= new class($response) implements FeedFetcherInterface {
+        $fetcher ??= new class ($response) implements FeedFetcherInterface {
             public function __construct(private readonly ?FetchedFeed $response)
             {
             }

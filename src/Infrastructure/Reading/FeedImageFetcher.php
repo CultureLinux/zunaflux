@@ -10,7 +10,9 @@ final readonly class FeedImageFetcher
 {
     private const MAX_BYTES = 5_242_880;
 
-    public function __construct(private UrlSafetyValidator $validator) {}
+    public function __construct(private UrlSafetyValidator $validator)
+    {
+    }
 
     /** @return array{body: string, type: string} */
     public function fetch(string $url): array
@@ -18,7 +20,9 @@ final readonly class FeedImageFetcher
         $ips = $this->validator->assertAllowed($url);
         foreach ($ips as $ip) {
             // Restrict this relay to public IPv4; also exclude shared-address and benchmark networks.
-            if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) throw new \InvalidArgumentException('Unsupported address.');
+            if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                throw new \InvalidArgumentException('Unsupported address.');
+            }
             $number = (int) sprintf('%u', ip2long($ip));
             if (($number >= 1681915904 && $number <= 1686110207) || ($number >= 3323068416 && $number <= 3323199487)) {
                 throw new \InvalidArgumentException('Reserved address.');
@@ -30,7 +34,9 @@ final readonly class FeedImageFetcher
         $addresses = array_map(static fn (string $ip): string => str_contains($ip, ':') ? '['.$ip.']' : $ip, $ips);
         $body = '';
         $curl = curl_init($url);
-        if (false === $curl) throw new \RuntimeException('Image unavailable.');
+        if (false === $curl) {
+            throw new \RuntimeException('Image unavailable.');
+        }
         try {
             curl_setopt_array($curl, [
                 CURLOPT_FOLLOWLOCATION => false,
@@ -41,14 +47,19 @@ final readonly class FeedImageFetcher
                 CURLOPT_RESOLVE => [trim($host, '[]').':'.$port.':'.implode(',', $addresses)],
                 CURLOPT_HTTPHEADER => ['Accept: image/png,image/jpeg,image/gif,image/webp'],
                 CURLOPT_WRITEFUNCTION => static function ($handle, string $chunk) use (&$body): int {
-                    if (strlen($body) + strlen($chunk) > self::MAX_BYTES) return 0;
+                    if (strlen($body) + strlen($chunk) > self::MAX_BYTES) {
+                        return 0;
+                    }
                     $body .= $chunk;
+
                     return strlen($chunk);
                 },
             ]);
             $result = curl_exec($curl);
             $status = (int) curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
-            if (false === $result || 200 !== $status) throw new \RuntimeException('Image unavailable.');
+            if (false === $result || 200 !== $status) {
+                throw new \RuntimeException('Image unavailable.');
+            }
         } finally {
             curl_close($curl);
         }
@@ -57,6 +68,7 @@ final readonly class FeedImageFetcher
         if (!in_array($type, ['image/jpeg', 'image/png', 'image/gif', 'image/webp'], true) || ($info[0] * $info[1]) > 40_000_000) {
             throw new \RuntimeException('Unsupported image.');
         }
+
         return ['body' => $body, 'type' => $type];
     }
 }

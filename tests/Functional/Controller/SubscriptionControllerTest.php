@@ -20,7 +20,9 @@ final class SubscriptionControllerTest extends WebTestCase
         $other = new User('refresh-other-'.bin2hex(random_bytes(8)).'@example.test');
         $feed = new Feed('https://example.test/'.bin2hex(random_bytes(8)).'/refresh');
         $subscription = new Subscription($owner, $feed);
-        foreach ([$owner, $other, $feed, $subscription] as $entity) $em->persist($entity);
+        foreach ([$owner, $other, $feed, $subscription] as $entity) {
+            $em->persist($entity);
+        }
         $em->flush();
 
         try {
@@ -61,9 +63,13 @@ final class SubscriptionControllerTest extends WebTestCase
         $category = new \App\Entity\Category($owner, 'Refresh');
         $first = new Feed('https://example.test/'.bin2hex(random_bytes(8)).'/first');
         $second = new Feed('https://example.test/'.bin2hex(random_bytes(8)).'/second');
-        $firstSubscription = new Subscription($owner, $first); $firstSubscription->assignCategory($category);
-        $secondSubscription = new Subscription($owner, $second); $secondSubscription->assignCategory($category);
-        foreach ([$owner, $other, $category, $first, $second, $firstSubscription, $secondSubscription] as $entity) $em->persist($entity);
+        $firstSubscription = new Subscription($owner, $first);
+        $firstSubscription->assignCategory($category);
+        $secondSubscription = new Subscription($owner, $second);
+        $secondSubscription->assignCategory($category);
+        foreach ([$owner, $other, $category, $first, $second, $firstSubscription, $secondSubscription] as $entity) {
+            $em->persist($entity);
+        }
         $em->flush();
 
         try {
@@ -97,7 +103,9 @@ final class SubscriptionControllerTest extends WebTestCase
         $user = new User('all-refresh-owner-'.bin2hex(random_bytes(8)).'@example.test');
         $first = new Feed('https://example.test/'.bin2hex(random_bytes(8)).'/first');
         $second = new Feed('https://example.test/'.bin2hex(random_bytes(8)).'/second');
-        foreach ([$user, $first, $second, new Subscription($user, $first), new Subscription($user, $second)] as $entity) $em->persist($entity);
+        foreach ([$user, $first, $second, new Subscription($user, $first), new Subscription($user, $second)] as $entity) {
+            $em->persist($entity);
+        }
         $em->flush();
 
         try {
@@ -129,7 +137,9 @@ final class SubscriptionControllerTest extends WebTestCase
         $subscription = new Subscription($owner, $feed);
         $category = new \App\Entity\Category($owner, 'Destination');
         $foreign = new \App\Entity\Category($other, 'Privée');
-        foreach ([$owner, $other, $feed, $article, $subscription, $category, $foreign] as $entity) $em->persist($entity);
+        foreach ([$owner, $other, $feed, $article, $subscription, $category, $foreign] as $entity) {
+            $em->persist($entity);
+        }
         $em->flush();
         try {
             $client->loginUser($owner);
@@ -186,7 +196,9 @@ final class SubscriptionControllerTest extends WebTestCase
         $user = new User('inactive-'.bin2hex(random_bytes(8)).'@example.test');
         $feed = new Feed('https://example.test/'.bin2hex(random_bytes(8)).'/feed');
         $subscription = new Subscription($user, $feed);
-        foreach ([$user, $feed, $subscription] as $entity) $em->persist($entity);
+        foreach ([$user, $feed, $subscription] as $entity) {
+            $em->persist($entity);
+        }
         $em->flush();
         try {
             $client->loginUser($user);
@@ -241,7 +253,9 @@ final class SubscriptionControllerTest extends WebTestCase
         $otherSubscription = new Subscription($other, $feed);
         $ownerState = new \App\Entity\ArticleState($owner, $article);
         $otherState = new \App\Entity\ArticleState($other, $article);
-        foreach ([$owner, $other, $category, $feed, $article, $subscription, $otherSubscription, $ownerState, $otherState] as $entity) $em->persist($entity);
+        foreach ([$owner, $other, $category, $feed, $article, $subscription, $otherSubscription, $ownerState, $otherState] as $entity) {
+            $em->persist($entity);
+        }
         $em->flush();
         try {
             $client->loginUser($other);
@@ -283,20 +297,26 @@ final class SubscriptionControllerTest extends WebTestCase
             $feeds[] = $feed;
             $em->persist($feed);
             $em->persist(new Subscription($user, $feed));
-            if (null !== $date) $em->persist(new \App\Entity\Article($feed, new \App\Domain\Feed\ParsedFeedItem($band, $band, null, null, null, new \DateTimeImmutable($date))));
+            if (null !== $date) {
+                $em->persist(new \App\Entity\Article($feed, new \App\Domain\Feed\ParsedFeedItem($band, $band, null, null, null, new \DateTimeImmutable($date))));
+            }
         }
         $em->flush();
         try {
             $client->loginUser($user);
             $crawler = $client->request('GET', '/subscriptions');
             self::assertResponseIsSuccessful();
-            foreach (['day', 'week', 'month', 'quarter', 'year'] as $band) self::assertCount(1, $crawler->filter('[data-feed-age="'.$band.'"]'));
+            foreach (['day', 'week', 'month', 'quarter', 'year'] as $band) {
+                self::assertCount(1, $crawler->filter('[data-feed-age="'.$band.'"]'));
+            }
             self::assertStringContainsString('plus d’un an', $crawler->filter('[data-feed-age="year"]')->text());
             self::assertStringContainsString('Date de publication inconnue', $crawler->text());
         } finally {
             $connection = $em->getConnection();
             $connection->executeStatement('DELETE FROM app_user WHERE id = ?', [$user->getId()->toBinary()]);
-            foreach ($feeds as $feed) $connection->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);
+            foreach ($feeds as $feed) {
+                $connection->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);
+            }
         }
     }
 
@@ -313,7 +333,9 @@ final class SubscriptionControllerTest extends WebTestCase
         foreach ([$user, $feed, new Subscription($user, $feed),
             new \App\Entity\Article($feed, new \App\Domain\Feed\ParsedFeedItem('old', 'Ancien', null, null, null, $old)),
             new \App\Entity\Article($feed, new \App\Domain\Feed\ParsedFeedItem('new', 'Récent', null, null, null, $recent)),
-        ] as $entity) $em->persist($entity);
+        ] as $entity) {
+            $em->persist($entity);
+        }
         $em->flush();
         try {
             $client->loginUser($user);
@@ -344,7 +366,9 @@ final class SubscriptionControllerTest extends WebTestCase
         $private = new Feed('https://example.test/'.$suffix.'/private');
         $subscription = new Subscription($source, $categorized);
         $subscription->assignCategory($category);
-        foreach ([$source, $target, $other, $category, $categorized, $uncategorized, $private, $subscription, new Subscription($source, $uncategorized), new Subscription($other, $private)] as $entity) $em->persist($entity);
+        foreach ([$source, $target, $other, $category, $categorized, $uncategorized, $private, $subscription, new Subscription($source, $uncategorized), new Subscription($other, $private)] as $entity) {
+            $em->persist($entity);
+        }
         $em->flush();
         $path = tempnam(sys_get_temp_dir(), 'opml-roundtrip-');
         self::assertNotFalse($path);
@@ -365,7 +389,9 @@ final class SubscriptionControllerTest extends WebTestCase
             $subscriptions = $em->getRepository(Subscription::class)->findBy(['user' => $target]);
             self::assertCount(2, $subscriptions);
             $categories = [];
-            foreach ($subscriptions as $item) $categories[$item->getFeed()->getCanonicalUrl()] = $item->getCategory()?->getName();
+            foreach ($subscriptions as $item) {
+                $categories[$item->getFeed()->getCanonicalUrl()] = $item->getCategory()?->getName();
+            }
             self::assertSame('Culture & sciences', $categories[$categorized->getCanonicalUrl()]);
             self::assertArrayHasKey($uncategorized->getCanonicalUrl(), $categories);
             self::assertNull($categories[$uncategorized->getCanonicalUrl()]);
@@ -457,7 +483,9 @@ final class SubscriptionControllerTest extends WebTestCase
         $otherState->setFavorite(true);
         $subscription = new Subscription($owner, $feed);
         $otherSubscription = new Subscription($other, $feed);
-        foreach ([$owner, $other, $feed, $article, $ownerState, $otherState, $subscription, $otherSubscription] as $entity) $em->persist($entity);
+        foreach ([$owner, $other, $feed, $article, $ownerState, $otherState, $subscription, $otherSubscription] as $entity) {
+            $em->persist($entity);
+        }
         $em->flush();
         try {
             $client->loginUser($other);
@@ -493,7 +521,9 @@ final class SubscriptionControllerTest extends WebTestCase
         $used->refreshMetadata('Flux encore suivi', null);
         $subscription = new Subscription($admin, $used);
         $subscription->disable();
-        foreach ([$admin, $unused, $used, $subscription] as $entity) $em->persist($entity);
+        foreach ([$admin, $unused, $used, $subscription] as $entity) {
+            $em->persist($entity);
+        }
         $em->flush();
         try {
             $client->loginUser($admin);
@@ -529,7 +559,9 @@ final class SubscriptionControllerTest extends WebTestCase
         $state->setFavorite(true);
         $subscription = new Subscription($other, $feed);
         $incident = new \App\Entity\FeedIncident($feed, new \RuntimeException('Feed request returned HTTP 404.'));
-        foreach ([$admin, $other, $feed, $article, $state, $subscription, $incident] as $entity) $em->persist($entity);
+        foreach ([$admin, $other, $feed, $article, $state, $subscription, $incident] as $entity) {
+            $em->persist($entity);
+        }
         $em->flush();
         try {
             $client->loginUser($other);
@@ -571,7 +603,9 @@ final class SubscriptionControllerTest extends WebTestCase
         $admin->addRole('ROLE_ADMIN');
         $feed = new Feed('https://example.test/'.bin2hex(random_bytes(8)).'/feed');
         $incident = new \App\Entity\FeedIncident($feed, new \RuntimeException('Feed request failed.'));
-        foreach ([$admin, $feed, $incident] as $entity) $em->persist($entity);
+        foreach ([$admin, $feed, $incident] as $entity) {
+            $em->persist($entity);
+        }
         $em->flush();
 
         try {
@@ -596,7 +630,9 @@ final class SubscriptionControllerTest extends WebTestCase
         $admin->addRole('ROLE_ADMIN');
         $feed = new Feed('http://127.0.0.1/'.bin2hex(random_bytes(8)));
         $incident = new \App\Entity\FeedIncident($feed, new \RuntimeException('Previous failure'));
-        foreach ([$admin, $feed, $incident] as $entity) $em->persist($entity);
+        foreach ([$admin, $feed, $incident] as $entity) {
+            $em->persist($entity);
+        }
         $em->flush();
 
         try {
@@ -628,7 +664,9 @@ final class SubscriptionControllerTest extends WebTestCase
         $privateFeed->refreshMetadata('Source privée', null);
         $feed->recordFailure(new \RuntimeException('Erreur de test'));
         $privateFeed->recordFailure(new \RuntimeException('Erreur privée'));
-        foreach ([$user, $other, $feed, $privateFeed, new Subscription($user, $feed), new Subscription($other, $privateFeed), new \App\Entity\FeedIncident($feed, new \RuntimeException('Erreur de test')), new \App\Entity\FeedIncident($privateFeed, new \RuntimeException('Erreur privée'))] as $entity) $em->persist($entity);
+        foreach ([$user, $other, $feed, $privateFeed, new Subscription($user, $feed), new Subscription($other, $privateFeed), new \App\Entity\FeedIncident($feed, new \RuntimeException('Erreur de test')), new \App\Entity\FeedIncident($privateFeed, new \RuntimeException('Erreur privée'))] as $entity) {
+            $em->persist($entity);
+        }
         $em->flush();
         try {
             $client->loginUser($user);
@@ -691,7 +729,9 @@ final class SubscriptionControllerTest extends WebTestCase
         $original = new Feed('https://example.test/'.$suffix.'/original');
         $subscription = new Subscription($user, $original);
         $otherSubscription = new Subscription($other, $original);
-        foreach ([$user, $other, $original, $subscription, $otherSubscription] as $entity) $em->persist($entity);
+        foreach ([$user, $other, $original, $subscription, $otherSubscription] as $entity) {
+            $em->persist($entity);
+        }
         $em->flush();
         $newUrl = 'https://example.test/'.$suffix.'/new';
         try {

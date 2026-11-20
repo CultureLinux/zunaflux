@@ -11,7 +11,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class IncidentExtension extends AbstractExtension
 {
-    public function __construct(private readonly IncidentMessage $message, private readonly TranslatorInterface $translator) {}
+    public function __construct(private readonly IncidentMessage $message, private readonly TranslatorInterface $translator)
+    {
+    }
 
     public function getFilters(): array
     {

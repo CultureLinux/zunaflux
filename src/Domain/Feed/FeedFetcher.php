@@ -23,7 +23,10 @@ final readonly class FeedFetcher implements FeedFetcherInterface
                 throw new \RuntimeException('Unable to initialise HTTP client.');
             }
 
-            $headers = ['Accept: application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9', 'User-Agent: Zunaflux/1.0 (+https://zunaflux.clinux.fr/contact)'];
+            $headers = [
+                'Accept: application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9',
+                'User-Agent: Zunaflux/1.0 (+https://zunaflux.clinux.fr/contact)',
+            ];
             if ($etag) {
                 $headers[] = 'If-None-Match: '.$etag;
             }
@@ -92,7 +95,13 @@ final readonly class FeedFetcher implements FeedFetcherInterface
                 throw new \RuntimeException('Feed request returned HTTP '.$status.'.');
             }
 
-            return new FetchedFeed($status, 304 === $status ? null : $body, $this->header($responseHeaders, 'ETag'), $this->header($responseHeaders, 'Last-Modified'), $currentUrl);
+            return new FetchedFeed(
+                $status,
+                304 === $status ? null : $body,
+                $this->header($responseHeaders, 'ETag'),
+                $this->header($responseHeaders, 'Last-Modified'),
+                $currentUrl,
+            );
         }
 
         throw new \RuntimeException('Feed redirect limit exceeded.');

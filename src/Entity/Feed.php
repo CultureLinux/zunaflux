@@ -96,7 +96,15 @@ final class Feed
     {
         return $this->lastModified;
     }
-    public function recordSuccess(): void { $this->lastSuccessAt = new \DateTimeImmutable(); $this->failureCount = 0; $this->lastError = null; $this->nextCollectionAt = null; }
+
+    public function recordSuccess(): void
+    {
+        $this->lastSuccessAt = new \DateTimeImmutable();
+        $this->failureCount = 0;
+        $this->lastError = null;
+        $this->nextCollectionAt = null;
+    }
+
     public function recordFailure(\Throwable $error, ?\DateTimeImmutable $now = null): void
     {
         ++$this->failureCount;
@@ -104,9 +112,21 @@ final class Feed
         $delayHours = min(2 ** ($this->failureCount - 1), 24);
         $this->nextCollectionAt = ($now ?? new \DateTimeImmutable())->modify('+'.$delayHours.' hours');
     }
-    public function isCollectionDue(\DateTimeImmutable $now): bool { return null === $this->nextCollectionAt || $this->nextCollectionAt <= $now; }
-    public function getFailureCount(): int { return $this->failureCount; }
-    public function getLastError(): ?string { return $this->lastError; }
+
+    public function isCollectionDue(\DateTimeImmutable $now): bool
+    {
+        return null === $this->nextCollectionAt || $this->nextCollectionAt <= $now;
+    }
+
+    public function getFailureCount(): int
+    {
+        return $this->failureCount;
+    }
+
+    public function getLastError(): ?string
+    {
+        return $this->lastError;
+    }
 
     private static function canonicalizeUrl(string $url): string
     {

@@ -27,6 +27,7 @@ final class FeedHtmlSanitizerTest extends TestCase
             self::assertStringNotContainsString($unsafe, $html);
         }
     }
+
     public function testImagesAreOnlyRenderedThroughTheProvidedLocalUrl(): void
     {
         $sanitizer = new FeedHtmlSanitizer();

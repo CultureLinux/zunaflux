@@ -41,6 +41,7 @@ try {
         $median = static function (array $case): float {
             $times = array_column($case['samples'], 'milliseconds');
             sort($times, SORT_NUMERIC);
+
             return (float) $times[2];
         };
         $sqlBefore = max(array_column($before['samples'], 'sql_statements'));

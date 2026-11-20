@@ -27,8 +27,13 @@ final class MastodonStatusController extends AbstractController
     }
 
     #[Route('/api/articles/{id}/mastodon-status', name: 'app_api_article_mastodon_status', methods: ['POST'])]
-    public function publish(string $id, Request $request, EntityManagerInterface $entityManager, MastodonOAuthService $mastodon, LoggerInterface $logger): JsonResponse
-    {
+    public function publish(
+        string $id,
+        Request $request,
+        EntityManagerInterface $entityManager,
+        MastodonOAuthService $mastodon,
+        LoggerInterface $logger,
+    ): JsonResponse {
         $user = $this->currentUser();
         $article = $this->accessibleArticle($id, $entityManager, $user);
         if (!$this->isCsrfTokenValid('mastodon-status-'.$article->getId(), $request->headers->get('X-CSRF-Token'))) {
@@ -61,7 +66,10 @@ final class MastodonStatusController extends AbstractController
                 $entityManager->remove($account);
                 $entityManager->flush();
 
-                return $this->json(['error' => $this->translator->trans('Votre connexion Mastodon a expiré. Reconnectez votre compte.')], Response::HTTP_CONFLICT);
+                return $this->json(
+                    ['error' => $this->translator->trans('Votre connexion Mastodon a expiré. Reconnectez votre compte.')],
+                    Response::HTTP_CONFLICT,
+                );
             }
 
             return $this->json(['error' => $this->translator->trans('Mastodon a refusé la publication.')], Response::HTTP_BAD_GATEWAY);

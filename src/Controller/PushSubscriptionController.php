@@ -29,9 +29,15 @@ final class PushSubscriptionController extends AbstractController
         if (!$user instanceof User || !$this->isCsrfTokenValid('push-subscription', $request->headers->get('X-CSRF-Token', ''))) {
             return $this->json(['error' => $this->translator->trans('Accès refusé.')], 403);
         }
-        try { $data = $request->toArray(); } catch (\Throwable) { return $this->json(['error' => $this->translator->trans('Données invalides.')], 400); }
+        try {
+            $data = $request->toArray();
+        } catch (\Throwable) {
+            return $this->json(['error' => $this->translator->trans('Données invalides.')], 400);
+        }
         $endpoint = $data['endpoint'] ?? null;
-        if (!is_string($endpoint) || !PushEndpoint::isAllowed($endpoint)) return $this->json(['error' => $this->translator->trans('Abonnement invalide.')], 400);
+        if (!is_string($endpoint) || !PushEndpoint::isAllowed($endpoint)) {
+            return $this->json(['error' => $this->translator->trans('Abonnement invalide.')], 400);
+        }
         $subscription = $em->getRepository(PushSubscription::class)->findOneBy(['endpointHash' => hash('sha256', $endpoint, true)]);
 
         $owned = $subscription instanceof PushSubscription && $subscription->getUser()->getId()->equals($user->getId());
@@ -83,7 +89,10 @@ final class PushSubscriptionController extends AbstractController
         }
         $newDigest = !$subscription instanceof PushSubscription || !$subscription->getUser()->getId()->equals($user->getId());
         if ($subscription instanceof PushSubscription) {
-            if (!$subscription->getUser()->getId()->equals($user->getId()) && (!hash_equals($subscription->getPublicKey(), $key) || !hash_equals($subscription->getAuthSecret(), $secret))) {
+            if (
+                !$subscription->getUser()->getId()->equals($user->getId())
+                && (!hash_equals($subscription->getPublicKey(), $key) || !hash_equals($subscription->getAuthSecret(), $secret))
+            ) {
                 return $this->json(['error' => $this->translator->trans('Abonnement indisponible.')], 403);
             }
             $subscription->update($user, $key, $secret);
@@ -91,7 +100,9 @@ final class PushSubscriptionController extends AbstractController
             $subscription = new PushSubscription($user, $endpoint, $key, $secret);
             $em->persist($subscription);
         }
-        if ($newDigest) $subscription->startDigestAt((int) $em->getConnection()->fetchOne('SELECT COALESCE(MAX(id), 0) FROM notification_pending'));
+        if ($newDigest) {
+            $subscription->startDigestAt((int) $em->getConnection()->fetchOne('SELECT COALESCE(MAX(id), 0) FROM notification_pending'));
+        }
         $subscription->setDeviceLabel(PushDeviceLabel::fromUserAgent($request->headers->get('User-Agent', '')));
         $em->flush();
         $diagnostics->subscriptionActivated();

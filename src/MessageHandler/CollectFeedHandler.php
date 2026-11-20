@@ -30,6 +30,7 @@ final readonly class CollectFeedHandler
         private IncidentMessage $incidentMessage = new IncidentMessage(),
     ) {
     }
+
     /** Messenger entry point: failures are recorded on the feed and never redelivered. */
     public function __invoke(CollectFeedMessage $message): void
     {
@@ -45,7 +46,9 @@ final readonly class CollectFeedHandler
     private function process(CollectFeedMessage $message, bool $rethrow): void
     {
         $feed = $this->entityManager->getRepository(Feed::class)->find(Uuid::fromString($message->feedId));
-        if (!$feed instanceof Feed) return;
+        if (!$feed instanceof Feed) {
+            return;
+        }
         $this->syncEntry($message, 'running');
         try {
             $new = $this->collectFeed->collect($feed);
@@ -75,7 +78,6 @@ final readonly class CollectFeedHandler
             $this->entityManager->persist(new FeedIncidentOccurrence($incident, $error));
             $this->entityManager->flush();
             $this->syncEntry($message, 'error', 0, $this->incidentMessage->describe($error->getMessage()));
-
             // The failure and its exponential backoff are recorded above. Rethrowing
             // to Messenger would redeliver immediately and multiply failureCount.
             if ($rethrow) {
@@ -87,27 +89,44 @@ final readonly class CollectFeedHandler
         $incident = $this->entityManager->getRepository(FeedIncident::class)->findOneBy(['feed' => $feed]);
         if ($incident instanceof FeedIncident) {
             $now = new \DateTimeImmutable();
-            if ($incident->shouldBeClearedAt($now)) $this->entityManager->remove($incident);
-            else $incident->markRecoveredAt($now);
+            if ($incident->shouldBeClearedAt($now)) {
+                $this->entityManager->remove($incident);
+            } else {
+                $incident->markRecoveredAt($now);
+            }
             $this->entityManager->flush();
         }
         $this->syncEntry($message, $new > 0 ? 'collected' : 'no_new_articles', $new);
-        if ($new > 0) $this->relayNotification($feed, $new);
-        else $this->logNotQueued($feed, 0, 'no_new_articles');
+        if ($new > 0) {
+            $this->relayNotification($feed, $new);
+        } else {
+            $this->logNotQueued($feed, 0, 'no_new_articles');
+        }
     }
+
     private function syncEntry(CollectFeedMessage $message, string $status, int $articles = 0, ?string $detail = null): void
     {
         if (null === $message->syncRunId) {
             return;
         }
         try {
-            $this->entityManager->getConnection()->executeStatement(
-                'UPDATE feed_sync_run_entry SET status = ?, new_articles = ?, detail = ?, finished_at = CASE WHEN ? IN (\'collected\',\'no_new_articles\',\'error\') THEN NOW() ELSE NULL END WHERE run_id = ? AND feed_id = ?',
-                [$status, $articles, $detail, $status, Uuid::fromString($message->syncRunId)->toBinary(), Uuid::fromString($message->feedId)->toBinary()],
-            );
+            $this
+                ->entityManager
+                ->getConnection()
+                ->executeStatement(
+                    'UPDATE feed_sync_run_entry SET status = ?, new_articles = ?, detail = ?, finished_at = CASE WHEN ? '
+.'IN (\'collected\',\'no_new_articles\',\'error\') THEN NOW() ELSE NULL END WHERE run_id = ? AND '
+.'feed_id = ?',
+                    [$status, $articles, $detail, $status, Uuid::fromString($message->syncRunId)->toBinary(), Uuid::fromString($message->feedId)->toBinary()],
+                );
         } catch (\Throwable $error) {
             // Sync-run bookkeeping is best effort and must never fail a collection.
-            $this->logger->warning('Impossible de mettre à jour le suivi de synchronisation.', ['feed_id' => $message->feedId, 'status' => $status, 'exception' => $error::class]);
+            $this
+                ->logger
+                ->warning(
+                    'Impossible de mettre à jour le suivi de synchronisation.',
+                    ['feed_id' => $message->feedId, 'status' => $status, 'exception' => $error::class],
+                );
         }
     }
 
@@ -125,7 +144,9 @@ final readonly class CollectFeedHandler
     private function logNotQueued(Feed $feed, int $count, string $status, string $kind = 'articles'): void
     {
         try {
-            $traces = $this->entityManager->createQueryBuilder()
+            $traces = $this
+                ->entityManager
+                ->createQueryBuilder()
                 ->select('u.emailNormalized AS userEmail, d.id AS deviceId, d.deviceLabel AS deviceLabel')
                 ->from(Subscription::class, 's')
                 ->innerJoin('s.user', 'u')
@@ -134,20 +155,29 @@ final readonly class CollectFeedHandler
                 ->setParameter('feed', $feed->getId(), 'uuid')
                 ->getQuery()
                 ->getArrayResult();
-
             foreach ($traces as $trace) {
-                $this->logger->info('Notification de collecte non mise en file.', [
-                    'feed_id' => (string) $feed->getId(),
-                    'kind' => $kind,
-                    'article_count' => $count,
-                    'user_email' => $trace['userEmail'],
-                    'status' => $status,
-                    'device_id' => null === $trace['deviceId'] ? null : (string) $trace['deviceId'],
-                    'device_label' => $trace['deviceLabel'],
-                ]);
+                $this
+                    ->logger
+                    ->info(
+                        'Notification de collecte non mise en file.',
+                        [
+                            'feed_id' => (string) $feed->getId(),
+                            'kind' => $kind,
+                            'article_count' => $count,
+                            'user_email' => $trace['userEmail'],
+                            'status' => $status,
+                            'device_id' => null === $trace['deviceId'] ? null : (string) $trace['deviceId'],
+                            'device_label' => $trace['deviceLabel'],
+                        ],
+                    );
             }
         } catch (\Throwable) {
-            $this->logger->error('Impossible de tracer les notifications non mises en file.', ['feed_id' => (string) $feed->getId(), 'kind' => $kind, 'article_count' => $count, 'status' => 'trace_error']);
+            $this
+                ->logger
+                ->error(
+                    'Impossible de tracer les notifications non mises en file.',
+                    ['feed_id' => (string) $feed->getId(), 'kind' => $kind, 'article_count' => $count, 'status' => 'trace_error'],
+                );
         }
     }
 }

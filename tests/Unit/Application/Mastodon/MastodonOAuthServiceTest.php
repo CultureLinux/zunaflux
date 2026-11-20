@@ -52,7 +52,9 @@ final class RecordingMastodonHttpClient extends MastodonHttpClient
     public ?string $accessToken = null;
 
     /** @param array<string, mixed> $response */
-    public function __construct(private array $response) {}
+    public function __construct(private array $response)
+    {
+    }
 
     /** @param array<string, string> $form */
     public function request(MastodonInstance $instance, string $method, string $path, array $form = [], ?string $accessToken = null): array
