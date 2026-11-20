@@ -7,6 +7,8 @@ parameters:
     app.retention_months_default: 12
     app.retention_months: '%env(default:app.retention_months_default:int:ZUNAFLUX_RETENTION_MONTHS)%'
     app.push_empty: ''
+    app.log_path_default: 'php://stderr'
+    app.log_path: '%env(default:app.log_path_default:ZUNAFLUX_LOG_PATH)%'
     app.registration_limit: '%env(default:app.push_empty:ZUNAFLUX_MAX_ACCOUNTS)%'
     app.push_public_file: '%env(default:app.push_empty:ZUNAFLUX_VAPID_PUBLIC_FILE)%'
     app.push_private_file: '%env(default:app.push_empty:ZUNAFLUX_VAPID_PRIVATE_FILE)%'

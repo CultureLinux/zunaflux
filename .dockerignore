@@ -2,6 +2,7 @@
 .github
 .github-stop
 .agents
+.claude
 .aws
 .codex
 .env

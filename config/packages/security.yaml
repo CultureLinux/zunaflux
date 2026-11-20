@@ -34,6 +34,7 @@ security:
             switch_user:
                 role: ROLE_ADMIN
     access_control:
+        - { path: ^/healthz$, roles: PUBLIC_ACCESS }
         - { path: ^/setup$, roles: PUBLIC_ACCESS }
         - { path: ^/login$, roles: PUBLIC_ACCESS }
         - { path: ^/register$, roles: PUBLIC_ACCESS }

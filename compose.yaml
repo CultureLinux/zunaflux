@@ -53,7 +53,7 @@ services:
     ports:
       - "${ZUNAFLUX_HTTP_PORT:-8080}:8080"
     healthcheck:
-      test: ["CMD", "php", "-r", "$$c = curl_init('http://127.0.0.1:8080/'); curl_setopt_array($$c, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 3]); curl_exec($$c); $$s = curl_getinfo($$c, CURLINFO_RESPONSE_CODE); exit($$s >= 200 && $$s < 400 ? 0 : 1);"]
+      test: ["CMD", "php", "-r", "$$c = curl_init('http://127.0.0.1:8080/healthz'); curl_setopt_array($$c, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 3]); curl_exec($$c); $$s = curl_getinfo($$c, CURLINFO_RESPONSE_CODE); exit(200 === $$s ? 0 : 1);"]
       interval: 10s
       timeout: 5s
       start_period: 10s
@@ -83,6 +83,7 @@ services:
   collector:
     image: clinuxfr/zunaflux:${ZUNAFLUX_IMAGE_TAG:-latest}
     restart: unless-stopped
+    init: true
     command: ["/usr/local/bin/collect-feeds"]
     environment:
       <<: *zunaflux-environment
@@ -98,6 +99,7 @@ services:
   notifications:
     image: clinuxfr/zunaflux:${ZUNAFLUX_IMAGE_TAG:-latest}
     restart: unless-stopped
+    init: true
     command: ["/usr/local/bin/send-notifications"]
     environment: *zunaflux-environment
     depends_on:

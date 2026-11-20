@@ -1,6 +1,6 @@
 FROM dunglas/frankenphp:1-php8.5-bookworm AS php-base
 
-RUN install-php-extensions curl intl mbstring pdo_mysql xml opcache
+RUN install-php-extensions curl intl mbstring pcntl pdo_mysql xml opcache
 
 FROM php-base AS application-builder
 
@@ -21,7 +21,8 @@ RUN touch .env
 
 RUN composer dump-autoload --no-dev --classmap-authoritative --no-scripts \
     && APP_ENV=prod APP_DEBUG=0 APP_SECRET=build-secret DATABASE_URL='mysql://zunaflux:change-me@database:3306/zunaflux?serverVersion=mariadb-10.11.0&charset=utf8mb4' MAILER_DSN='null://null' MESSENGER_TRANSPORT_DSN='doctrine://default?queue_name=async' ZUNAFLUX_PAGE_SIZE=30 ZUNAFLUX_MAX_SUBSCRIPTIONS=100 ZUNAFLUX_PUBLIC_REGISTRATION=0 ZUNAFLUX_MEDIA_STORAGE=var/media php bin/console tailwind:build --minify --env=prod \
-    && APP_ENV=prod APP_DEBUG=0 APP_SECRET=build-secret DATABASE_URL='mysql://zunaflux:change-me@database:3306/zunaflux?serverVersion=mariadb-10.11.0&charset=utf8mb4' MAILER_DSN='null://null' MESSENGER_TRANSPORT_DSN='doctrine://default?queue_name=async' ZUNAFLUX_PAGE_SIZE=30 ZUNAFLUX_MAX_SUBSCRIPTIONS=100 ZUNAFLUX_PUBLIC_REGISTRATION=0 ZUNAFLUX_MEDIA_STORAGE=var/media php bin/console asset-map:compile --env=prod
+    && APP_ENV=prod APP_DEBUG=0 APP_SECRET=build-secret DATABASE_URL='mysql://zunaflux:change-me@database:3306/zunaflux?serverVersion=mariadb-10.11.0&charset=utf8mb4' MAILER_DSN='null://null' MESSENGER_TRANSPORT_DSN='doctrine://default?queue_name=async' ZUNAFLUX_PAGE_SIZE=30 ZUNAFLUX_MAX_SUBSCRIPTIONS=100 ZUNAFLUX_PUBLIC_REGISTRATION=0 ZUNAFLUX_MEDIA_STORAGE=var/media php bin/console asset-map:compile --env=prod \
+    && APP_ENV=prod APP_DEBUG=0 APP_SECRET=build-secret DATABASE_URL='mysql://zunaflux:change-me@database:3306/zunaflux?serverVersion=mariadb-10.11.0&charset=utf8mb4' MAILER_DSN='null://null' MESSENGER_TRANSPORT_DSN='doctrine://default?queue_name=async' ZUNAFLUX_PAGE_SIZE=30 ZUNAFLUX_MAX_SUBSCRIPTIONS=100 ZUNAFLUX_PUBLIC_REGISTRATION=0 ZUNAFLUX_MEDIA_STORAGE=var/media php bin/console cache:warmup --env=prod
 
 FROM php-base AS runtime
 
