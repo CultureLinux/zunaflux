@@ -42,7 +42,7 @@ x-zunaflux-image: &zunaflux-image clinuxfr/zunaflux:${ZUNAFLUX_IMAGE_TAG:?Set ZU
 
 services:
   database:
-    image: mariadb:10.11@sha256:e5fe75b2b9de0eb9f6f9a4d9c97272fb3a7480e389ccd487a786bab2a12cc0d7
+    image: mariadb:13.0@sha256:54f493ea0d60b621a5bff84e5b20100f8b86b6efa6b79158e04756c5194a5e4d
     restart: unless-stopped
     environment:
       MARIADB_DATABASE: ${MARIADB_DATABASE:?Set MARIADB_DATABASE in docker/.env}
