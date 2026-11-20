@@ -10,7 +10,10 @@ use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'article')]
+#[ORM\Index(name: 'idx_article_feed_published', columns: ['feed_id', 'published_at'])]
 #[ORM\Index(name: 'idx_article_collected', columns: ['collected_at', 'id'])]
+#[ORM\Index(name: 'idx_article_feed_collected', columns: ['feed_id', 'collected_at', 'id'])]
+#[ORM\Index(name: 'idx_article_search', columns: ['title', 'summary'], flags: ['fulltext'])]
 #[ORM\UniqueConstraint(name: 'uniq_article_feed_identity_hash', columns: ['feed_id', 'identity_hash'])]
 final class Article
 {

@@ -50,3 +50,22 @@ APP_ENV=test php85 vendor/bin/phpunit --filter 'CollectFeed|FeedFetcher|FeedPars
 - Une coupure DNS simulée donne `failureCount = 1` et un délai d'1 h.
 - Deux workers sur le même flux ne produisent aucune erreur.
 - Un 304 conserve les validateurs.
+
+## Statut d'avancement
+
+*Mis à jour le 20 novembre 2026. États déduits de la lecture du code (commit `44b12bd` et suivants) : le lot n'a pas encore reçu de retour de validation Linux.*
+
+| ID | État | Note |
+|---|---|---|
+| 1.1 | Appliqué | `CollectFeedHandler` n'est plus relancé après `recordFailure()` ; `collectOrFail` sert l'appel synchrone. |
+| 1.2 | Appliqué | Un 304 conserve ETag/Last-Modified (fusionné en un seul appel lors du `/simplify`). |
+| 1.3 | Appliqué | Verrou `GET_LOCK` par flux dans `CollectFeed` ; `FeedCollectionInProgress` si déjà en cours. |
+| 1.4 | Appliqué | Déduplication par requêtes `IN` par paquets de 500. |
+| 1.5 | Appliqué | `SubscribeToFeed` : double lecture autour d'un verrou. |
+| 1.6 | Partiel | `FeedFetcher` plafonne en streaming, `CURLOPT_ENCODING` et `CURLOPT_PROXY` sont posés. **`MastodonHttpClient` non corrigé.** |
+| 1.7 | Partiel | `Location` relative résolue par `FeedDiscovery::resolve()`. **Non fait :** mise à jour de `canonicalUrl` sur 301/308, pause + incident sur 410. |
+| 1.8 | Partiel | Le cron sélectionne en SQL les flux échus avec abonné actif. **Non fait :** `recordSuccess()` remet toujours `nextCollectionAt` à `null` (donc recollecte à chaque passage), et l'index `idx_feed_next_collection` n'existe pas. |
+| 1.9 | Partiel | DOCTYPE sans entités accepté, `link` non-Atom ciblé (`RSS_LINK`), RDF géré pour les items. **Non fait :** libellé `'(sans titre)'` toujours en dur, charset HTTP ignoré ; titre RDF à revérifier. |
+| 1.10 | Partiel | Journalisation ajoutée à plusieurs endroits. **Non fait :** `IncidentMessage` est toujours instancié par défaut dans le constructeur. |
+
+**Écarts connus après `/simplify` :** le verrou `GET_LOCK` est dupliqué (`CollectFeed`, `SubscribeToFeed`, `DigestQueue`) ; un service `NamedLock` partagé a été écarté pour l'instant (change les constructeurs et les tests).

@@ -81,3 +81,22 @@ php85 tests/Performance/measure.php
 - La liste et les compteurs passent par les index (`EXPLAIN`).
 - `schema:validate` est vert.
 - La recherche utilise `MATCH … AGAINST`.
+
+## Statut d'avancement
+
+*Mis à jour le 20 novembre 2026. Codé, tests exécutés sur la base de test (`.env.test.local`) ; en attente du retour de validation du développeur. Lot volontairement découpé : seule la partie « marquer lu » et les index sont faits.*
+
+| ID | État | Note |
+|---|---|---|
+| 4.1 | Appliqué | `markBefore` passe par `MarkSubscriptionRead::markBefore()` : plus de plafond de 500 ni de retraitement des mêmes articles. |
+| 4.2 | Partiel | Index `idx_article_feed_collected (feed_id, collected_at, id)` ajouté (migration `Version20261120130000`). **Non fait :** colonne `has_image` (touche la collecte et les gabarits), donc `content` reste chargé par la liste. |
+| 4.3 | Partiel | `MarkSubscriptionRead` est ensembliste (lots de 1 000 : `article_state`, `first_read_event`, `reading_daily_stat`), pour un flux, une catégorie et avant une date. **Non fait :** `bulk` (≤ 100 ids) garde `ArticleStateService`, toujours à environ 4 requêtes par id. |
+| 4.4 | **Non traité** | Compteurs (`WITH ROLLUP` ou table de compteurs). |
+| 4.5 | **Non traité** | Recherche `MATCH … AGAINST` : change la sémantique de recherche, décision requise. L'index FULLTEXT n'est pas utilisé. |
+| 4.6 | Partiel | Index d'`article` et d'`article_state` déclarés dans les entités (dont FULLTEXT). **`doctrine:schema:validate` reste en échec** : dérive massive hors index (tables sans entité, commentaires `DC2Type`, renommages d'index de clés étrangères). Un chantier à part. |
+| 4.7 | **Non traité** | N+1 (barre latérale, sources, quotas admin, `accessibleArticle`). |
+| 4.8 | **Non traité** | Suppression par lots au désabonnement : change l'atomicité de la suppression. |
+| 4.9 | Partiel | `(user_id, is_favorite, article_id)` et `(user_id, is_saved, article_id)` remplacent les anciens index. `idx_article_state_user_read` conservé en attendant un `EXPLAIN`. |
+
+**Vérifications non faites :** `EXPLAIN` sur la liste, les compteurs et la purge ; `tests/Performance/measure.php` ; `schema:validate` vert.
+

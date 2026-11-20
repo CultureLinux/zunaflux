@@ -263,14 +263,13 @@ final class ArticleController extends AbstractController
     }
 
     #[Route('/api/articles/mark-before', name: 'app_api_articles_mark_before', methods: ['POST'])]
-    public function markBefore(Request $request, EntityManagerInterface $entityManager, ArticleStateService $articleStateService): JsonResponse
+    public function markBefore(Request $request, MarkSubscriptionRead $markRead): JsonResponse
     {
         if (!$this->isCsrfTokenValid('article-bulk', $request->headers->get('X-CSRF-Token'))) { throw $this->createAccessDeniedException(); }
         try { $payload = json_decode($request->getContent(), true, 16, \JSON_THROW_ON_ERROR); $before = new \DateTimeImmutable((string) ($payload['before'] ?? '')); } catch (\Exception) { return $this->json(['error' => 'Date invalide.'], 422); }
-        $articles = $entityManager->createQueryBuilder()->select('a')->from(Article::class, 'a')->innerJoin(Subscription::class, 'subscription', 'WITH', 'subscription.feed = a.feed AND subscription.user = :user AND subscription.enabled = true')->where('COALESCE(a.publishedAt, a.collectedAt) < :before')->setParameter('user', $this->currentUser()->getId(), 'uuid')->setParameter('before', $before)->setMaxResults(500)->getQuery()->getResult();
-        foreach ($articles as $article) { $articleStateService->update($this->currentUser(), $article, ['isRead' => true]); }
+        $changed = $markRead->markBefore($this->currentUser(), $before);
 
-        return $this->json(['matched' => count($articles), 'changed' => count($articles), 'skipped' => 0]);
+        return $this->json(['matched' => $changed, 'changed' => $changed, 'skipped' => 0]);
     }
 
     private function accessibleArticle(string $id, EntityManagerInterface $entityManager): Article
@@ -289,7 +288,6 @@ final class ArticleController extends AbstractController
         return $article;
     }
 
-    /** @return array{collectedAt: string, id: string}|null */
     private function queryUuid(Request $request, string $name): Uuid
     {
         $value = $request->query->getString($name);
@@ -306,6 +304,7 @@ final class ArticleController extends AbstractController
         }
     }
 
+    /** @return array{collectedAt: string, id: string}|null */
     private function decodeCursor(string $cursor): ?array
     {
         if ('' === $cursor) { return null; }

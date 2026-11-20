@@ -57,17 +57,19 @@ Constats revérifiés dans le code pendant la consolidation :
 
 L'ordre recommandé suit le rapport gain/risque. Les lots 1 à 3 sont courts et corrigent des défauts qui ont un effet en production.
 
-| Lot | Thème | Priorité | Effort | Migration | Fichier |
-|---|---|---|---|---|---|
-| 1 | Stabilité de la collecte des flux | Haute | M | Non | [lot-01-collecte.md](lot-01-collecte.md) |
-| 2 | Rétention et purge des données | Haute | S–M | Oui (index) | [lot-02-retention.md](lot-02-retention.md) |
-| 3 | Exposition HTTP et sessions | Haute | S–M | Non | [lot-03-securite-http.md](lot-03-securite-http.md) |
-| 4 | Performances SQL de la lecture | Haute | M–L | Oui (index) | [lot-04-performances-sql.md](lot-04-performances-sql.md) |
-| 5 | Exploitation Docker et observabilité | Haute | M | Non | [lot-05-exploitation.md](lot-05-exploitation.md) |
-| 6 | CI, analyse statique et supply chain | Moyenne | M | Non | [lot-06-ci-qualite.md](lot-06-ci-qualite.md) |
-| 7 | Accessibilité et i18n | Moyenne | M | Non | [lot-07-accessibilite-i18n.md](lot-07-accessibilite-i18n.md) |
-| 8 | Robustesse front, PWA et poids des assets | Moyenne | M | Non | [lot-08-front-pwa.md](lot-08-front-pwa.md) |
-| 9 | Architecture et dette de code | Basse | L | Non | [lot-09-architecture.md](lot-09-architecture.md) |
+| Lot | Thème | Priorité | Effort | Migration | Statut | Fichier |
+|---|---|---|---|---|---|---|
+| 1 | Stabilité de la collecte des flux | Haute | M | Non | Partiel, non validé | [lot-01-collecte.md](lot-01-collecte.md) |
+| 2 | Rétention et purge des données | Haute | S–M | Oui (index) | Codé 2.1–2.4, non validé | [lot-02-retention.md](lot-02-retention.md) |
+| 3 | Exposition HTTP et sessions | Haute | S–M | Non | Partiel, non validé | [lot-03-securite-http.md](lot-03-securite-http.md) |
+| 4 | Performances SQL de la lecture | Haute | M–L | Oui (index) | Partiel (4.1, 4.3, 4.9…), non validé | [lot-04-performances-sql.md](lot-04-performances-sql.md) |
+| 5 | Exploitation Docker et observabilité | Haute | M | Non | À faire | [lot-05-exploitation.md](lot-05-exploitation.md) |
+| 6 | CI, analyse statique et supply chain | Moyenne | M | Non | À faire | [lot-06-ci-qualite.md](lot-06-ci-qualite.md) |
+| 7 | Accessibilité et i18n | Moyenne | M | Non | À faire | [lot-07-accessibilite-i18n.md](lot-07-accessibilite-i18n.md) |
+| 8 | Robustesse front, PWA et poids des assets | Moyenne | M | Non | À faire | [lot-08-front-pwa.md](lot-08-front-pwa.md) |
+| 9 | Architecture et dette de code | Basse | L | Non | À faire | [lot-09-architecture.md](lot-09-architecture.md) |
+
+Le détail de ce qui est appliqué, partiel ou laissé de côté figure dans la section « Statut d'avancement » de chaque fichier de lot.
 
 Effort : **S** ≤ ½ jour, **M** 1–3 jours, **L** > 3 jours.
 

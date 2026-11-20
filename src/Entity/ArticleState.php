@@ -9,6 +9,9 @@ use Symfony\Component\Uid\Uuid;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'article_state')]
+#[ORM\Index(name: 'idx_article_state_user_read', columns: ['user_id', 'is_read'])]
+#[ORM\Index(name: 'idx_article_state_user_favorite_article', columns: ['user_id', 'is_favorite', 'article_id'])]
+#[ORM\Index(name: 'idx_article_state_user_saved_article', columns: ['user_id', 'is_saved', 'article_id'])]
 #[ORM\UniqueConstraint(name: 'uniq_article_state_user_article', columns: ['user_id', 'article_id'])]
 final class ArticleState
 {

@@ -56,3 +56,20 @@ curl -sI http://127.0.0.1:8080/login | grep -Ei 'content-security|x-frame|x-cont
 - Le throttling est par IP réelle.
 - Un compte désactivé est déconnecté à la requête suivante.
 - Les en-têtes sont présents sans régression des tests Playwright.
+
+## Statut d'avancement
+
+*Mis à jour le 20 novembre 2026. Codé, tests exécutés sur la base de test ; en attente du retour de validation du développeur (contrôles derrière le proxy HTTPS en particulier).*
+
+| ID | État | Note |
+|---|---|---|
+| 3.1 | Partiel | `trusted_proxies`/`trusted_headers` et variable `SYMFONY_TRUSTED_PROXIES` ajoutés (compose, `docker/env.example`, `.env.example`). **Non fait :** `cookie_secure: true` en prod, laissé à `auto` pour ne pas casser une installation HTTP. Le cookie `Secure` derrière proxy n'est pas testé. |
+| 3.2 | Appliqué | `User::isEqualTo()` (id, identifiant, mot de passe, rôles, statut). |
+| 3.3 | Partiel | `SecurityHeadersSubscriber` : `nosniff`, `X-Frame-Options`, `Referrer-Policy`, `frame-ancestors 'none'`. **Non fait :** CSP stricte avec phase `Report-Only` et nonces, remplacement du widget Ko-fi, HSTS (à poser sur le proxy). |
+| 3.4 | Appliqué | Limiteur `register` 3/heure/IP ; limiteur `login` inutilisé supprimé. |
+| 3.5 | Appliqué | Plages CGNAT, `198.18.0.0/15`, NAT64, 6to4, Teredo, IPv4-mapped refusées dans `UrlSafetyValidator`. |
+| 3.6 | Appliqué | `FeedParser` le faisait déjà ; contrôle `doctype` ajouté à `OpmlSubscriptionParser`. Pas de test avec un XML UTF-16. |
+| 3.7 | **Non traité** | `switch_user` en GET : change le parcours d'impersonation, décision requise. |
+| 3.8 | **Non traité** | `/setup` public : choix entre `ZUNAFLUX_SETUP_TOKEN` et documentation. |
+| 3.9 | Appliqué | UUID de catégorie invalide : 404 ; filtres `subscription`, `category`, `from`, `to` de `/api/articles` : 400. Les autres routes du constat n'ont pas été auditées une à une. |
+| 3.10 | Appliqué | Message générique + journalisation à la création d'utilisateur ; refus de désactiver ou rétrograder le dernier admin actif (sans test automatisé). |

@@ -61,3 +61,18 @@ php85 tests/Migration/check-migrations.php upgrade
 - Après purge puis collecte, aucun article purgé ne réapparaît.
 - `EXPLAIN` de la sélection de purge utilise `idx_article_collected`.
 - La purge est planifiée dans Docker et documentée hors Docker.
+
+## Statut d'avancement
+
+*Mis à jour le 20 novembre 2026. Codé, tests exécutés sur la base de test (`.env.test.local`) ; en attente du retour de validation du développeur (dont `tests/Migration/check-migrations.php`, qui exige une base `zunaflux_migrations_test_*`).*
+
+| ID | État | Note |
+|---|---|---|
+| 2.1 | Appliqué | Purge sur `collected_at` seul. |
+| 2.2 | Appliqué | Migration `Version20261120120000` (`idx_article_collected`) + `#[ORM\Index]` dans `Article`. Appliquée sur la base de test et sur la base de l'environnement par défaut du développeur. |
+| 2.3 | Appliqué | `ArticleRetention::purge()` (boucle + budget), options `--max-seconds` et `--batch-size`, appel dans `docker/collect-feeds.sh`, documentation README et `docs/SYNTHESE.md`. **Pas de timer systemd fourni** (documenté seulement). |
+| 2.4 | Appliqué | `NOT EXISTS` revérifié dans le `DELETE`. |
+| 2.5 | **Non traité** | Médias de `var/media` : rattachement aux articles non vérifié. |
+| 2.6 | **Non traité** | Purge à 90 jours des tables de diagnostic. À arbitrer d'abord : rôle de `first_read_event` (anti-recomptage des premières lectures). |
+
+**Tests :** `ArticleRetentionTest` adapté à `collected_at` (cas `old_pubdate_recent_collect`) et test du budget de temps. Le critère `EXPLAIN` utilisant `idx_article_collected` n'est pas vérifié.
