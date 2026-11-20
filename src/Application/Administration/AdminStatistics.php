@@ -80,6 +80,19 @@ final readonly class AdminStatistics
     }
 
     /**
+     * Open (not acknowledged) incidents and feeds currently failing.
+     *
+     * @return array{openIncidents: int, failingFeeds: int}
+     */
+    public function incidents(): array
+    {
+        return [
+            'openIncidents' => (int) $this->connection->fetchOne('SELECT COUNT(*) FROM feed_incident WHERE acknowledged_at IS NULL'),
+            'failingFeeds' => (int) $this->connection->fetchOne('SELECT COUNT(*) FROM feed WHERE failure_count > 0'),
+        ];
+    }
+
+    /**
      * Number of subscriptions per account, in one query.
      *
      * @return array<string, int> keyed by account id (RFC 4122)

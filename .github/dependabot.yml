@@ -19,6 +19,11 @@ updates:
     directory: /
     schedule:
       interval: weekly
+  # Compose files pin the database image by digest.
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
   - package-ecosystem: github-actions
     directory: /
     schedule:

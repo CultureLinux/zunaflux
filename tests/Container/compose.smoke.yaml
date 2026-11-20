@@ -1,0 +1,6 @@
+# Smoke-test only: the application file system is read-only, so the hidden file used to prove
+# that Caddy refuses dotfiles is mounted from the repository instead of being created at run time.
+services:
+  app:
+    volumes:
+      - ./tests/Container/fixtures/smoke-secret:/app/public/.smoke-secret:ro

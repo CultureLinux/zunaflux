@@ -24,8 +24,11 @@ fi
 # Exit promptly on SIGTERM/SIGINT instead of waiting for the next interval.
 trap 'exit 143' TERM INT
 
+alive=/tmp/zunaflux-alive
 failures=0
 while :; do
+    # The container healthcheck reads this file's age: touched at the start and the end of each cycle.
+    touch "$alive"
     cycle_failed=0
     if ! php bin/console app:feeds:collect --env=prod --no-interaction; then
         log 'Feed collection failed.'
@@ -46,6 +49,7 @@ while :; do
         fi
     fi
 
+    touch "$alive"
     # `wait` is interruptible by a trapped signal, unlike a foreground sleep.
     sleep "$interval" &
     wait $!

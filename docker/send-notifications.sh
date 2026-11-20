@@ -9,8 +9,10 @@ log() {
 
 trap 'exit 143' TERM INT
 
+alive=/tmp/zunaflux-alive
 failures=0
 while :; do
+    touch "$alive"
     if php bin/console app:notifications:send --env=prod --no-interaction; then
         failures=0
     else

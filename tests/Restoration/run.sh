@@ -24,7 +24,10 @@ unset DOCKER_CONTEXT
 # Assign before exporting so a failed inspect/key generation preserves its exit
 # status under set -e, before any resources or cleanup trap are created.
 RESTORE_TEST_IMAGE=$(docker image inspect --format '{{.Id}}' "$task_image")
-RESTORE_TEST_DB_IMAGE=$(docker image inspect --format '{{.Id}}' mariadb:10.11)
+# The database image is the digest-pinned reference of the production Compose file.
+task_db_reference=$(docker compose --env-file "$task_root/docker/env.test" -f "$task_root/compose.yaml" config --images | grep '^mariadb:' | head -n 1)
+docker image inspect "$task_db_reference" >/dev/null 2>&1 || docker pull --quiet "$task_db_reference" >/dev/null
+RESTORE_TEST_DB_IMAGE=$(docker image inspect --format '{{.Id}}' "$task_db_reference")
 RESTORE_TEST_DB_PASSWORD=$(php85 -r 'echo bin2hex(random_bytes(24));')
 RESTORE_TEST_APP_SECRET=$(php85 -r 'echo bin2hex(random_bytes(32));')
 RESTORE_TEST_TOKEN_KEY=$(php85 -r 'echo base64_encode(random_bytes(32));')

@@ -129,10 +129,16 @@ Zunaflux n'a pas encore de version stable : les valeurs par défaut évoluent ve
 | Depuis | Changement | Ce qu'il faut faire |
 |---|---|---|
 | Lot 10 | Les cookies de session et « se souvenir de moi » sont `Secure` en production : un accès en HTTP simple ne garde plus la session. | Servir Zunaflux en HTTPS (derrière un proxy, avec `SYMFONY_TRUSTED_PROXIES`), ou définir `ZUNAFLUX_COOKIE_SECURE=0` pour un essai local en HTTP. |
+| Lot 11 | Les migrations ne s'appliquent plus au `docker compose up` : le service `migrations` est sous le profil `migrate`. | Lancer `docker compose --env-file docker/.env -f compose.yaml --profile migrate run --rm migrations` à l'installation puis à chaque mise à jour, avant `up -d`. |
+| Lot 11 | `ZUNAFLUX_IMAGE_TAG` est obligatoire : plus de tag `latest` par défaut. | Renseigner une version publiée dans `docker/.env`. |
+| Lot 11 | Le port HTTP n'est publié que sur `127.0.0.1`. | Placer un proxy sur la même machine, ou définir `ZUNAFLUX_HTTP_BIND=0.0.0.0` pour l'ouvrir. |
+| Lot 11 | Les fichiers VAPID se lisent dans `docker/secrets/` (montage en lecture seule) au lieu de chemins libres. | Déposer `vapid-public.txt` et `vapid-private.pem` dans `docker/secrets/` (non versionné), ou définir `ZUNAFLUX_VAPID_*_FILE`. |
+| Lot 11 | Les conteneurs applicatifs sont en lecture seule, sans capacités et limités en mémoire (256 Mo pour `app` et `worker`, 128 Mo pour `collector` et `notifications`). | Si un conteneur redémarre pour manque de mémoire, relever la limite dans `compose.yaml`. |
 | Lot 10 | L'imitation d'un compte par un administrateur passe uniquement par le bouton de l'administration (requête POST protégée). Le lien `?_switch_user=…` ne fonctionne plus. Un administrateur ne peut plus imiter un autre administrateur ni enchaîner deux imitations. | Utiliser le bouton « Imiter » de la page Administration, puis « Revenir à mon compte ». |
 
 ### Variables ajoutées
 
+- `ZUNAFLUX_HTTP_BIND` (défaut : `127.0.0.1`) : interface sur laquelle Docker publie le port.
 - `ZUNAFLUX_COOKIE_SECURE` (défaut : `1` en production) : `0` autorise les cookies en HTTP.
 - `ZUNAFLUX_SETUP_TOKEN` (facultative) : si elle est définie, la page `/setup` exige ce jeton pour créer le premier administrateur. Sans elle, créez l'administrateur par la console avant d'exposer le serveur : `php85 bin/console app:user:create EMAIL MOT_DE_PASSE --admin --env=prod`.
 

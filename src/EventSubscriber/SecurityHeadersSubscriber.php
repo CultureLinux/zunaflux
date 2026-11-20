@@ -7,6 +7,8 @@ namespace App\EventSubscriber;
 use App\Security\CspNonce;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
@@ -64,7 +66,11 @@ final class SecurityHeadersSubscriber implements EventSubscriberInterface
             return str_starts_with($type, 'text/html');
         }
 
-        return 'html' === $event->getRequest()->getRequestFormat('html') && !$response->isRedirection() && !$response->isEmpty() && !$response instanceof \Symfony\Component\HttpFoundation\StreamedResponse && !$response instanceof \Symfony\Component\HttpFoundation\BinaryFileResponse;
+        if ('html' !== $event->getRequest()->getRequestFormat('html') || $response->isRedirection() || $response->isEmpty()) {
+            return false;
+        }
+
+        return !$response instanceof StreamedResponse && !$response instanceof BinaryFileResponse;
     }
 
     private function reportOnlyPolicy(): string

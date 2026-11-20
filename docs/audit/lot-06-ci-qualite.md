@@ -71,3 +71,5 @@ Les tests `tests/Container/*workflow*.sh` vérifient la structure des workflows.
 - 7 types manquants (`array<…>`) corrigés par des annotations.
 - `AdminController` : comparaison toujours vraie supprimée ; `SubscriptionController` : `??` inutile retiré ; `UserExport` : `getRepository()` appelé directement (classe littérale) au lieu d'une fonction anonyme ; `createUser` recevait un `$logger` absent (bug que j'avais introduit au lot 3, corrigé, test `AdminUserCreationTest`).
 - 30 erreurs sur les entités Doctrine (`property.onlyWritten`, `property.unused`, `property.unusedType`) : exemption **limitée à `src/Entity/*`** dans `phpstan.neon.dist`, car Doctrine lit et écrit ces propriétés par réflexion. À supprimer si `phpstan-doctrine` est adopté. Ce n'est pas une correction mais un choix de configuration : à confirmer.
+
+**Suite (20 novembre 2026) :** le scan d'image, le SBOM et la provenance (6.2) sont traités par le [lot 11](lot-11-exploitation-docker.md). 6.3 est écarté.

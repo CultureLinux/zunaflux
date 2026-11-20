@@ -15,17 +15,34 @@ x-zunaflux-environment: &zunaflux-environment
   ZUNAFLUX_MAX_ACCOUNTS: ${ZUNAFLUX_MAX_ACCOUNTS:-}
   ZUNAFLUX_MEDIA_STORAGE: var/media
   ZUNAFLUX_RETENTION_MONTHS: ${ZUNAFLUX_RETENTION_MONTHS:-12}
-  ZUNAFLUX_VAPID_PUBLIC_FILE: ${ZUNAFLUX_VAPID_PUBLIC_FILE:-}
-  ZUNAFLUX_VAPID_PRIVATE_FILE: ${ZUNAFLUX_VAPID_PRIVATE_FILE:-}
+  ZUNAFLUX_VAPID_PUBLIC_FILE: ${ZUNAFLUX_VAPID_PUBLIC_FILE:-/run/secrets/zunaflux/vapid-public.txt}
+  ZUNAFLUX_VAPID_PRIVATE_FILE: ${ZUNAFLUX_VAPID_PRIVATE_FILE:-/run/secrets/zunaflux/vapid-private.pem}
   ZUNAFLUX_VAPID_SUBJECT: ${ZUNAFLUX_VAPID_SUBJECT:-}
   ZUNAFLUX_MASTODON_TOKEN_KEY: ${ZUNAFLUX_MASTODON_TOKEN_KEY:-}
   ZUNAFLUX_PUBLIC_BASE_URL: ${ZUNAFLUX_PUBLIC_BASE_URL:-}
   MATOMO_URL: ${MATOMO_URL:-}
   MATOMO_SITE_ID: ${MATOMO_SITE_ID:-}
 
+# The application containers never write to their image: the code and the compiled cache are
+# read-only, and only /tmp (tmpfs) and the media volume accept writes.
+x-zunaflux-hardening: &zunaflux-hardening
+  read_only: true
+  cap_drop: [ALL]
+  security_opt:
+    - no-new-privileges:true
+  pids_limit: 256
+  tmpfs:
+    - /tmp:size=64m,mode=1777
+
+# No default tag: pick a release explicitly (see the tags on Docker Hub).
+x-zunaflux-image: &zunaflux-image clinuxfr/zunaflux:${ZUNAFLUX_IMAGE_TAG:?Set ZUNAFLUX_IMAGE_TAG in docker/.env to a release tag}
+
+# Web Push keys: put vapid-public.txt and vapid-private.pem in docker/secrets/ (not versioned).
+# That directory is mounted read-only in app, worker and notifications.
+
 services:
   database:
-    image: mariadb:10.11
+    image: mariadb:10.11@sha256:e5fe75b2b9de0eb9f6f9a4d9c97272fb3a7480e389ccd487a786bab2a12cc0d7
     restart: unless-stopped
     environment:
       MARIADB_DATABASE: ${MARIADB_DATABASE:?Set MARIADB_DATABASE in docker/.env}
@@ -40,8 +57,12 @@ services:
       timeout: 5s
       retries: 5
 
+  # Never started by "up": run it on purpose, after reading the release notes and backing up.
+  #   docker compose --profile migrate run --rm migrations
   migrations:
-    image: clinuxfr/zunaflux:${ZUNAFLUX_IMAGE_TAG:-latest}
+    <<: *zunaflux-hardening
+    profiles: [migrate]
+    image: *zunaflux-image
     restart: "no"
     command: ["php", "bin/console", "doctrine:migrations:migrate", "--env=prod", "--no-interaction"]
     environment: *zunaflux-environment
@@ -50,10 +71,18 @@ services:
         condition: service_healthy
 
   app:
-    image: clinuxfr/zunaflux:${ZUNAFLUX_IMAGE_TAG:-latest}
+    <<: *zunaflux-hardening
+    image: *zunaflux-image
     restart: unless-stopped
+    mem_limit: 256m
+    cpus: 1.0
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+      - /config/caddy:size=1m,uid=33,gid=33
+      - /data/caddy:size=1m,uid=33,gid=33
     ports:
-      - "${ZUNAFLUX_HTTP_PORT:-8080}:8080"
+      # Loopback only by default: put a TLS-terminating reverse proxy in front.
+      - "${ZUNAFLUX_HTTP_BIND:-127.0.0.1}:${ZUNAFLUX_HTTP_PORT:-8080}:8080"
     healthcheck:
       test: ["CMD", "php", "-r", "$$c = curl_init('http://127.0.0.1:8080/healthz'); curl_setopt_array($$c, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 3]); curl_exec($$c); $$s = curl_getinfo($$c, CURLINFO_RESPONSE_CODE); exit(200 === $$s ? 0 : 1);"]
       interval: 10s
@@ -63,30 +92,48 @@ services:
     environment: *zunaflux-environment
     volumes:
       - media-data:/app/var/media
+      - ${ZUNAFLUX_SECRETS_DIR:-./docker/secrets}:/run/secrets/zunaflux:ro
     depends_on:
       database:
         condition: service_healthy
-      migrations:
-        condition: service_completed_successfully
 
   worker:
-    image: clinuxfr/zunaflux:${ZUNAFLUX_IMAGE_TAG:-latest}
+    <<: *zunaflux-hardening
+    image: *zunaflux-image
     restart: unless-stopped
-    command: ["php", "bin/console", "messenger:consume", "async", "--env=prod", "--no-interaction", "--time-limit=3600", "--memory-limit=256M", "--failure-limit=10"]
+    mem_limit: 256m
+    cpus: 1.0
+    command: ["php", "bin/console", "messenger:consume", "async", "--env=prod", "--no-interaction", "--time-limit=3600", "--memory-limit=200M", "--failure-limit=10"]
+    healthcheck:
+      # The worker records a heartbeat every 30 s; the command fails when it is older than 90 s.
+      test: ["CMD", "php", "bin/console", "app:worker:healthcheck", "--env=prod"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
     environment: *zunaflux-environment
     volumes:
       - media-data:/app/var/media
+      - ${ZUNAFLUX_SECRETS_DIR:-./docker/secrets}:/run/secrets/zunaflux:ro
     depends_on:
       database:
         condition: service_healthy
-      migrations:
-        condition: service_completed_successfully
 
   collector:
-    image: clinuxfr/zunaflux:${ZUNAFLUX_IMAGE_TAG:-latest}
+    <<: *zunaflux-hardening
+    image: *zunaflux-image
     restart: unless-stopped
     init: true
+    mem_limit: 128m
+    cpus: 0.5
     command: ["/usr/local/bin/collect-feeds"]
+    healthcheck:
+      # The loop refreshes /tmp/zunaflux-alive on every cycle; allow three missed intervals.
+      test: ["CMD-SHELL", "test $$(( $$(date +%s) - $$(stat -c %Y /tmp/zunaflux-alive) )) -lt $$(( 3 * $$ZUNAFLUX_COLLECTION_INTERVAL + 120 ))"]
+      interval: 60s
+      timeout: 5s
+      start_period: 15m
+      retries: 2
     environment:
       <<: *zunaflux-environment
       ZUNAFLUX_COLLECTION_INTERVAL: ${ZUNAFLUX_COLLECTION_INTERVAL:-900}
@@ -95,20 +142,27 @@ services:
     depends_on:
       database:
         condition: service_healthy
-      migrations:
-        condition: service_completed_successfully
 
   notifications:
-    image: clinuxfr/zunaflux:${ZUNAFLUX_IMAGE_TAG:-latest}
+    <<: *zunaflux-hardening
+    image: *zunaflux-image
     restart: unless-stopped
     init: true
+    mem_limit: 128m
+    cpus: 0.25
     command: ["/usr/local/bin/send-notifications"]
+    healthcheck:
+      test: ["CMD-SHELL", "test $$(( $$(date +%s) - $$(stat -c %Y /tmp/zunaflux-alive) )) -lt 300"]
+      interval: 60s
+      timeout: 5s
+      start_period: 5m
+      retries: 2
     environment: *zunaflux-environment
+    volumes:
+      - ${ZUNAFLUX_SECRETS_DIR:-./docker/secrets}:/run/secrets/zunaflux:ro
     depends_on:
       database:
         condition: service_healthy
-      migrations:
-        condition: service_completed_successfully
 
 volumes:
   database-data:
