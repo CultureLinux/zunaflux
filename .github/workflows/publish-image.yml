@@ -89,7 +89,7 @@ jobs:
             sed 's/^/type=raw,value=/' "$RUNNER_TEMP/release-tags"
             echo 'RELEASE_TAGS'
           } >> "$GITHUB_OUTPUT"
-      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-qemu-action@v4
       - uses: docker/setup-buildx-action@v3
       - id: metadata
         uses: docker/metadata-action@v5
