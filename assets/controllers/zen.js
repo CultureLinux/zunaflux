@@ -1,3 +1,5 @@
+const t = (key, params = {}) => (typeof window !== 'undefined' && window.zunaflux?.t ? window.zunaflux.t(key, params) : Object.entries(params).reduce((text, [name, value]) => text.replace(`%${name}%`, String(value)), key));
+
 const classifyZenGesture = (dx, dy) => {
     if (Math.abs(dx) < 60 || Math.abs(dx) <= Math.abs(dy)) return null;
     return dx < 0 ? 'next' : 'previous';
@@ -142,7 +144,7 @@ if (zen) {
     next.addEventListener('click', () => act('next'));
     favorite.addEventListener('click', () => act('favorite'));
     save.addEventListener('click', () => act('save'));
-    share.addEventListener('click', () => { void shareZenArticle(article).then((result) => { if (result === 'copied') window.dispatchEvent(new CustomEvent('zunaflux:toast', { detail: { type: 'success', message: 'Lien copié.' } })); }); });
+    share.addEventListener('click', () => { void shareZenArticle(article).then((result) => { if (result === 'copied') window.dispatchEvent(new CustomEvent('zunaflux:toast', { detail: { type: 'success', message: t('Lien copié.') } })); }); });
     mastodonShare?.addEventListener('click', () => { if (article) window.dispatchEvent(new CustomEvent('zunaflux:mastodon-share', { detail: article })); });
     let start = null;
     content.addEventListener('touchstart', event => { start = event.touches.length === 1 ? [event.touches[0].clientX, event.touches[0].clientY] : null; }, { passive: true });

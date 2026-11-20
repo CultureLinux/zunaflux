@@ -21,24 +21,29 @@ use Symfony\Component\HttpClient\Psr18Client;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class AdminPushTestController extends AbstractController
 {
+    public function __construct(private readonly TranslatorInterface $translator)
+    {
+    }
+
     #[Route('/admin/push-test', name: 'app_admin_push_test', methods: ['POST'])]
     public function __invoke(Request $request, EntityManagerInterface $em, string $pushPrivateFile, string $pushSubject, NotificationDiagnostics $diagnostics, NotificationCounter $counter, PushMessage $messages, PushDelivery $delivery): JsonResponse
     {
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
         if (!$this->isCsrfTokenValid('push-subscription', $request->headers->get('X-CSRF-Token', ''))) throw $this->createAccessDeniedException();
-        try { $data = $request->toArray(); } catch (\Throwable) { return $this->json(['error' => 'Données invalides.'], 400); }
+        try { $data = $request->toArray(); } catch (\Throwable) { return $this->json(['error' => $this->translator->trans('Données invalides.')], 400); }
         $endpoint = $data['endpoint'] ?? null;
-        if (!is_string($endpoint) || !PushEndpoint::isAllowed($endpoint)) return $this->json(['error' => 'Abonnement invalide.'], 400);
+        if (!is_string($endpoint) || !PushEndpoint::isAllowed($endpoint)) return $this->json(['error' => $this->translator->trans('Abonnement invalide.')], 400);
         $subscription = $em->getRepository(PushSubscription::class)->findOneBy(['endpointHash' => hash('sha256', $endpoint, true)]);
         $user = $this->getUser();
-        if (!$subscription instanceof PushSubscription || !$user instanceof User || !$subscription->getUser()->getId()->equals($user->getId())) return $this->json(['error' => 'Activez les notifications sur cet appareil.'], 404);
+        if (!$subscription instanceof PushSubscription || !$user instanceof User || !$subscription->getUser()->getId()->equals($user->getId())) return $this->json(['error' => $this->translator->trans('Activez les notifications sur cet appareil.')], 404);
         $fileReadable = is_file($pushPrivateFile) && is_readable($pushPrivateFile);
         if (!$fileReadable || '' === $pushSubject) {
             $diagnostics->configuration('test', $fileReadable, '' !== $pushSubject);
-            return $this->json(['error' => 'Notifications non configurées.'], 503);
+            return $this->json(['error' => $this->translator->trans('Notifications non configurées.')], 503);
         }
         $stage = 'initialisation';
         try {
@@ -52,14 +57,14 @@ final class AdminPushTestController extends AbstractController
             $em->flush();
             if (!$report->isSuccess()) {
                 $diagnostics->failure('test', $report);
-                return $this->json(['error' => 'La notification n’a pas pu être envoyée.'], 502);
+                return $this->json(['error' => $this->translator->trans('La notification n’a pas pu être envoyée.')], 502);
             }
             $counter->recordAccepted();
         } catch (\Throwable $exception) {
             $subscription->recordResult('failed');
             $em->flush();
             $diagnostics->exception('test', $stage, $exception);
-            return $this->json(['error' => 'La notification n’a pas pu être envoyée.'], 502);
+            return $this->json(['error' => $this->translator->trans('La notification n’a pas pu être envoyée.')], 502);
         }
 
         return $this->json(['ok' => true]);

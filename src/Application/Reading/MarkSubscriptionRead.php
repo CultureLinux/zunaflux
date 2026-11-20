@@ -36,6 +36,12 @@ final readonly class MarkSubscriptionRead
         );
     }
 
+    /** Marks every unread article of the user's enabled subscriptions as read. */
+    public function markAll(User $user): int
+    {
+        return $this->markMatching($user, '1 = 1', [], []);
+    }
+
     /** Marks every article of the user's enabled subscriptions dated before the given instant. */
     public function markBefore(User $user, \DateTimeImmutable $before): int
     {

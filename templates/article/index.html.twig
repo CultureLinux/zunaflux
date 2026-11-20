@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Lecture · Zunaflux{% endblock %}
+{% block title %}{{ 'Lecture'|trans }} · Zunaflux{% endblock %}
 
 {% block body %}
     <div class="{{ preference.sidebarCollapsed ? 'reading-workspace' : '' }}">
@@ -14,12 +14,12 @@
         </div>
         </header>
         {% if preference.sidebarCollapsed %}
-        <aside class="reading-sidebar" aria-label="Navigation de lecture">
-            <p class="reading-sidebar-title">{{ "Votre lecture"|trans }}</p>
+        <aside class="reading-sidebar" aria-label="{{ 'Navigation de lecture'|trans }}">
+            <div class="reading-sidebar-top"><p class="reading-sidebar-title">{{ "Votre lecture"|trans }}</p><button class="reading-mark-all" type="button" data-confirm-open="mark-all-read-dialog" aria-label="{{ 'Tout marquer comme lu'|trans }}" title="{{ 'Tout marquer comme lu'|trans }}"><svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12l5 5L18 6M12 16l1.5 1.5L22 8"/></svg></button></div>
             <p class="reading-sidebar-category" data-reading-category-context aria-live="polite" hidden></p>
 
-            <div class="reading-sidebar-heading"><p>{{ "Sources"|trans }}</p><a href="{{ path('app_subscriptions') }}" aria-label="Gérer les sources">+</a></div>
-            <nav class="reading-sidebar-nav" aria-label="Vos sources">
+            <div class="reading-sidebar-heading"><p>{{ "Sources"|trans }}</p><a href="{{ path('app_subscriptions') }}" aria-label="{{ 'Gérer les sources'|trans }}">+</a></div>
+            <nav class="reading-sidebar-nav" aria-label="{{ 'Vos sources'|trans }}">
                 {% for category in readingCategories %}
                     {% set categoryParameters = {category: category.id, filterName: category.name} %}
                     {% set currentRead = app.request.query.get('read', '0') %}
@@ -40,13 +40,14 @@
             </nav>
         </aside>
         {% endif %}
-    <main class="mx-auto min-h-screen max-w-[96rem] px-4 py-12 sm:px-6 lg:px-8 {{ preference.density == 'compact' ? 'article-density-compact' : '' }} {{ preference.fontScale == 'large' ? 'text-lg' : preference.fontScale == 'small' ? 'text-sm' : '' }}" data-read-mode-default="{{ preference.readMode }}">
+    <main id="main" tabindex="-1" class="mx-auto min-h-screen max-w-[96rem] px-4 py-12 sm:px-6 lg:px-8 {{ preference.density == 'compact' ? 'article-density-compact' : '' }} {{ preference.fontScale == 'large' ? 'text-lg' : preference.fontScale == 'small' ? 'text-sm' : '' }}" data-read-mode-default="{{ preference.readMode }}">
+        <h1 class="sr-only md:hidden">{{ "Les derniers articles"|trans }}</h1>
         <section class="reading-intro hidden pb-12 md:block"><p class="font-mono text-xs uppercase tracking-[.25em] text-muted">{{ "Votre lecture"|trans }}</p><h1 class="mt-4 font-serif text-5xl text-foreground">{{ "Les derniers articles"|trans }}</h1><p class="mt-4 text-muted">{{ "Votre liste se charge ici à partir de vos abonnements actifs."|trans }}</p></section>
         <div class="mb-5 flex flex-wrap items-center gap-2">
 
 
-        <section class="flex flex-wrap items-center gap-2" data-article-actions data-csrf-token="{{ csrf_token('article-bulk') }}" aria-label="Actions groupées">
-            <button class="border border-line px-3 py-2 text-sm text-accent hover:border-accent hover:bg-accent-soft" data-select-all type="button" aria-pressed="false" hidden>Sélectionner les articles chargés</button>
+        <section class="flex flex-wrap items-center gap-2" data-article-actions data-csrf-token="{{ csrf_token('article-bulk') }}" aria-label="{{ 'Actions groupées'|trans }}">
+            <button class="border border-line px-3 py-2 text-sm text-accent hover:border-accent hover:bg-accent-soft" data-select-all type="button" aria-pressed="false" hidden>{{ 'Sélectionner les articles chargés'|trans }}</button>
             <span class="text-sm text-muted" data-selected-count aria-live="polite"></span>
             {% for action in [
                 {key: 'read', label: 'Marquer lus', icon: 'M4 12l5 5L20 6'},
@@ -56,15 +57,27 @@
                 {key: 'save', label: 'Lire plus tard', icon: 'M6 3h12v18l-6-4-6 4V3Z'},
                 {key: 'unsave', label: 'Retirer de la liste', icon: 'M6 3h12v18l-6-4-6 4V3ZM9 10h6'}
             ] %}
-                <button class="flex h-11 w-11 items-center justify-center border border-accent bg-accent-soft text-accent hover:bg-accent hover:text-accent-foreground" data-bulk-{{ action.key }} type="button" aria-label="{{ action.label }}" title="{{ action.label }}" disabled hidden><svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ action.icon }}"/></svg></button>
+                <button class="flex h-11 w-11 items-center justify-center border border-accent bg-accent-soft text-accent hover:bg-accent hover:text-accent-foreground" data-bulk-{{ action.key }} type="button" aria-label="{{ action.label|trans }}" title="{{ action.label|trans }}" disabled hidden><svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="{{ action.icon }}"/></svg></button>
             {% endfor %}
         </section>
         </div>
-        <div class="mb-4 flex flex-wrap items-center gap-3" data-source-filter hidden><span class="text-sm text-muted" data-source-filter-label></span><button class="min-h-11 border border-line px-3 py-2 text-sm text-accent hover:bg-accent-soft" type="button" data-clear-source>Voir tous les flux</button>{% include 'article/_source_mark_read.html.twig' %}</div>
+        <div class="mb-4 flex flex-wrap items-center gap-3" data-source-filter hidden><span class="text-sm text-muted" data-source-filter-label></span><button class="min-h-11 border border-line px-3 py-2 text-sm text-accent hover:bg-accent-soft" type="button" data-clear-source>{{ 'Voir tous les flux'|trans }}</button>{% include 'article/_source_mark_read.html.twig' %}</div>
         <p class="mb-4 text-sm text-danger" data-bulk-error role="alert" hidden></p>
-        <section data-article-list="{{ path('app_api_articles') }}" data-unread-label="{{ 'Non lu'|trans }}" data-favorite-label="{{ 'Favori'|trans }}" data-saved-label="{{ 'À lire plus tard'|trans }}" data-remove-favorite-label="{{ 'Retirer des favoris'|trans }}" data-remove-saved-label="{{ 'Retirer de la liste à lire plus tard'|trans }}" data-empty-filtered-label="{{ 'Aucun article ne correspond à vos critères.'|trans }}" aria-live="polite"><p class="border border-line bg-surface p-6 text-muted">{{ "Chargement des articles…"|trans }}</p></section><div data-article-sentinel aria-hidden="true"></div><button class="mt-6 border border-line px-5 py-3 text-sm text-foreground hover:border-accent" data-article-more hidden type="button">{{ "Charger les suivants"|trans }}</button>
-        <div class="mt-6">{% include 'article/_source_mark_read.html.twig' %}</div>
+        <section data-article-list="{{ path('app_api_articles') }}" data-unread-label="{{ 'Non lu'|trans }}" data-favorite-label="{{ 'Favori'|trans }}" data-saved-label="{{ 'À lire plus tard'|trans }}" data-remove-favorite-label="{{ 'Retirer des favoris'|trans }}" data-remove-saved-label="{{ 'Retirer de la liste à lire plus tard'|trans }}" data-empty-filtered-label="{{ 'Aucun article ne correspond à vos critères.'|trans }}"><p class="border border-line bg-surface p-6 text-muted">{{ "Chargement des articles…"|trans }}</p></section><p class="sr-only" role="status" data-article-status data-loaded-label="{{ '%count% articles chargés'|trans }}"></p><div data-article-sentinel aria-hidden="true"></div><button class="mt-6 border border-line px-5 py-3 text-sm text-foreground hover:border-accent" data-article-more hidden type="button">{{ "Charger les suivants"|trans }}</button>
+        <div class="mt-6">{% include 'article/_source_mark_read.html.twig' %}<button class="mt-4 min-h-11 border border-line px-4 text-sm text-accent hover:border-accent hover:bg-accent-soft" type="button" data-confirm-open="mark-all-read-dialog">{{ 'Marquer tout comme lu'|trans }}</button></div>
     </main>
+    <dialog class="m-auto w-[calc(100%-2rem)] max-w-lg border border-line bg-surface p-6 text-foreground sm:p-8" id="mark-all-read-dialog" aria-labelledby="mark-all-read-title" aria-describedby="mark-all-read-description">
+        <p class="font-mono text-xs uppercase tracking-[.2em] text-accent">{{ 'Rattrapage'|trans }}</p>
+        <h3 class="mt-3 font-serif text-2xl" id="mark-all-read-title">{{ 'Tout marquer comme lu ?'|trans }}</h3>
+        <p class="mt-3 text-sm leading-6 text-muted" id="mark-all-read-description">{{ 'Tous vos articles non lus, dans toutes vos sources, seront marqués comme lus. Cette action ne peut pas être annulée.'|trans }}</p>
+        <div class="mt-7 flex flex-wrap justify-end gap-3">
+            <button class="min-h-11 border border-line px-4 text-foreground hover:border-accent" type="button" data-confirm-close autofocus>{{ 'Annuler'|trans }}</button>
+            <form method="post" action="{{ path('app_articles_mark_all_read') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('mark-all-read') }}">
+                <button class="min-h-11 border border-accent bg-accent px-4 font-semibold text-accent-foreground hover:opacity-90" type="submit">{{ 'Marquer tout comme lu'|trans }}</button>
+            </form>
+        </div>
+    </dialog>
     <dialog class="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-5xl overflow-y-auto border border-line bg-surface p-0 text-foreground backdrop:bg-background/80" data-article-dialog aria-labelledby="article-dialog-title">
         <article class="p-6 md:p-10">
             <div class="reading-dialog-header mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -109,4 +122,5 @@
     {{ importmap('reader') }}
     <script type="module" src="{{ asset('controllers/mastodon-share.js') }}"></script>
     <script type="module" src="{{ asset('controllers/zen.js') }}"></script>
+    <script type="module" src="{{ asset('controllers/confirm-feed-delete.js') }}"></script>
 {% endblock %}

@@ -11,7 +11,7 @@ test('bulk actions reflect the states of the selected articles', () => {
     const loadedItems = [{ id: '1', isRead: true, isFavorite: false, isSaved: true }, { id: '2', isRead: false, isFavorite: true, isSaved: false }];
     const buttons = Object.fromEntries(['read', 'unread', 'favorite', 'unfavorite', 'save', 'unsave'].map(key => [key, {}]));
     const actions = { querySelector: selector => buttons[selector.match(/data-bulk-(\w+)/)[1]] };
-    const context = { container: { querySelectorAll: () => [] }, selectedIds, loadedItems, actions, selectAllButton: { setAttribute() {} }, selectedCount: {} };
+    const context = { t: (key, params = {}) => Object.entries(params).reduce((text, [name, value]) => text.replace(`%${name}%`, value), key), container: { querySelectorAll: () => [] }, selectedIds, loadedItems, actions, selectAllButton: { setAttribute() {} }, selectedCount: {} };
     vm.runInNewContext(source.slice(start, end) + '\nthis.update = updateSelection;', context);
     context.update();
     assert.equal(buttons.read.hidden, true);

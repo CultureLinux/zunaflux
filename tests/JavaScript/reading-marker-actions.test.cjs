@@ -11,6 +11,7 @@ test('removing a favorite updates the server and removes it from the favorites v
     const item = { id: '42', isFavorite: true };
     let removed = false;
     const context = {
+        t: (key, params = {}) => Object.entries(params).reduce((text, [name, value]) => text.replace(`%${name}%`, value), key),
         endpoint: '/api/articles', actions: { dataset: { csrfToken: 'token' } },
         fetch: async (url, options) => { assert.equal(url, '/api/articles/bulk'); assert.deepEqual(JSON.parse(options.body), { ids: ['42'], isFavorite: false }); return { ok: true, json: async () => ({ skipped: 0 }) }; },
         bulkError: {}, readFilter: { value: 'favorite' }, loadedItems: [item], selectedIds: new Set(['42']), selectedArticle: null,
@@ -31,6 +32,7 @@ test('a failed removal keeps a saved article in the list and reports the error',
     let removed = false;
     const button = {};
     const context = {
+        t: (key, params = {}) => Object.entries(params).reduce((text, [name, value]) => text.replace(`%${name}%`, value), key),
         endpoint: '/api/articles', actions: { dataset: { csrfToken: 'token' } },
         fetch: async (url, options) => { assert.deepEqual(JSON.parse(options.body), { ids: ['42'], isSaved: false }); return { ok: false }; },
         bulkError: {}, readFilter: { value: 'saved' }, loadedItems: [item], selectedIds: new Set(), selectedArticle: null, updatePersonalCount() {},

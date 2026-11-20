@@ -22,10 +22,15 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\Component\Uid\Uuid;
 
 final class ArticleController extends AbstractController
 {
+    public function __construct(private readonly TranslatorInterface $translator)
+    {
+    }
+
     private const PAGE_SIZE = 30;
 
     #[Route('/articles', name: 'app_articles', methods: ['GET'])]
@@ -69,6 +74,18 @@ final class ArticleController extends AbstractController
         $markRead->mark($subscription);
 
         return $this->redirectToRoute('app_articles', ['subscription' => $id, 'read' => '0']);
+    }
+
+    #[Route('/articles/mark-all-read', name: 'app_articles_mark_all_read', methods: ['POST'])]
+    public function markAllRead(Request $request, MarkSubscriptionRead $markRead): Response
+    {
+        if (!$this->isCsrfTokenValid('mark-all-read', $request->request->getString('_token'))) {
+            throw $this->createAccessDeniedException();
+        }
+        $count = $markRead->markAll($this->currentUser());
+        $this->addFlash('success', $this->translator->trans('%count% article(s) marqué(s) comme lu(s).', ['%count%' => $count]));
+
+        return $this->redirectToRoute('app_articles');
     }
 
     #[Route('/categories/{id}/mark-read', name: 'app_category_mark_read', methods: ['POST'])]
@@ -168,7 +185,7 @@ final class ArticleController extends AbstractController
             ...($fromSummary ? ['summary' => 1] : []),
         ]);
         $renderedImages = [];
-        $safeHtml = $sanitizer->sanitize($content ?: $summary ?: 'Aucun résumé disponible.', static function (int $index, string $url) use ($imagePath, &$renderedImages): string {
+        $safeHtml = $sanitizer->sanitize($content ?: $summary ?: $this->translator->trans('Aucun résumé disponible.'), static function (int $index, string $url) use ($imagePath, &$renderedImages): string {
             $renderedImages[$url] = true;
 
             return $imagePath($index);
@@ -232,12 +249,12 @@ final class ArticleController extends AbstractController
         try {
             $payload = json_decode($request->getContent(), true, 32, \JSON_THROW_ON_ERROR);
         } catch (\JsonException) {
-            return $this->json(['error' => 'JSON invalide.'], Response::HTTP_BAD_REQUEST);
+            return $this->json(['error' => $this->translator->trans('JSON invalide.')], Response::HTTP_BAD_REQUEST);
         }
 
         $changes = array_intersect_key($payload, array_flip(['isRead', 'isFavorite', 'isSaved']));
         if ([] === $changes || array_filter($changes, static fn (mixed $value): bool => !is_bool($value)) !== []) {
-            return $this->json(['error' => 'État invalide.'], Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->json(['error' => $this->translator->trans('État invalide.')], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         $state = $articleStateService->update($this->currentUser(), $article, $changes);
@@ -249,10 +266,10 @@ final class ArticleController extends AbstractController
     public function bulk(Request $request, EntityManagerInterface $entityManager, ArticleStateService $articleStateService): JsonResponse
     {
         if (!$this->isCsrfTokenValid('article-bulk', $request->headers->get('X-CSRF-Token'))) { throw $this->createAccessDeniedException(); }
-        try { $payload = json_decode($request->getContent(), true, 32, \JSON_THROW_ON_ERROR); } catch (\JsonException) { return $this->json(['error' => 'JSON invalide.'], 400); }
+        try { $payload = json_decode($request->getContent(), true, 32, \JSON_THROW_ON_ERROR); } catch (\JsonException) { return $this->json(['error' => $this->translator->trans('JSON invalide.')], 400); }
         $ids = $payload['ids'] ?? null;
         $changes = is_array($payload) ? array_intersect_key($payload, array_flip(['isRead', 'isFavorite', 'isSaved'])) : [];
-        if (!is_array($ids) || [] === $ids || count($ids) > 100 || [] === $changes || array_filter($changes, static fn (mixed $value): bool => !is_bool($value)) !== []) return $this->json(['error' => 'Action invalide.'], 422);
+        if (!is_array($ids) || [] === $ids || count($ids) > 100 || [] === $changes || array_filter($changes, static fn (mixed $value): bool => !is_bool($value)) !== []) return $this->json(['error' => $this->translator->trans('Action invalide.')], 422);
         $changed = 0;
         foreach ($ids as $id) {
             if (!is_string($id)) continue;
@@ -266,7 +283,7 @@ final class ArticleController extends AbstractController
     public function markBefore(Request $request, MarkSubscriptionRead $markRead): JsonResponse
     {
         if (!$this->isCsrfTokenValid('article-bulk', $request->headers->get('X-CSRF-Token'))) { throw $this->createAccessDeniedException(); }
-        try { $payload = json_decode($request->getContent(), true, 16, \JSON_THROW_ON_ERROR); $before = new \DateTimeImmutable((string) ($payload['before'] ?? '')); } catch (\Exception) { return $this->json(['error' => 'Date invalide.'], 422); }
+        try { $payload = json_decode($request->getContent(), true, 16, \JSON_THROW_ON_ERROR); $before = new \DateTimeImmutable((string) ($payload['before'] ?? '')); } catch (\Exception) { return $this->json(['error' => $this->translator->trans('Date invalide.')], 422); }
         $changed = $markRead->markBefore($this->currentUser(), $before);
 
         return $this->json(['matched' => $changed, 'changed' => $changed, 'skipped' => 0]);

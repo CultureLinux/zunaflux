@@ -12,6 +12,7 @@ use App\Entity\Category;
 use App\Entity\Feed;
 use App\Entity\Subscription;
 use App\Entity\User;
+use App\Twig\IncidentExtension;
 use App\Message\CollectFeedMessage;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -25,6 +26,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class SubscriptionController extends AbstractController
 {
+    public function __construct(private readonly IncidentExtension $incidentDescriber)
+    {
+    }
+
     #[Route('/subscriptions', name: 'app_subscriptions', methods: ['GET', 'POST'])]
     public function index(Request $request, SubscribeToFeed $subscribeToFeed, CreateCategory $createCategory, ImportOpml $importOpml, EntityManagerInterface $entityManager, TranslatorInterface $translator): Response
     {
@@ -143,7 +148,7 @@ final class SubscriptionController extends AbstractController
             [$run->toBinary(), $user->getId()->toBinary()],
         );
 
-        return $this->json(['entries' => $rows, 'complete' => !array_filter($rows, static fn (array $row): bool => in_array($row['status'], ['pending', 'running'], true))]);
+        return $this->json(['entries' => $this->translateDetails($rows), 'complete' => !array_filter($rows, static fn (array $row): bool => in_array($row['status'], ['pending', 'running'], true))]);
     }
 
     #[Route('/subscriptions/{id}/category', name: 'app_subscription_move', methods: ['POST'])]
@@ -191,7 +196,7 @@ final class SubscriptionController extends AbstractController
         );
         if ([] === $rows) throw $this->createNotFoundException();
 
-        return $this->json(['entries' => $rows, 'complete' => !array_filter($rows, static fn (array $row): bool => in_array($row['status'], ['pending', 'running'], true))]);
+        return $this->json(['entries' => $this->translateDetails($rows), 'complete' => !array_filter($rows, static fn (array $row): bool => in_array($row['status'], ['pending', 'running'], true))]);
     }
 
     #[Route('/categories/{id}/refresh', name: 'app_category_refresh_start', methods: ['POST'])]
@@ -223,7 +228,7 @@ final class SubscriptionController extends AbstractController
             [$run->toBinary(), $this->currentUser()->getId()->toBinary(), $category->getId()->toBinary()],
         );
 
-        return $this->json(['entries' => $rows, 'complete' => !array_filter($rows, static fn (array $row): bool => in_array($row['status'], ['pending', 'running'], true))]);
+        return $this->json(['entries' => $this->translateDetails($rows), 'complete' => !array_filter($rows, static fn (array $row): bool => in_array($row['status'], ['pending', 'running'], true))]);
     }
 
     #[Route('/subscriptions/{id}/update', name: 'app_subscription_update', methods: ['POST'])]
@@ -322,6 +327,15 @@ final class SubscriptionController extends AbstractController
         });
         $this->addFlash('success', 'Catégorie et abonnements associés supprimés.');
         return $this->redirectToRoute('app_subscriptions', status: Response::HTTP_SEE_OTHER);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return list<array<string, mixed>>
+     */
+    private function translateDetails(array $rows): array
+    {
+        return array_map(fn (array $row): array => [...$row, 'detail' => is_string($row['detail'] ?? null) ? $this->incidentDescriber->translate($row['detail']) : ($row['detail'] ?? null)], $rows);
     }
 
     private function currentUser(): User

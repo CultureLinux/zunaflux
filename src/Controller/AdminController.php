@@ -52,24 +52,24 @@ final class AdminController extends AbstractController
   catch (\InvalidArgumentException $e) { $this->addFlash('error',$e->getMessage()); }
   return $this->redirectToRoute('app_admin', status:Response::HTTP_SEE_OTHER);
  }
- #[Route('/admin/incidents/{id}/retry', name:'app_admin_incident_retry', methods:['POST'])] public function retry(string $id, Request $r, EntityManagerInterface $em, MessageBusInterface $bus, \App\MessageHandler\CollectFeedHandler $collect, \App\Application\Notification\IncidentMessage $incidentMessage):Response {
+ #[Route('/admin/incidents/{id}/retry', name:'app_admin_incident_retry', methods:['POST'])] public function retry(string $id, Request $r, EntityManagerInterface $em, MessageBusInterface $bus, \App\MessageHandler\CollectFeedHandler $collect, \App\Twig\IncidentExtension $incidentDescriber, \Symfony\Contracts\Translation\TranslatorInterface $translator):Response {
   $this->denyAccessUnlessGranted('ROLE_ADMIN');
   try{$incident=$em->getRepository(FeedIncident::class)->find(Uuid::fromString($id));}catch(\InvalidArgumentException){$incident=null;}
   if(!$incident instanceof FeedIncident)throw $this->createNotFoundException();
   if(!$this->isCsrfTokenValid('retry-incident-'.$id,$r->request->getString('_token')))throw $this->createAccessDeniedException();
   if(null !== $incident->getAcknowledgedAt()) throw new \Symfony\Component\HttpKernel\Exception\ConflictHttpException('Cet incident n’est plus ouvert.');
   if ('application/json' === $r->headers->get('Accept')) {
-   $logs = ['Vérification de l’adresse et collecte du flux…'];
+   $logs = [$translator->trans('Vérification de l’adresse et collecte du flux…')];
    try {
     $collect->collectOrFail(new CollectFeedMessage((string)$incident->getFeed()->getId()));
     $em->remove($incident);
     $em->flush();
-    $logs[] = 'Collecte terminée avec succès.';
-    $logs[] = 'L’incident a été supprimé.';
+    $logs[] = $translator->trans('Collecte terminée avec succès.');
+    $logs[] = $translator->trans('L’incident a été supprimé.');
     return $this->json(['success' => true, 'logs' => $logs]);
    } catch (\Throwable $error) {
-    $logs[] = $incidentMessage->describe($error->getMessage());
-    $logs[] = 'La collecte a échoué. L’incident reste ouvert.';
+    $logs[] = $incidentDescriber->describe($error->getMessage());
+    $logs[] = $translator->trans('La collecte a échoué. L’incident reste ouvert.');
     return $this->json(['success' => false, 'logs' => $logs]);
    }
   }

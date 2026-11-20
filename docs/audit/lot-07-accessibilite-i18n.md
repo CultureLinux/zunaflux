@@ -56,3 +56,23 @@ Les tests Playwright nécessitent Node 24 et une base de test dédiée (voir `te
 - Le focus est conservé après la fermeture d'un article.
 - Aucune violation axe « serious » ou « critical » sur les parcours principaux.
 - `--only-missing` est vide en anglais et en allemand.
+
+## Statut d'avancement
+
+*Mis à jour le 20 novembre 2026. Tests PHP et JavaScript exécutés en local ; **Playwright, axe et le rendu visuel (CSS reconstruit par Tailwind) non exécutés**. Aucune vérification avec un lecteur d'écran. En attente du retour de validation du développeur.*
+
+| ID | État | Note |
+|---|---|---|
+| 7.1 | Appliqué | `--muted` clair `#64748B` → `#56657A` : 3,99:1 → 4,97:1 sur `#ECEBE6` (calculé, pas mesuré dans un navigateur). |
+| 7.2 | **Non traité** | Focus perdu à la fermeture d'un article (JS, à tester dans un navigateur). |
+| 7.3 | Appliqué (à valider en navigateur) | Templates : tous les textes et attributs visibles passent par `|trans`. JavaScript : mécanisme commun `window.zunaflux.t()` (`assets/i18n.js` + `templates/_js_messages.html.twig`) utilisé par `article-list.js`, `mastodon-share.js`, `zen.js` et `toast.js` ; `push.js` avait déjà `data-messages`. Réponses JSON d'erreur et messages flash traduits côté PHP. Tests `SourceTranslationKeysTest` et `EnglishInterfaceTest`. **Reste en français :** messages CLI/exploitation, `public/sw.js` (texte de repli de notification), le sélecteur CSS sur `aria-label="À propos"` (app.css:42), le texte de l'archive d'export. |
+| 7.4 | Appliqué | Clés manquantes ajoutées en anglais et en allemand (17 au départ, puis ~170 après la chasse aux chaînes en dur) ; `debug:translation --only-missing` est vide pour `en` et `de`. Nouveau test `TemplateTranslationKeysTest` (507 usages littéraux analysés). Les 117 clés « inutilisées » n'ont pas été revues. |
+| 7.5 | Appliqué | `aria-live` retiré de la liste ; région `sr-only` « N articles chargés » alimentée par `article-list.js`. |
+| 7.6 | Partiel | Les erreurs restent jusqu'à fermeture, pause au survol et au focus, plus de `role` en double (le conteneur `aria-live` reste l'unique annonce). Tests `toast.test.cjs`. Les erreurs sont désormais annoncées en mode poli. |
+| 7.7 | Partiel | Accent par défaut `#4A6A99` (4,61:1 sur `--surface-muted`) ; nouveau jeton `--input-border` (`#76879B` clair, 3,68:1 ; `#6B7C93` sombre, 3,85:1) appliqué aux champs par une règle hors couche. Les 10 accents au choix n'ont pas été recalculés. |
+| 7.8 | Appliqué | Lien d'évitement `.skip-link` et `id="main"` (avec `tabindex="-1"`) sur les 14 `<main>`. |
+| 7.9 | **Non traité** | Raccourcis clavier (`j`/`k`/`s`, documentation, éléments défilants). |
+| 7.10 | **Non traité** | Aide du mode zen non modale. |
+| 7.11 | Appliqué | `<h1>` `sr-only` sur mobile. |
+| 7.12 | Partiel | `aria-live` imbriqué retiré des compteurs zen du bouton. **Non fait :** `aria-pressed` du bouton « enregistrer » du mode zen. |
+

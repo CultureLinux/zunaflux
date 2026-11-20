@@ -1,7 +1,7 @@
 {% extends 'base.html.twig' %}
 {% block title %}{{ "Recherche de flux"|trans }} · Zunaflux{% endblock %}
 {% block body %}
-<main class="mx-auto max-w-3xl px-6 py-16">
+<main id="main" tabindex="-1" class="mx-auto max-w-3xl px-6 py-16">
     <h1 class="font-serif text-4xl text-foreground">{{ 'Recherche de flux'|trans }}</h1>
     {% if result.status == 'pending' %}
         <p class="mt-6" role="status">{{ 'La recherche est en cours. Actualisez cette page dans quelques instants.'|trans }}</p>

@@ -1,11 +1,11 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Connexion · Zunaflux{% endblock %}
+{% block title %}{{ 'Connexion'|trans }} · Zunaflux{% endblock %}
 
 {% block body %}
-    <main class="relative isolate grid min-h-screen place-items-center overflow-hidden px-6 py-12">
+    <main id="main" tabindex="-1" class="relative isolate grid min-h-screen place-items-center overflow-hidden px-6 py-12">
         <section class="w-full max-w-md border border-line bg-surface p-8 md:p-10">
-            <p class="mb-6 font-mono text-xs uppercase tracking-[.35em] text-accent">Zunaflux / lecteur personnel</p>
+            <p class="mb-6 font-mono text-xs uppercase tracking-[.35em] text-accent">{{ 'Zunaflux / lecteur personnel'|trans }}</p>
             <h1 class="font-serif text-4xl leading-none text-foreground">{{ "Bienvenue dans Zunaflux"|trans }}</h1>
             <p class="mt-4 text-sm leading-6 text-foreground">{{ "Retrouvez les sources qui comptent, sans bruit."|trans }}</p>
 
