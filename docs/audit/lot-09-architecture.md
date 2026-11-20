@@ -64,3 +64,32 @@ APP_ENV=test php85 vendor/bin/phpunit
 - Les Voters sont testés.
 - Les 4 clients HTTP sont unifiés.
 - Tests ajoutés pour les éléments de 9.D.
+
+## Statut d'avancement
+
+*Mis à jour le 20 novembre 2026. Décisions du développeur : PHP-CS-Fixer accepté ; client HTTP unifié sur `symfony/http-client` ; retry d'incident mis en file avec visualisation. Ordre retenu : tests d'abord (9.D), puis 9.A, 9.C (horloge, exceptions), 9.B (doublons, repositories, Voters), et en dernier le client HTTP et le déplacement du réseau hors du domaine.*
+
+### 9.D Trous de couverture : traité (en attente de validation)
+
+| Élément | Tests ajoutés |
+|---|---|
+| `CreateCategory`, `ImportOpml` | `tests/Functional/Application/SubscriptionServicesTest.php` (unicité par compte et nom, compteurs importé/doublon/échec, catégorie affectée, DOCTYPE refusé) |
+| `DeleteUserAccount`, `CreateInitialAdministrator` | `AccountServicesTest.php` (compte actif non supprimable, suppression en cascade sans toucher aux données partagées, administrateur créé une seule fois) |
+| `ArticleStateService` | `ArticleStateServiceTest.php` (première lecture enregistrée une seule fois, favori indépendant de la lecture, article inaccessible, isolation par compte) |
+| `UserExport` | `UserExportTest.php` (archive complète, aucune donnée d'un autre compte, OPML groupé par catégorie et échappé) |
+| `UserChecker` | `tests/Unit/Security/UserCheckerTest.php` |
+| `MessengerWorkerHeartbeatSubscriber`, `DiscoverFeedHandler` | `WorkerAndDiscoveryTest.php` (battement limité, message sans cache ignoré, adresse interdite enregistrée en erreur) |
+| `UserLocaleSubscriber` | `PreferenceRoutesTest.php` (la langue de la page suit la préférence) |
+| `CollectFeedsCommand`, `PurgeArticlesCommand`, `CreateUserCommand`, `RelayNotificationsCommand`, `SendNotificationsCommand` | `tests/Functional/Command/ConsoleCommandsTest.php` |
+| `/api/saved-filters` | `SavedFilterApiTest.php` (CRUD, CSRF, isolation entre comptes, entrées invalides) |
+| `/preferences/quiet-hours` | `PreferenceRoutesTest.php` (enregistrement, effacement, valeurs invalides ignorées, CSRF, authentification) |
+| `/admin/users*` | `AdminUserRoutesTest.php` (accès réservé aux administrateurs, désactivation et réactivation, dernier administrateur protégé, imitation, suppression avec confirmation, création) |
+
+Socle ajouté : `tests/Support/RollbackKernelTestCase.php` (transaction annulée après chaque test) et `tests/Support/CsrfTokens.php`.
+
+**Bug trouvé par ces tests et corrigé :** `SavedFilterController` renvoyait une erreur 500 sur un JSON invalide, un nom vide ou des filtres non tableau ; il répond désormais 400 (JSON) ou 422 (validation) avec un message traduit.
+
+**Non couvert :** chemin de succès de `DiscoverFeedHandler` (requiert le réseau), chemins d'échec des commandes de relais (les classes sont `final`, pas de double possible), quatre routes d'administration annexes (incidents, quotas, synchronisation).
+
+### 9.A à 9.C : à faire
+

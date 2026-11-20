@@ -621,5 +621,6 @@
   "%count% article(s) marqué(s) comme lu(s).": "%count% Artikel als gelesen markiert.",
   "Rattrapage": "Aufholen",
   "Connexion au serveur impossible. Vérifiez votre réseau.": "Der Server ist nicht erreichbar. Prüfen Sie Ihr Netzwerk.",
-  "Le serveur a renvoyé une réponse inattendue.": "Der Server hat eine unerwartete Antwort zurückgegeben."
+  "Le serveur a renvoyé une réponse inattendue.": "Der Server hat eine unerwartete Antwort zurückgegeben.",
+  "Filtres invalides.": "Ungültige Filter."
 }
