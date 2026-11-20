@@ -31,11 +31,11 @@ final class PreferenceNotificationScheduleController extends AbstractController
         $times = $data['notification_times'] ?? [];
         try {
             if (!is_string($mode) || !is_string($interval) || !in_array($interval, ['1', '2', '3', '4', '5', '6', '12'], true) || !is_array($times)) {
-                throw new \InvalidArgumentException('Choisissez une fréquence proposée.');
+                throw new \App\Application\Exception\UserInputError('Choisissez une fréquence proposée.');
             }
             foreach ($times as $time) {
                 if (!is_string($time) || !in_array($time, ['8', '12', '18', '22'], true)) {
-                    throw new \InvalidArgumentException('Choisissez une heure proposée.');
+                    throw new \App\Application\Exception\UserInputError('Choisissez une heure proposée.');
                 }
             }
             $preference->setNotificationSchedule($mode, (int) $interval, array_map('intval', $times));

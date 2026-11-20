@@ -16,7 +16,7 @@ final readonly class DeleteUserAccount
     public function delete(User $user): void
     {
         if ($user->isActive()) {
-            throw new \DomainException('Le compte doit être désactivé avant sa suppression définitive.');
+            throw new \App\Application\Exception\AccountStillActive();
         }
 
         $this->entityManager->wrapInTransaction(function () use ($user): void {

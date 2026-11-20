@@ -9,6 +9,7 @@ use App\Command\CollectFeedsCommand;
 use App\Command\PurgeArticlesCommand;
 use App\Entity\User;
 use App\Message\CollectFeedMessage;
+use App\Repository\FeedRepository;
 use App\Tests\Support\FrozenClock;
 use App\Tests\Support\RollbackKernelTestCase;
 use Psr\Log\NullLogger;
@@ -43,7 +44,7 @@ final class ConsoleCommandsTest extends RollbackKernelTestCase
                 return new Envelope($message);
             }
         };
-        $tester = new CommandTester(new CollectFeedsCommand($this->em, $bus));
+        $tester = new CommandTester(new CollectFeedsCommand(self::getContainer()->get(FeedRepository::class), $bus));
 
         self::assertSame(Command::SUCCESS, $tester->execute([]));
 
@@ -113,5 +114,32 @@ final class ConsoleCommandsTest extends RollbackKernelTestCase
         $send = new CommandTester($application->find('app:notifications:send'));
         self::assertSame(Command::SUCCESS, $send->execute([]));
         self::assertStringContainsString('0 notification(s) accepted.', $send->getDisplay());
+    }
+
+    public function testDueFeedsAreEvaluatedAgainstTheInjectedClock(): void
+    {
+        $reader = $this->user();
+        $later = $this->feed('later');
+        $this->subscribe($reader, $later);
+        $this->em->flush();
+        $this->db->executeStatement('UPDATE feed SET next_collection_at = ? WHERE id = ?', ['2030-01-01 00:00:00', $later->getId()->toBinary()]);
+        $bus = new class () implements MessageBusInterface {
+            /** @var list<object> */
+            public array $messages = [];
+
+            public function dispatch(object $message, array $stamps = []): Envelope
+            {
+                $this->messages[] = $message;
+
+                return new Envelope($message);
+            }
+        };
+        $queued = static fn (): array => array_map(static fn (CollectFeedMessage $message): string => $message->feedId, $bus->messages);
+
+        (new CommandTester(new CollectFeedsCommand(self::getContainer()->get(FeedRepository::class), $bus, new FrozenClock(new \DateTimeImmutable('2029-12-31 23:59:59')))))->execute([]);
+        self::assertNotContains((string) $later->getId(), $queued());
+
+        (new CommandTester(new CollectFeedsCommand(self::getContainer()->get(FeedRepository::class), $bus, new FrozenClock(new \DateTimeImmutable('2030-01-01 00:00:01')))))->execute([]);
+        self::assertContains((string) $later->getId(), $queued());
     }
 }

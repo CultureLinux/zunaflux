@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Reading;
 
+use App\Application\Time\Clock;
+use App\Application\Time\SystemClock;
 use App\Entity\Subscription;
 use App\Entity\User;
 use Doctrine\DBAL\Connection;
@@ -21,7 +23,7 @@ final readonly class MarkSubscriptionRead
 {
     private const BATCH_SIZE = 1000;
 
-    public function __construct(private EntityManagerInterface $entityManager)
+    public function __construct(private EntityManagerInterface $entityManager, private Clock $clock = new SystemClock())
     {
     }
 
@@ -82,7 +84,7 @@ final readonly class MarkSubscriptionRead
     /** @param list<array{id: string, feed_id: string, identity_hash: string, category: string}> $rows */
     private function markBatch(Connection $connection, string $userId, array $rows): void
     {
-        $now = new \DateTimeImmutable();
+        $now = $this->clock->now();
         $timestamp = $now->format('Y-m-d H:i:s');
         $values = [];
         $params = [];

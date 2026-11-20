@@ -622,5 +622,8 @@
   "Rattrapage": "Aufholen",
   "Connexion au serveur impossible. Vérifiez votre réseau.": "Der Server ist nicht erreichbar. Prüfen Sie Ihr Netzwerk.",
   "Le serveur a renvoyé une réponse inattendue.": "Der Server hat eine unerwartete Antwort zurückgegeben.",
-  "Filtres invalides.": "Ungültige Filter."
+  "Filtres invalides.": "Ungültige Filter.",
+  "Article inaccessible.": "Artikel nicht zugänglich.",
+  "Nouvelle collecte placée en file. L’incident sera supprimé si elle réussit.": "Ein neuer Abruf wurde eingereiht. Der Vorfall wird bei Erfolg entfernt.",
+  "Le site a répondu avec le code HTTP %status%.": "Die Website hat mit dem HTTP-Code %status% geantwortet."
 }

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Application\Reading;
 
-use App\Domain\Feed\UrlSafetyValidator;
+use App\Infrastructure\Http\SafeHttpClient;
+use App\Infrastructure\Http\UrlSafetyValidator;
+use Symfony\Component\HttpClient\MockHttpClient;
 use App\Infrastructure\Reading\FeedImageFetcher;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -15,7 +17,7 @@ final class FeedImageFetcherTest extends TestCase
     public function testRejectsUnsafeAddressesBeforeFetching(string $url): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        (new FeedImageFetcher(new UrlSafetyValidator()))->fetch($url);
+        (new FeedImageFetcher(new SafeHttpClient(new UrlSafetyValidator(), new MockHttpClient())))->fetch($url);
     }
 
     /** @return iterable<string, array{string}> */

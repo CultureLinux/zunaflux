@@ -65,14 +65,14 @@ final class UserPreference
     public function setNotificationSchedule(string $mode, int $interval, array $times): void
     {
         if (!in_array($mode, ['interval', 'fixed'], true) || !in_array($interval, [1, 2, 3, 4, 5, 6, 12], true)) {
-            throw new \InvalidArgumentException('Choisissez une fréquence proposée.');
+            throw new \App\Application\Exception\UserInputError('Choisissez une fréquence proposée.');
         }
         if ('fixed' === $mode && [] === $times) {
-            throw new \InvalidArgumentException('Choisissez au moins une heure.');
+            throw new \App\Application\Exception\UserInputError('Choisissez au moins une heure.');
         }
         foreach ($times as $time) {
             if (!in_array($time, [8, 12, 18, 22], true)) {
-                throw new \InvalidArgumentException('Choisissez une heure proposée.');
+                throw new \App\Application\Exception\UserInputError('Choisissez une heure proposée.');
             }
         }
         $times = array_values(array_unique($times));

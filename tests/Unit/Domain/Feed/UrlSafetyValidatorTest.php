@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Domain\Feed;
 
-use App\Domain\Feed\UrlSafetyValidator;
+use App\Infrastructure\Http\UrlSafetyValidator;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 

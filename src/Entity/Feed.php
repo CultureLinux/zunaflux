@@ -97,9 +97,9 @@ final class Feed
         return $this->lastModified;
     }
 
-    public function recordSuccess(): void
+    public function recordSuccess(?\DateTimeImmutable $now = null): void
     {
-        $this->lastSuccessAt = new \DateTimeImmutable();
+        $this->lastSuccessAt = $now ?? new \DateTimeImmutable();
         $this->failureCount = 0;
         $this->lastError = null;
         $this->nextCollectionAt = null;

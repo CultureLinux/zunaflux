@@ -49,10 +49,10 @@ final readonly class RegistrationLimit
     public function update(?int $limit): void
     {
         if (null !== $this->environmentLimit()) {
-            throw new \DomainException('La limite est définie par l’environnement.');
+            throw new \App\Application\Exception\BusinessRuleViolation('La limite est définie par l’environnement.');
         }
         if (null !== $limit && ($limit < 1 || $limit > 2147483647)) {
-            throw new \InvalidArgumentException('La limite doit être comprise entre 1 et 2147483647.');
+            throw new \App\Application\Exception\UserInputError('La limite doit être comprise entre 1 et 2147483647.');
         }
         $this->connection->executeStatement('UPDATE registration_settings SET account_limit = ? WHERE id = 1', [$limit]);
     }

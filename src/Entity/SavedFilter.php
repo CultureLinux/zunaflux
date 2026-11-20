@@ -63,7 +63,7 @@ final class SavedFilter
     {
         $name = trim($name);
         if ('' === $name || mb_strlen($name) > 100) {
-            throw new \InvalidArgumentException('Le nom du filtre doit contenir entre 1 et 100 caractères.');
+            throw new \App\Application\Exception\UserInputError('Le nom du filtre doit contenir entre 1 et 100 caractères.');
         }
         $this->name = $name;
     }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\MessageHandler;
 
+use App\Application\Time\Clock;
+use App\Application\Time\SystemClock;
 use App\Application\Feed\CollectFeed;
 use App\Application\Feed\FeedCollectionInProgress;
 use App\Application\Notification\IncidentMessage;
@@ -28,22 +30,12 @@ final readonly class CollectFeedHandler
         private RelayNotificationOutbox $outboxRelay,
         private LoggerInterface $logger,
         private IncidentMessage $incidentMessage = new IncidentMessage(),
+        private Clock $clock = new SystemClock(),
     ) {
     }
 
     /** Messenger entry point: failures are recorded on the feed and never redelivered. */
     public function __invoke(CollectFeedMessage $message): void
-    {
-        $this->process($message, false);
-    }
-
-    /** Synchronous entry point for callers that must know whether the collection failed. */
-    public function collectOrFail(CollectFeedMessage $message): void
-    {
-        $this->process($message, true);
-    }
-
-    private function process(CollectFeedMessage $message, bool $rethrow): void
     {
         $feed = $this->entityManager->getRepository(Feed::class)->find(Uuid::fromString($message->feedId));
         if (!$feed instanceof Feed) {
@@ -55,9 +47,6 @@ final readonly class CollectFeedHandler
         } catch (FeedCollectionInProgress $error) {
             // Another worker already collects this feed: nothing to record, no retry.
             $this->syncEntry($message, 'no_new_articles', 0, 'Collecte déjà en cours.');
-            if ($rethrow) {
-                throw $error;
-            }
 
             return;
         } catch (\Throwable $error) {
@@ -67,7 +56,7 @@ final readonly class CollectFeedHandler
                 $this->syncEntry($message, 'error', 0, 'Échec de l’enregistrement de la collecte.');
                 throw $error;
             }
-            $feed->recordFailure($error);
+            $feed->recordFailure($error, $this->clock->now());
             $incident = $this->entityManager->getRepository(FeedIncident::class)->findOneBy(['feed' => $feed]);
             if ($incident instanceof FeedIncident) {
                 $incident->report($error);
@@ -77,19 +66,16 @@ final readonly class CollectFeedHandler
             }
             $this->entityManager->persist(new FeedIncidentOccurrence($incident, $error));
             $this->entityManager->flush();
-            $this->syncEntry($message, 'error', 0, $this->incidentMessage->describe($error->getMessage()));
+            $this->syncEntry($message, 'error', 0, $this->incidentMessage->describeError($error));
+
             // The failure and its exponential backoff are recorded above. Rethrowing
             // to Messenger would redeliver immediately and multiply failureCount.
-            if ($rethrow) {
-                throw $error;
-            }
-
             return;
         }
         $incident = $this->entityManager->getRepository(FeedIncident::class)->findOneBy(['feed' => $feed]);
         if ($incident instanceof FeedIncident) {
-            $now = new \DateTimeImmutable();
-            if ($incident->shouldBeClearedAt($now)) {
+            $now = $this->clock->now();
+            if ($message->clearIncident || $incident->shouldBeClearedAt($now)) {
                 $this->entityManager->remove($incident);
             } else {
                 $incident->markRecoveredAt($now);

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Feed;
 
+use App\Application\Time\Clock;
+use App\Application\Time\SystemClock;
 use App\Application\Notification\NotificationOutbox;
 use App\Domain\Feed\FeedFetcherInterface;
 use App\Domain\Feed\FeedParser;
@@ -20,6 +22,7 @@ final readonly class CollectFeed
         private FeedFetcherInterface $fetcher,
         private FeedParser $parser,
         private NotificationOutbox $outbox,
+        private Clock $clock = new SystemClock(),
     ) {
     }
 
@@ -74,7 +77,7 @@ final readonly class CollectFeed
                     ++$new;
                 }
             }
-            $feed->recordSuccess();
+            $feed->recordSuccess($this->clock->now());
             if ($new > 0) {
                 $this->outbox->add(new NotifyFeedMessage((string) $feed->getId(), 'articles', $new));
             }

@@ -139,13 +139,13 @@ final class MastodonOAuthService
     {
         $status = trim($status);
         if ('' === $status || mb_strlen($status) > 500) {
-            throw new \InvalidArgumentException('Le message Mastodon doit contenir entre 1 et 500 caractères.');
+            throw new \App\Application\Exception\UserInputError('Le message Mastodon doit contenir entre 1 et 500 caractères.');
         }
         if (!in_array($visibility, ['public', 'unlisted', 'private', 'direct'], true)) {
-            throw new \InvalidArgumentException('La visibilité Mastodon est invalide.');
+            throw new \App\Application\Exception\UserInputError('La visibilité Mastodon est invalide.');
         }
         if ('direct' === $visibility && 1 !== preg_match('/@[\p{L}\p{N}_.-]+(?:@[\p{L}\p{N}.-]+)?/u', $status)) {
-            throw new \InvalidArgumentException('Un message direct doit mentionner au moins un destinataire.');
+            throw new \App\Application\Exception\UserInputError('Un message direct doit mentionner au moins un destinataire.');
         }
         $instance = MastodonInstance::fromInput($account->getInstanceUrl());
         $result = $this

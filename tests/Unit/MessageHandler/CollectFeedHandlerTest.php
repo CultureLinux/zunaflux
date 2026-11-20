@@ -53,29 +53,6 @@ final class CollectFeedHandlerTest extends TestCase
         self::assertTrue($feed->isCollectionDue(new \DateTimeImmutable('+61 minutes')));
     }
 
-    public function testTheSynchronousEntryPointStillReportsTheFailure(): void
-    {
-        $feed = new Feed('https://example.test/failing');
-        $fetcher = new class () implements FeedFetcherInterface {
-            public function fetch(string $url, ?string $etag = null, ?string $lastModified = null): FetchedFeed
-            {
-                throw new \RuntimeException('Feed request returned HTTP 503.');
-            }
-        };
-        $persisted = [];
-        $flushes = 0;
-        $handler = $this->handler($feed, $fetcher, lockAcquired: true, persisted: $persisted, flushes: $flushes);
-
-        try {
-            $handler->collectOrFail(new CollectFeedMessage((string) $feed->getId()));
-            self::fail('The admin retry must see the failure.');
-        } catch (\RuntimeException $error) {
-            self::assertSame('Feed request returned HTTP 503.', $error->getMessage());
-        }
-        // The failure is still recorded exactly once.
-        self::assertSame(1, $feed->getFailureCount());
-    }
-
     public function testAFeedAlreadyBeingCollectedIsSkippedWithoutRecordingAFailure(): void
     {
         $feed = new Feed('https://example.test/locked');

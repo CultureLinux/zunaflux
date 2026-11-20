@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Message\CollectFeedMessage;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Application\Feed\FeedSyncRunService;
+use App\Repository\FeedRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -17,7 +16,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final class AdminFeedSyncController extends AbstractController
 {
     #[Route('/admin/feed-sync', name: 'app_admin_feed_sync_start', methods: ['POST'])]
-    public function start(Request $r, EntityManagerInterface $em, MessageBusInterface $bus, TranslatorInterface $translator): Response
+    public function start(Request $r, FeedRepository $feeds, FeedSyncRunService $syncRuns, TranslatorInterface $translator): Response
     {
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
         $csrfToken = $r->headers->get('X-CSRF-Token') ?? $r->request->getString('_token');
@@ -25,25 +24,16 @@ final class AdminFeedSyncController extends AbstractController
             throw $this->createAccessDeniedException();
         }
         $scope = $r->request->getString('scope');
-        $sql = 'SELECT DISTINCT f.id FROM feed f';
-        $params = [];
-        if ('category' === $scope) {
-            $sql .= ' INNER JOIN subscription s ON s.feed_id=f.id WHERE s.category_id=?';
-            $params = [Uuid::fromString($r->request->getString('category'))->toBinary()];
-        } elseif ('feed' === $scope) {
-            $sql .= ' WHERE f.id=?';
-            $params = [Uuid::fromString($r->request->getString('feed'))->toBinary()];
-        } elseif ('all' !== $scope) {
+        $target = match ($scope) {
+            'category' => $r->request->getString('category'),
+            'feed' => $r->request->getString('feed'),
+            default => null,
+        };
+        if (!in_array($scope, ['all', 'category', 'feed'], true) || ('all' !== $scope && !Uuid::isValid((string) $target))) {
             throw $this->createNotFoundException();
         }
-        $ids = $em->getConnection()->fetchFirstColumn($sql, $params);
-        $run = Uuid::v7();
-        $db = $em->getConnection();
-        $db->insert('feed_sync_run', ['id' => $run->toBinary(), 'created_at' => (new \DateTimeImmutable())->format('Y-m-d H:i:s')]);
-        foreach ($ids as $id) {
-            $db->insert('feed_sync_run_entry', ['run_id' => $run->toBinary(), 'feed_id' => $id, 'status' => 'pending', 'new_articles' => 0]);
-            $bus->dispatch(new CollectFeedMessage((string) Uuid::fromBinary($id), (string) $run));
-        }
+        $ids = $feeds->findIdsForSync($scope, null === $target ? null : Uuid::fromString($target));
+        $run = $syncRuns->start($ids);
         if ('application/json' !== $r->headers->get('Accept')) {
             $this->addFlash('success', $translator->trans('%count% flux placés en file de synchronisation.', ['%count%' => count($ids)]));
 
@@ -54,21 +44,18 @@ final class AdminFeedSyncController extends AbstractController
     }
 
     #[Route('/admin/feed-sync/{id}', name: 'app_admin_feed_sync_status', methods: ['GET'])]
-    public function status(string $id, EntityManagerInterface $em, \App\Twig\IncidentExtension $incidentDescriber): Response
+    public function status(string $id, FeedSyncRunService $syncRuns, \App\Twig\IncidentExtension $incidentDescriber): Response
     {
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
-        $rows = $em
-            ->getConnection()
-            ->fetchAllAssociative(
-                'SELECT f.title,f.canonical_url,e.status,e.new_articles,e.detail FROM feed_sync_run_entry e INNER '
-.'JOIN feed f ON f.id=e.feed_id WHERE e.run_id=? ORDER BY f.title, f.canonical_url',
-                [Uuid::fromString($id)->toBinary()],
-            );
-        $rows = array_map(
-            static fn (array $r): array => [...$r, 'detail' => is_string($r['detail']) ? $incidentDescriber->translate($r['detail']) : $r['detail']],
+        if (!Uuid::isValid($id)) {
+            throw $this->createNotFoundException();
+        }
+        $rows = $syncRuns->entries(Uuid::fromString($id));
+        $entries = array_map(
+            static fn (array $row): array => [...$row, 'detail' => is_string($row['detail']) ? $incidentDescriber->translate($row['detail']) : $row['detail']],
             $rows,
         );
 
-        return $this->json(['entries' => $rows, 'complete' => !array_filter($rows, fn ($r) => in_array($r['status'], ['pending', 'running'], true))]);
+        return $this->json(['entries' => $entries, 'complete' => FeedSyncRunService::isComplete($rows)]);
     }
 }

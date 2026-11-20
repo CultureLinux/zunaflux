@@ -4,17 +4,18 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Application\Reading\ArticleListFilter;
 use App\Application\Reading\ArticleStateService;
 use App\Application\Reading\MarkSubscriptionRead;
+use App\Application\Reading\ReadingCounters;
 use App\Application\Reading\FeedHtmlSanitizer;
-use App\Entity\Article;
 use App\Entity\ArticleState;
 use App\Entity\Category;
 use App\Entity\MastodonAccount;
 use App\Entity\Subscription;
-use App\Entity\User;
 use App\Entity\UserPreference;
 use App\Infrastructure\Reading\FeedImageFetcher;
+use App\Repository\ArticleRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -27,13 +28,15 @@ use Symfony\Component\Uid\Uuid;
 
 final class ArticleController extends AbstractController
 {
+    use ResolvesOwnedEntities;
+
     public function __construct(private readonly TranslatorInterface $translator)
     {
     }
     private const PAGE_SIZE = 30;
 
     #[Route('/articles', name: 'app_articles', methods: ['GET'])]
-    public function index(EntityManagerInterface $entityManager): Response
+    public function index(EntityManagerInterface $entityManager, ReadingCounters $counters): Response
     {
         $user = $this->currentUser();
         $preference = $entityManager->getRepository(UserPreference::class)->findOneBy(['user' => $user]);
@@ -43,29 +46,7 @@ final class ArticleController extends AbstractController
             $entityManager->flush();
         }
         $subscriptions = $entityManager->getRepository(Subscription::class)->findBy(['user' => $user, 'enabled' => true]);
-        $readingCounts = [];
-        if ($preference->isSidebarCollapsed()) {
-            $counts = $entityManager
-                ->getConnection()
-                ->fetchAllAssociative(
-                    'SELECT s.id, COUNT(a.id) AS total, COALESCE(SUM(CASE WHEN a.id IS NOT NULL AND COALESCE(st.is_read, '
-.'0) = 0 THEN 1 ELSE 0 END), 0) AS unread, COALESCE(SUM(CASE WHEN COALESCE(st.is_favorite, 0) = 1 '
-.'THEN 1 ELSE 0 END), 0) AS favorite, COALESCE(SUM(CASE WHEN COALESCE(st.is_saved, 0) = 1 THEN 1 ELSE '
-.'0 END), 0) AS saved FROM subscription s LEFT JOIN article a ON a.feed_id = s.feed_id LEFT JOIN '
-.'article_state st ON st.article_id = a.id AND st.user_id = s.user_id WHERE s.user_id = ? AND '
-.'s.enabled = 1 GROUP BY s.id',
-                    [$user->getId()->toBinary()],
-                    [\Doctrine\DBAL\ParameterType::BINARY],
-                );
-            foreach ($counts as $count) {
-                $readingCounts[(string) Uuid::fromBinary($count['id'])] = [
-                    'unread' => (int) $count['unread'],
-                    'read' => (int) $count['total'] - (int) $count['unread'],
-                    'favorite' => (int) $count['favorite'],
-                    'saved' => (int) $count['saved'],
-                ];
-            }
-        }
+        $readingCounts = $preference->isSidebarCollapsed() ? $counters->perSubscription($user) : [];
         $categories = $entityManager->getRepository(Category::class)->findBy(['user' => $user]);
 
         return $this->render(
@@ -138,62 +119,16 @@ final class ArticleController extends AbstractController
     }
 
     #[Route('/api/articles', name: 'app_api_articles', methods: ['GET'])]
-    public function list(Request $request, EntityManagerInterface $entityManager, FeedHtmlSanitizer $sanitizer): JsonResponse
+    public function list(Request $request, ArticleRepository $articles, FeedHtmlSanitizer $sanitizer): JsonResponse
     {
         $user = $this->currentUser();
-        $cursor = $this->decodeCursor($request->query->getString('cursor'));
-        $query = $entityManager
-            ->createQueryBuilder()
-            ->select('a.id AS id, a.title AS title, a.url AS url, a.summary AS summary, a.content AS content, '
-.'a.publishedAt AS publishedAt, a.collectedAt AS collectedAt, f.title AS source, subscription.id AS '
-.'subscriptionId, subscription.customTitle AS subscriptionTitle, category.id AS categoryId, '
-.'category.name AS categoryName, s.isRead AS isRead, s.isFavorite AS isFavorite, s.isSaved AS isSaved')
-            ->from(Article::class, 'a')
-            ->innerJoin('a.feed', 'f')
-            ->innerJoin(Subscription::class, 'subscription', 'WITH', 'subscription.feed = f AND subscription.user = :user AND subscription.enabled = true')
-            ->leftJoin('subscription.category', 'category')
-            ->leftJoin(ArticleState::class, 's', 'WITH', 's.article = a AND s.user = :user')
-            ->setParameter('user', $user->getId(), 'uuid')
-            ->orderBy('a.collectedAt', 'DESC')
-            ->addOrderBy('a.id', 'DESC')
-            ->setMaxResults(self::PAGE_SIZE + 1);
-        if (null !== $cursor) {
-            $query
-                ->andWhere('a.collectedAt < :cursorDate OR (a.collectedAt = :cursorDate AND a.id < :cursorId)')
-                ->setParameter('cursorDate', new \DateTimeImmutable($cursor['collectedAt']))
-                ->setParameter('cursorId', Uuid::fromString($cursor['id']), 'uuid');
-        }
-        $search = trim($request->query->getString('q'));
-        if ('' !== $search) {
-            $query
-                ->andWhere('LOWER(a.title) LIKE :search OR LOWER(a.summary) LIKE :search OR LOWER(f.title) LIKE :search OR '
-.'LOWER(subscription.customTitle) LIKE :search')
-                ->setParameter('search', '%'.mb_strtolower($search).'%');
-        }
-        if ('' !== $request->query->getString('subscription')) {
-            $query->andWhere('subscription.id = :subscription')->setParameter('subscription', $this->queryUuid($request, 'subscription'), 'uuid');
-        }
-        if ('' !== $request->query->getString('category')) {
-            $query->andWhere('IDENTITY(subscription.category) = :category')->setParameter('category', $this->queryUuid($request, 'category'), 'uuid');
-        }
-        foreach (['read' => 'isRead', 'favorite' => 'isFavorite', 'saved' => 'isSaved'] as $parameter => $field) {
-            if (in_array($request->query->getString($parameter), ['0', '1'], true)) {
-                $query->andWhere('COALESCE(s.'.$field.', false) = :'.$parameter)->setParameter($parameter, '1' === $request->query->getString($parameter));
-            }
-        }
-        if ('' !== $request->query->getString('from')) {
-            $query->andWhere('COALESCE(a.publishedAt, a.collectedAt) >= :from')->setParameter('from', $this->queryDate($request, 'from'));
-        }
-        if ('' !== $request->query->getString('to')) {
-            $query->andWhere('COALESCE(a.publishedAt, a.collectedAt) <= :to')->setParameter('to', $this->queryDate($request, 'to'));
-        }
-        $items = $query->getQuery()->getArrayResult();
+        $items = $articles->findPage($user, $this->listFilter($request), self::PAGE_SIZE + 1);
         $hasMore = count($items) > self::PAGE_SIZE;
         if ($hasMore) {
             array_pop($items);
         }
         $nextCursor = null;
-        if ($hasMore && [] !== $items) {
+        if ($hasMore) {
             $last = $items[array_key_last($items)];
             $nextCursor = $this->encodeCursor($last['collectedAt']->format(DATE_ATOM), (string) $last['id']);
         }
@@ -211,7 +146,7 @@ final class ArticleController extends AbstractController
     #[Route('/api/articles/{id}', name: 'app_api_article_show', methods: ['GET'])]
     public function show(string $id, Request $request, EntityManagerInterface $entityManager, FeedHtmlSanitizer $sanitizer): JsonResponse
     {
-        $article = $this->accessibleArticle($id, $entityManager);
+        $article = $this->readableArticle($id, $entityManager);
         $state = $entityManager->getRepository(ArticleState::class)->findOneBy(['user' => $this->currentUser(), 'article' => $article]);
         $content = $article->getContent();
         $summary = $article->getSummary();
@@ -265,7 +200,7 @@ final class ArticleController extends AbstractController
         FeedHtmlSanitizer $sanitizer,
         FeedImageFetcher $fetcher,
     ): Response {
-        $article = $this->accessibleArticle($id, $entityManager);
+        $article = $this->readableArticle($id, $entityManager);
         $html = $request->query->getBoolean('summary') ? $article->getSummary() : ($article->getContent() ?: $article->getSummary());
         $urls = $sanitizer->imageUrls($html ?: '');
         if (!isset($urls[$index])) {
@@ -292,7 +227,7 @@ final class ArticleController extends AbstractController
     #[Route('/api/articles/{id}/state', name: 'app_api_article_state', methods: ['PATCH'])]
     public function updateState(string $id, Request $request, EntityManagerInterface $entityManager, ArticleStateService $articleStateService): JsonResponse
     {
-        $article = $this->accessibleArticle($id, $entityManager);
+        $article = $this->readableArticle($id, $entityManager);
         if (!$this->isCsrfTokenValid('article-state-'.$article->getId(), $request->headers->get('X-CSRF-Token'))) {
             throw $this->createAccessDeniedException('Jeton CSRF invalide.');
         }
@@ -338,7 +273,7 @@ final class ArticleController extends AbstractController
                 continue;
             }
             try {
-                $articleStateService->update($this->currentUser(), $this->accessibleArticle($id, $entityManager), $changes);
+                $articleStateService->update($this->currentUser(), $this->readableArticle($id, $entityManager), $changes);
                 ++$changed;
             } catch (\DomainException|\Symfony\Component\HttpKernel\Exception\NotFoundHttpException) {
             }
@@ -364,28 +299,22 @@ final class ArticleController extends AbstractController
         return $this->json(['matched' => $changed, 'changed' => $changed, 'skipped' => 0]);
     }
 
-    private function accessibleArticle(string $id, EntityManagerInterface $entityManager): Article
+    private function listFilter(Request $request): ArticleListFilter
     {
-        try {
-            $articleId = Uuid::fromString($id);
-        } catch (\InvalidArgumentException) {
-            throw $this->createNotFoundException();
-        }
-        $article = $entityManager
-            ->createQueryBuilder()
-            ->select('a')
-            ->from(Article::class, 'a')
-            ->innerJoin(Subscription::class, 'subscription', 'WITH', 'subscription.feed = a.feed AND subscription.user = :user AND subscription.enabled = true')
-            ->where('a.id = :id')
-            ->setParameter('user', $this->currentUser()->getId(), 'uuid')
-            ->setParameter('id', $articleId, 'uuid')
-            ->getQuery()
-            ->getOneOrNullResult();
-        if (!$article instanceof Article) {
-            throw $this->createNotFoundException();
-        }
+        $cursor = $this->decodeCursor($request->query->getString('cursor'));
+        $flag = static fn (string $name): ?bool => in_array($request->query->getString($name), ['0', '1'], true) ? '1' === $request->query->getString($name) : null;
 
-        return $article;
+        return new ArticleListFilter(
+            cursor: null === $cursor ? null : ['collectedAt' => new \DateTimeImmutable($cursor['collectedAt']), 'id' => Uuid::fromString($cursor['id'])],
+            search: trim($request->query->getString('q')),
+            subscription: '' !== $request->query->getString('subscription') ? $this->queryUuid($request, 'subscription') : null,
+            category: '' !== $request->query->getString('category') ? $this->queryUuid($request, 'category') : null,
+            read: $flag('read'),
+            favorite: $flag('favorite'),
+            saved: $flag('saved'),
+            from: '' !== $request->query->getString('from') ? $this->queryDate($request, 'from') : null,
+            to: '' !== $request->query->getString('to') ? $this->queryDate($request, 'to') : null,
+        );
     }
 
     private function queryUuid(Request $request, string $name): Uuid
@@ -459,15 +388,5 @@ final class ArticleController extends AbstractController
             'isFavorite' => (bool) ($item['isFavorite'] ?? false),
             'isSaved' => (bool) ($item['isSaved'] ?? false),
         ];
-    }
-
-    private function currentUser(): User
-    {
-        $user = $this->getUser();
-        if (!$user instanceof User) {
-            throw $this->createAccessDeniedException();
-        }
-
-        return $user;
     }
 }

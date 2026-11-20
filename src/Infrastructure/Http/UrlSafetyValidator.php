@@ -2,10 +2,15 @@
 
 declare(strict_types=1);
 
-namespace App\Domain\Feed;
+namespace App\Infrastructure\Http;
 
 final class UrlSafetyValidator
 {
+    /** @param (\Closure(string): (list<string>|false))|null $resolver host name lookup, gethostbynamel() by default (replaceable in tests) */
+    public function __construct(private readonly ?\Closure $resolver = null)
+    {
+    }
+
     /** @return list<string> */
     public function assertAllowed(string $url): array
     {
@@ -21,7 +26,7 @@ final class UrlSafetyValidator
         }
 
         $host = trim($parts['host'], '[]');
-        $ips = filter_var($host, FILTER_VALIDATE_IP) ? [$host] : (gethostbynamel($host) ?: []);
+        $ips = filter_var($host, FILTER_VALIDATE_IP) ? [$host] : (($this->resolver ?? gethostbynamel(...))($host) ?: []);
         if ([] === $ips) {
             throw new \InvalidArgumentException('The URL host cannot be resolved.');
         }

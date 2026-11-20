@@ -80,12 +80,12 @@ final class ArticleState
         return $this->user;
     }
 
-    public function markRead(): void
+    public function markRead(?\DateTimeImmutable $now = null): void
     {
         if (!$this->isRead) {
             $this->isRead = true;
-            $this->readAt = new \DateTimeImmutable();
-            $this->touch();
+            $this->readAt = $now ?? new \DateTimeImmutable();
+            $this->touch($now);
         }
     }
 
@@ -114,8 +114,8 @@ final class ArticleState
         }
     }
 
-    private function touch(): void
+    private function touch(?\DateTimeImmutable $now = null): void
     {
-        $this->updatedAt = new \DateTimeImmutable();
+        $this->updatedAt = $now ?? new \DateTimeImmutable();
     }
 }

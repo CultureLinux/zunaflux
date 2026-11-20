@@ -6,10 +6,7 @@ namespace App\Controller;
 
 use App\Application\Mastodon\MastodonOAuthService;
 use App\Application\Mastodon\MastodonApiException;
-use App\Entity\Article;
 use App\Entity\MastodonAccount;
-use App\Entity\Subscription;
-use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -18,10 +15,11 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
-use Symfony\Component\Uid\Uuid;
 
 final class MastodonStatusController extends AbstractController
 {
+    use ResolvesOwnedEntities;
+
     public function __construct(private readonly TranslatorInterface $translator)
     {
     }
@@ -35,7 +33,7 @@ final class MastodonStatusController extends AbstractController
         LoggerInterface $logger,
     ): JsonResponse {
         $user = $this->currentUser();
-        $article = $this->accessibleArticle($id, $entityManager, $user);
+        $article = $this->readableArticle($id, $entityManager);
         if (!$this->isCsrfTokenValid('mastodon-status-'.$article->getId(), $request->headers->get('X-CSRF-Token'))) {
             throw $this->createAccessDeniedException('Jeton CSRF invalide.');
         }
@@ -83,38 +81,5 @@ final class MastodonStatusController extends AbstractController
 
             return $this->json(['error' => $this->translator->trans($exception->getMessage())], Response::HTTP_BAD_GATEWAY);
         }
-    }
-
-    private function accessibleArticle(string $id, EntityManagerInterface $entityManager, User $user): Article
-    {
-        try {
-            $articleId = Uuid::fromString($id);
-        } catch (\InvalidArgumentException) {
-            throw $this->createNotFoundException();
-        }
-        $article = $entityManager->createQueryBuilder()
-            ->select('a')
-            ->from(Article::class, 'a')
-            ->innerJoin(Subscription::class, 'subscription', 'WITH', 'subscription.feed = a.feed AND subscription.user = :user AND subscription.enabled = true')
-            ->where('a.id = :id')
-            ->setParameter('user', $user->getId(), 'uuid')
-            ->setParameter('id', $articleId, 'uuid')
-            ->getQuery()
-            ->getOneOrNullResult();
-        if (!$article instanceof Article) {
-            throw $this->createNotFoundException();
-        }
-
-        return $article;
-    }
-
-    private function currentUser(): User
-    {
-        $user = $this->getUser();
-        if (!$user instanceof User) {
-            throw $this->createAccessDeniedException();
-        }
-
-        return $user;
     }
 }

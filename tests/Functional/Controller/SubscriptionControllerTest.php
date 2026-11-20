@@ -622,7 +622,7 @@ final class SubscriptionControllerTest extends WebTestCase
         }
     }
 
-    public function testAdminRetryReturnsTheCollectionErrorInTheDialogResponse(): void
+    public function testAdminRetryQueuesACollectionAndExposesItsRunToTheDialog(): void
     {
         $client = static::createClient();
         $em = static::getContainer()->get(EntityManagerInterface::class);
@@ -640,13 +640,21 @@ final class SubscriptionControllerTest extends WebTestCase
             $crawler = $client->request('GET', '/admin');
             $token = $crawler->filter('form[action="/admin/incidents/'.$incident->getId().'/retry"] input[name="_token"]')->attr('value');
             $client->request('POST', '/admin/incidents/'.$incident->getId().'/retry', ['_token' => $token], server: ['HTTP_ACCEPT' => 'application/json']);
-            self::assertResponseIsSuccessful();
+            // The collection is queued, never run inside the HTTP request.
+            self::assertResponseStatusCodeSame(202);
             $result = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
-            self::assertFalse($result['success']);
-            self::assertStringContainsString('bloquée', implode(' ', $result['logs']));
-            self::assertStringContainsString('incident reste ouvert', implode(' ', $result['logs']));
+            self::assertMatchesRegularExpression('/^[0-9a-f-]{36}$/', $result['runId']);
+
+            $client->request('GET', '/admin/feed-sync/'.$result['runId'], server: ['HTTP_ACCEPT' => 'application/json']);
+            self::assertResponseIsSuccessful();
+            $status = json_decode((string) $client->getResponse()->getContent(), true, 512, JSON_THROW_ON_ERROR);
+            self::assertFalse($status['complete']);
+            self::assertSame([$feed->getCanonicalUrl()], array_column($status['entries'], 'canonical_url'));
+            self::assertSame('pending', $status['entries'][0]['status']);
+            self::assertNotNull($em->getConnection()->fetchOne('SELECT id FROM feed_incident WHERE feed_id = ?', [$feed->getId()->toBinary()]) ?: null, 'The incident stays open until the worker succeeds.');
         } finally {
             $connection = $em->getConnection();
+            $connection->executeStatement('DELETE FROM messenger_messages WHERE body LIKE ?', ['%'.$feed->getId().'%']);
             $connection->executeStatement('DELETE FROM feed WHERE id = ?', [$feed->getId()->toBinary()]);
             $connection->executeStatement('DELETE FROM app_user WHERE id = ?', [$admin->getId()->toBinary()]);
         }

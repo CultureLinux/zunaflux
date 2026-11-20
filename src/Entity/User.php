@@ -125,7 +125,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Equatab
     public function setSubscriptionLimit(?int $limit): void
     {
         if (null !== $limit && $limit < 1) {
-            throw new \InvalidArgumentException('La limite doit être positive.');
+            throw new \App\Application\Exception\UserInputError('La limite doit être positive.');
         }
         $this->subscriptionLimit = $limit;
     }

@@ -91,7 +91,7 @@ Socle ajouté : `tests/Support/RollbackKernelTestCase.php` (transaction annulée
 
 **Non couvert :** chemin de succès de `DiscoverFeedHandler` (requiert le réseau), chemins d'échec des commandes de relais (les classes sont `final`, pas de double possible), quatre routes d'administration annexes (incidents, quotas, synchronisation).
 
-### 9.A Reformatage : appliqué (en attente de commit isolé)
+### 9.A Reformatage : appliqué et commité (`dbb5baa`, SHA ajouté à `.git-blame-ignore-revs`)
 
 - **Dépendance validée :** `friendsofphp/php-cs-fixer` (v3.95.32, `require-dev`) ; ses dépendances (`react/*`, `composer/*`…) sont toutes de développement. Aucune version existante n'a changé dans `composer.lock`.
 - **Configuration :** `.php-cs-fixer.dist.php` (`@Symfony` + `@PSR12`, hors `yoda_style`, `phpdoc_summary`, `phpdoc_to_comment`, `single_line_throw`) sur `src/` et `tests/`. Les migrations ne sont pas reformatées (déjà appliquées).
@@ -101,7 +101,28 @@ Socle ajouté : `tests/Support/RollbackKernelTestCase.php` (transaction annulée
   3. PHP-CS-Fixer a ensuite harmonisé le style ; 7 lignes restantes ont été coupées à la main (SQL, tableau de choix des préférences).
 - **Résultat :** 0 ligne de plus de 200 caractères dans `src/` (109 avant) ; `php-cs-fixer fix --dry-run` sans écart ; 275 tests et PHPStan inchangés.
 - **CI :** étape « Check code style with PHP-CS-Fixer » ajoutée au job `php` (clôt le point 6.5 du lot 6).
-- **À faire par le développeur :** commiter ce reformatage **seul**, puis ajouter son SHA à `.git-blame-ignore-revs` (fichier créé) et lancer `git config blame.ignoreRevsFile .git-blame-ignore-revs`.
 
-### 9.B et 9.C : à faire (après le commit de 9.A)
+### 9.B Contrôleurs et couches : appliqué (en attente de validation)
+
+| Constat | Résultat |
+|---|---|
+| Sync run copié 4 fois, endpoint de statut copié 4 fois | `Application/Feed/FeedSyncRunService` (`start`, `entries`, `isComplete`) ; les 5 actions de `SubscriptionController` et `AdminFeedSyncController` l'utilisent. |
+| `DELETE article_state` copié 2 fois | `Application/Subscription/SubscriptionRemoval` (`remove`, `removeCategory`). |
+| `SubscriptionController::update` réimplémente `SubscribeToFeed`, `DELETE notification_pending` hors transaction | `Application/Subscription/SubscriptionEditor` (une transaction) qui réutilise `SubscribeToFeed::resolveFeed()` (création du flux sous verrou). |
+| Contrôle de propriété à la main | `SubscriptionVoter`, `CategoryVoter`, `ArticleVoter` + trait `Controller/ResolvesOwnedEntities` partagé par 3 contrôleurs (suppression de la copie de `accessibleArticle` dans `MastodonStatusController`). Réponses inchangées : 403 pour une source ou catégorie inconnue ou étrangère, 404 pour un article illisible. |
+| Retry d'incident synchrone (jusqu'à 60 s dans la requête) | **Mis en file avec visualisation** : `AdminController::retry` crée un sync run (`clearIncident`) et répond 202 ; le dialogue (`feed-retry.js`) suit le run via `/admin/feed-sync/{id}` et affiche l'état de chaque étape ; le handler supprime l'incident dès que la collecte réussit. `CollectFeedHandler::collectOrFail` et le drapeau `$rethrow` ont disparu. |
+| Réseau dans le domaine | `FeedFetcher`, `DiscoveryFetcher` et `UrlSafetyValidator` déplacés dans `src/Infrastructure/` ; interfaces de domaine `FeedFetcherInterface` et `PageFetcherInterface`. |
+| Un seul repository dédié, SQL brut dans les contrôleurs | `ArticleRepository` (liste paginée, avec `ArticleListFilter`), `FeedRepository` (flux échus, inutilisés, cibles de synchronisation), `SubscriptionRepository`, `UserRepository::countOtherActiveAdministrators`, plus les services `ReadingCounters`, `AdminStatistics`, `HealthCheck` et `DigestQueue::latestId()`. **Plus aucun SQL ni QueryBuilder dans `src/Controller/`.** |
+
+Corrections au passage : la jauge « messages en attente » de l'administration comptait la file `default` alors que la file réelle s'appelle `async` en production (elle comptait donc toujours 0) ; elle compte maintenant tout ce qui n'est pas en échec, comme `/healthz`. Les quotas d'abonnements par compte passent d'une requête par compte à une seule.
+
+**Non fait :** les contrôleurs `AdminController` (gestion des comptes), `PreferenceController` et `SecurityController` gardent de la logique métier (appels `getRepository()` et règles dans les actions) ; seule l'extraction des requêtes est faite. Les `Application/**` utilisent encore `getRepository()` en interne.
+
+### 9.C Clients HTTP, erreurs, horloge : appliqué (en attente de validation)
+
+- **Client HTTP unifié sur `symfony/http-client`** : `Infrastructure/Http/SafeHttpClient` (validation de chaque saut, **adresse épinglée** via l'option `resolve`, redirections suivies à la main et revalidées, proxys ignorés, corps plafonné pendant le téléchargement après décompression, schémas et IPv4 restreignables). `FeedFetcher`, `DiscoveryFetcher`, `FeedImageFetcher` et `MastodonHttpClient` ne contiennent plus de cURL (0 `curl_init` dans `src/`). Les garde-fous SSRF du lot 3 sont conservés (`UrlSafetyValidator`, avec résolveur de noms injectable pour les tests).
+- **Tests sans réseau** : `MockHttpClient` couvre l'épinglage, les redirections, les limites de taille, les erreurs de transport, les validateurs conditionnels et le 304 (`SafeHttpClientTest`, `FetchersTest`). Vérification réelle faite une fois en local : flux Atom public (200 puis 304 conditionnel), page HTML, refus de `127.0.0.1`, `169.254.169.254` et `localhost`, 404.
+- **Exceptions typées** : interface `TranslatableException` (clé et paramètres), classes `SubscriptionLimitReached`, `AlreadySubscribed`, `CategoryAlreadyExists`, `InvalidFeedAddress`, `InvalidOpmlFile`, `AccountStillActive`, `ArticleInaccessible`, `UserInputError`, `BusinessRuleViolation`, `DiscoveryFailed`, et côté réseau `HttpFetchFailed` avec `HttpFailure`. Elles étendent les exceptions SPL d'origine, donc les `catch` existants restent valides. `IncidentMessage::describeError()` décrit une panne d'après son type avant de retomber sur le texte. Un test vérifie que chaque clé est traduite en anglais et en allemand.
+- **Horloge** : `Clock` injecté dans `CollectFeed`, `CollectFeedHandler`, `ArticleStateService`, `MarkSubscriptionRead`, `UserExport`, `CollectFeedsCommand`, `FeedSyncRunService`, `AdminStatistics` ; `Feed::recordSuccess()` et `ArticleState::markRead()` acceptent l'heure. **Non fait :** les entités gardent `new \DateTimeImmutable()` dans leurs constructeurs et plusieurs mutateurs.
+- **Non fait :** une soixantaine d'exceptions techniques (configuration, invariants, `Unable to ...`) restent des `\RuntimeException` ou `\InvalidArgumentException` génériques ; `catch (\Throwable)` n'a pas été limité à la journalisation partout.
 

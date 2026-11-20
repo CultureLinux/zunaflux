@@ -622,5 +622,8 @@
   "Rattrapage": "Catch up",
   "Connexion au serveur impossible. Vérifiez votre réseau.": "Cannot reach the server. Check your network.",
   "Le serveur a renvoyé une réponse inattendue.": "The server returned an unexpected response.",
-  "Filtres invalides.": "Invalid filters."
+  "Filtres invalides.": "Invalid filters.",
+  "Article inaccessible.": "Article not accessible.",
+  "Nouvelle collecte placée en file. L’incident sera supprimé si elle réussit.": "A new collection has been queued. The incident will be removed if it succeeds.",
+  "Le site a répondu avec le code HTTP %status%.": "The site responded with HTTP code %status%."
 }

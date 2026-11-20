@@ -7,7 +7,8 @@ namespace App\Controller;
 use App\Application\Subscription\SubscribeToFeed;
 use App\Entity\User;
 use App\Message\DiscoverFeedMessage;
-use App\Domain\Feed\DiscoveryFetcher;
+use App\Application\Exception\TranslatableException;
+use App\Domain\Feed\PageFetcherInterface;
 use App\Domain\Feed\FeedDiscovery;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -20,7 +21,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final class FeedDiscoveryController extends AbstractController
 {
     #[Route('/subscriptions/discovery/live', name: 'app_feed_discovery_live', methods: ['POST'])]
-    public function live(Request $request, DiscoveryFetcher $fetcher, FeedDiscovery $discovery, TranslatorInterface $translator): Response
+    public function live(Request $request, PageFetcherInterface $fetcher, FeedDiscovery $discovery, TranslatorInterface $translator): Response
     {
         $this->user();
         if (!$this->isCsrfTokenValid('discover-feed', $request->request->getString('_token'))) {
@@ -45,7 +46,11 @@ final class FeedDiscoveryController extends AbstractController
         } catch (\InvalidArgumentException $e) {
             return $this->json(['error' => $translator->trans('Adresse inaccessible ou interdite par les règles de sécurité.')], 422);
         } catch (\RuntimeException $e) {
-            return $this->json(['error' => $translator->trans($e->getMessage()), 'reason' => 403 === $e->getCode() ? 'site_forbidden' : 'fetch_error'], 422);
+            $message = $e instanceof TranslatableException
+                ? $translator->trans($e->getTranslationKey(), $e->getTranslationParameters())
+                : $translator->trans($e->getMessage());
+
+            return $this->json(['error' => $message, 'reason' => 403 === $e->getCode() ? 'site_forbidden' : 'fetch_error'], 422);
         } catch (\Throwable) {
             return $this->json(['error' => $translator->trans('La page n’a pas pu être consultée. Vérifiez son adresse et réessayez.')], 422);
         }

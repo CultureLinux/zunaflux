@@ -51,6 +51,25 @@ final class SourceTranslationKeysTest extends TestCase
         self::assertSame([], $missing, 'Flash messages missing from messages.'.$locale.'.json');
     }
 
+    #[DataProvider('locales')]
+    public function testEveryTypedExceptionKeyIsTranslated(string $locale): void
+    {
+        $keys = [];
+        foreach (self::phpFiles() as $file) {
+            $source = (string) file_get_contents($file);
+            preg_match_all('/new (?:\\\\App\\\\Application\\\\Exception\\\\)?(?:UserInputError|InvalidOpmlFile|BusinessRuleViolation|DiscoveryFailed)\(\'((?:[^\'\\\\]|\\\\.)*)\'/u', $source, $matches);
+            array_push($keys, ...$matches[1]);
+            if (str_contains($file, '/Application/Exception/')) {
+                preg_match_all('/const KEY = \'((?:[^\'\\\\]|\\\\.)*)\'/u', $source, $constants);
+                array_push($keys, ...$constants[1]);
+            }
+        }
+        $missing = array_values(array_filter(array_unique($keys), static fn (string $key): bool => !array_key_exists($key, self::catalogue($locale))));
+
+        self::assertNotEmpty($keys);
+        self::assertSame([], $missing, 'Exception keys missing from messages.'.$locale.'.json');
+    }
+
     /** @return list<string> */
     private static function clientKeys(): array
     {

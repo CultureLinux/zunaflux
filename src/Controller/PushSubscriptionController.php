@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Application\Notification\PushEndpoint;
+use App\Application\Notification\DigestQueue;
 use App\Application\Notification\NotificationDiagnostics;
 use App\Application\Notification\PushDeviceLabel;
 use App\Entity\PushSubscription;
@@ -55,7 +56,7 @@ final class PushSubscriptionController extends AbstractController
     }
 
     #[Route('/api/push-subscription', name: 'app_push_subscription', methods: ['POST', 'DELETE'])]
-    public function subscription(Request $request, EntityManagerInterface $em, NotificationDiagnostics $diagnostics): JsonResponse
+    public function subscription(Request $request, EntityManagerInterface $em, NotificationDiagnostics $diagnostics, DigestQueue $digestQueue): JsonResponse
     {
         $user = $this->getUser();
         if (!$user instanceof User || !$this->isCsrfTokenValid('push-subscription', $request->headers->get('X-CSRF-Token', ''))) {
@@ -101,7 +102,7 @@ final class PushSubscriptionController extends AbstractController
             $em->persist($subscription);
         }
         if ($newDigest) {
-            $subscription->startDigestAt((int) $em->getConnection()->fetchOne('SELECT COALESCE(MAX(id), 0) FROM notification_pending'));
+            $subscription->startDigestAt($digestQueue->latestId());
         }
         $subscription->setDeviceLabel(PushDeviceLabel::fromUserAgent($request->headers->get('User-Agent', '')));
         $em->flush();

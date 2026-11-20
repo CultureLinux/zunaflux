@@ -116,7 +116,7 @@ final class SavedFilterController extends AbstractController
     private function filters(mixed $v): array
     {
         if (!is_array($v)) {
-            throw new \InvalidArgumentException('Filtres invalides.');
+            throw new \App\Application\Exception\UserInputError('Filtres invalides.');
         }
 
         return array_filter($v, fn ($x) => is_scalar($x) || null === $x);

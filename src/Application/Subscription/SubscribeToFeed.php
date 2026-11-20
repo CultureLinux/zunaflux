@@ -27,7 +27,7 @@ final readonly class SubscribeToFeed
             // Checked before creating anything: a refused subscription leaves no orphan feed.
             $limit = $user->getSubscriptionLimit();
             if (null !== $limit && $this->entityManager->getRepository(Subscription::class)->count(['user' => $user]) >= $limit) {
-                throw new \InvalidArgumentException('La limite d’abonnements de ce compte est atteinte.');
+                throw new \App\Application\Exception\SubscriptionLimitReached();
             }
             $feed ??= $this->createFeed($candidate);
             $subscription = new Subscription($user, $feed);
@@ -37,6 +37,27 @@ final readonly class SubscribeToFeed
         $this->entityManager->flush();
 
         return $subscription;
+    }
+
+    /**
+     * Returns the shared feed for an address, creating it (once, under a lock) when it is new.
+     *
+     * @throws \App\Application\Exception\InvalidFeedAddress when the address is unusable
+     */
+    public function resolveFeed(string $url): Feed
+    {
+        $url = trim($url);
+        $parts = parse_url($url);
+        if (strlen($url) > 2048 || !filter_var($url, FILTER_VALIDATE_URL) || !is_array($parts) || isset($parts['user']) || isset($parts['pass'])) {
+            throw new \App\Application\Exception\InvalidFeedAddress();
+        }
+        try {
+            $candidate = new Feed($url);
+        } catch (\InvalidArgumentException $exception) {
+            throw new \App\Application\Exception\InvalidFeedAddress($exception);
+        }
+
+        return $this->findFeed($candidate) ?? $this->createFeed($candidate);
     }
 
     private function findFeed(Feed $candidate): ?Feed

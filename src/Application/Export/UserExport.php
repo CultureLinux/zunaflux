@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Application\Export;
 
+use App\Application\Time\Clock;
+use App\Application\Time\SystemClock;
 use App\Entity\ArticleState;
 use App\Entity\Category;
 use App\Entity\ReadingDailyStat;
@@ -16,7 +18,7 @@ use Doctrine\ORM\EntityManagerInterface;
 
 final readonly class UserExport
 {
-    public function __construct(private EntityManagerInterface $entityManager, private StreamingZipArchive $archive)
+    public function __construct(private EntityManagerInterface $entityManager, private StreamingZipArchive $archive, private Clock $clock = new SystemClock())
     {
     }
 
@@ -30,7 +32,7 @@ final readonly class UserExport
         $states = $this->entityManager->getRepository(ArticleState::class)->findBy(['user' => $user]);
         $stats = $this->entityManager->getRepository(ReadingDailyStat::class)->findBy(['user' => $user]);
         $entries = [
-            'manifest.json' => $this->json(['formatVersion' => 1, 'exportedAt' => (new \DateTimeImmutable())->format(DATE_ATOM), 'application' => 'Zunaflux']),
+            'manifest.json' => $this->json(['formatVersion' => 1, 'exportedAt' => $this->clock->now()->format(DATE_ATOM), 'application' => 'Zunaflux']),
             'profile.json' => $this->json(['email' => $user->getUserIdentifier()]),
             'preferences.json' => $this->json(
                 $preference instanceof UserPreference ? [
@@ -87,7 +89,7 @@ final readonly class UserExport
             'README.txt' => "Format d’export Zunaflux v1.\nLes états sont fournis à titre d’archive ; leur réimportation complète n’est pas prise en charge en v1.\n",
         ];
 
-        return ['filename' => 'zunaflux-export-'.(new \DateTimeImmutable())->format('Ymd').'.zip', 'contents' => $this->archive->create($entries)];
+        return ['filename' => 'zunaflux-export-'.$this->clock->now()->format('Ymd').'.zip', 'contents' => $this->archive->create($entries)];
     }
 
     public function createOpml(User $user): string

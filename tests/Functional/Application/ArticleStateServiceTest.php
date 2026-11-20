@@ -6,6 +6,7 @@ namespace App\Tests\Functional\Application;
 
 use App\Application\Reading\ArticleStateService;
 use App\Entity\ArticleState;
+use App\Tests\Support\FrozenClock;
 use App\Tests\Support\RollbackKernelTestCase;
 
 final class ArticleStateServiceTest extends RollbackKernelTestCase
@@ -85,5 +86,22 @@ final class ArticleStateServiceTest extends RollbackKernelTestCase
         $service->update($first, $article, ['isRead' => true]);
 
         self::assertNull($this->em->getRepository(ArticleState::class)->findOneBy(['user' => $second, 'article' => $article]));
+    }
+
+    public function testTimestampsComeFromTheInjectedClock(): void
+    {
+        $user = $this->user();
+        $feed = $this->feed();
+        $article = $this->article($feed);
+        $this->subscribe($user, $feed);
+        $this->em->flush();
+        $service = new ArticleStateService($this->em, new FrozenClock(new \DateTimeImmutable('2030-05-05 10:00:00')));
+
+        $state = $service->update($user, $article, ['isRead' => true]);
+
+        self::assertSame('2030-05-05 10:00:00', $state->getReadAt()?->format('Y-m-d H:i:s'));
+        $userId = $user->getId()->toBinary();
+        self::assertSame('2030-05-05 10:00:00', $this->db->fetchOne('SELECT first_read_at FROM first_read_event WHERE user_id = ?', [$userId]));
+        self::assertSame('2030-05-05', $this->db->fetchOne('SELECT stat_date FROM reading_daily_stat WHERE user_id = ?', [$userId]));
     }
 }

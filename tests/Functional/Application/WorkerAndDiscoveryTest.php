@@ -54,7 +54,7 @@ final class WorkerAndDiscoveryTest extends RollbackKernelTestCase
     private function handler(ArrayAdapter $cache): DiscoverFeedHandler
     {
         return new DiscoverFeedHandler(
-            self::getContainer()->get(\App\Domain\Feed\DiscoveryFetcher::class),
+            self::getContainer()->get(\App\Domain\Feed\PageFetcherInterface::class),
             self::getContainer()->get(\App\Domain\Feed\FeedDiscovery::class),
             $cache,
         );

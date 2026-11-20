@@ -67,7 +67,7 @@ L'ordre recommandé suit le rapport gain/risque. Les lots 1 à 3 sont courts et 
 | 6 | CI, analyse statique et supply chain | Moyenne | M | Non | Partiel (6.1, 6.2, 6.4, 6.7), non validé | [lot-06-ci-qualite.md](lot-06-ci-qualite.md) |
 | 7 | Accessibilité et i18n | Moyenne | M | Non | Partiel (7.1, 7.4, 7.5, 7.8, 7.11…), non validé | [lot-07-accessibilite-i18n.md](lot-07-accessibilite-i18n.md) |
 | 8 | Robustesse front, PWA et poids des assets | Moyenne | M | Non | Partiel (8.1, 8.2, 8.3, 8.6…), non validé | [lot-08-front-pwa.md](lot-08-front-pwa.md) |
-| 9 | Architecture et dette de code | Basse | L | Non | En cours : 9.D (tests) fait, 9.A à 9.C à faire | [lot-09-architecture.md](lot-09-architecture.md) |
+| 9 | Architecture et dette de code | Basse | L | Non | Appliqué (9.A à 9.D) avec restes listés, non validé | [lot-09-architecture.md](lot-09-architecture.md) |
 
 Le détail de ce qui est appliqué, partiel ou laissé de côté figure dans la section « Statut d'avancement » de chaque fichier de lot.
 

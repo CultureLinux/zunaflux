@@ -25,6 +25,12 @@ final readonly class DigestQueue
         $this->connection->fetchOne('SELECT RELEASE_LOCK(?)', ['zunaflux-digest-'.$user]);
     }
 
+    /** Position of the newest queued notification: a new device only receives what is queued after it. */
+    public function latestId(): int
+    {
+        return (int) $this->connection->fetchOne('SELECT COALESCE(MAX(id), 0) FROM notification_pending');
+    }
+
     public function add(Uuid $subscription, string $event, int $count, \DateTimeImmutable $now): void
     {
         $this

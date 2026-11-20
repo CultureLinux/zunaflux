@@ -4,8 +4,25 @@ declare(strict_types=1);
 
 namespace App\Application\Notification;
 
+use App\Infrastructure\Http\HttpFailure;
+use App\Infrastructure\Http\HttpFetchFailed;
+
 final class IncidentMessage
 {
+    /** Uses the failure type when the error carries one, the message otherwise. */
+    public function describeError(\Throwable $error): string
+    {
+        if ($error instanceof HttpFetchFailed) {
+            return match ($error->reason) {
+                HttpFailure::TooLarge => 'Le flux dépasse la taille autorisée.',
+                HttpFailure::TooManyRedirects, HttpFailure::BadRedirect => 'La redirection du flux est invalide ou trop longue.',
+                HttpFailure::Transport => $this->describe($error->getMessage()),
+            };
+        }
+
+        return $this->describe($error->getMessage());
+    }
+
     public function describe(string $message): string
     {
         if (preg_match('/timed?\s*out|timeout|délai dépassé/i', $message)) {
