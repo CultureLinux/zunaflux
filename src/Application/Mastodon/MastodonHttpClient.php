@@ -6,7 +6,10 @@ namespace App\Application\Mastodon;
 
 class MastodonHttpClient
 {
-    /** @return array<string, mixed> */
+    /**
+     * @param array<string, scalar|null> $form
+     * @return array<string, mixed>
+     */
     public function request(MastodonInstance $instance, string $method, string $path, array $form = [], ?string $accessToken = null): array
     {
         $url = $instance->endpoint($path);

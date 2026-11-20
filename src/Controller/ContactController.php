@@ -36,7 +36,10 @@ final class ContactController extends AbstractController
         return $this->redirectToRoute('app_contact', status: Response::HTTP_SEE_OTHER);
     }
 
-    /** @param array{name: string, email: string, subject: string, message: string} $data */
+    /**
+     * @param array{name: string, email: string, subject: string, message: string} $data
+     * @return array<string, string>
+     */
     private function validate(array $data): array
     {
         $errors = [];

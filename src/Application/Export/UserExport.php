@@ -23,13 +23,12 @@ final readonly class UserExport
     /** @return array{filename: string, contents: string} */
     public function create(User $user): array
     {
-        $repository = fn (string $class) => $this->entityManager->getRepository($class);
-        $preference = $repository(UserPreference::class)->findOneBy(['user' => $user]);
-        $categories = $repository(Category::class)->findBy(['user' => $user], ['name' => 'ASC']);
-        $subscriptions = $repository(Subscription::class)->findBy(['user' => $user]);
-        $filters = $repository(SavedFilter::class)->findBy(['user' => $user]);
-        $states = $repository(ArticleState::class)->findBy(['user' => $user]);
-        $stats = $repository(ReadingDailyStat::class)->findBy(['user' => $user]);
+        $preference = $this->entityManager->getRepository(UserPreference::class)->findOneBy(['user' => $user]);
+        $categories = $this->entityManager->getRepository(Category::class)->findBy(['user' => $user], ['name' => 'ASC']);
+        $subscriptions = $this->entityManager->getRepository(Subscription::class)->findBy(['user' => $user]);
+        $filters = $this->entityManager->getRepository(SavedFilter::class)->findBy(['user' => $user]);
+        $states = $this->entityManager->getRepository(ArticleState::class)->findBy(['user' => $user]);
+        $stats = $this->entityManager->getRepository(ReadingDailyStat::class)->findBy(['user' => $user]);
 
         $entries = [
             'manifest.json' => $this->json(['formatVersion' => 1, 'exportedAt' => (new \DateTimeImmutable())->format(DATE_ATOM), 'application' => 'Zunaflux']),

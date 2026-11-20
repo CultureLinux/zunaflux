@@ -64,7 +64,7 @@ L'ordre recommandé suit le rapport gain/risque. Les lots 1 à 3 sont courts et 
 | 3 | Exposition HTTP et sessions | Haute | S–M | Non | Partiel, non validé | [lot-03-securite-http.md](lot-03-securite-http.md) |
 | 4 | Performances SQL de la lecture | Haute | M–L | Oui (index) | Partiel (4.1, 4.3, 4.9…), non validé | [lot-04-performances-sql.md](lot-04-performances-sql.md) |
 | 5 | Exploitation Docker et observabilité | Haute | M | Non | Partiel (5.1, 5.3, 5.4…), non validé | [lot-05-exploitation.md](lot-05-exploitation.md) |
-| 6 | CI, analyse statique et supply chain | Moyenne | M | Non | À faire | [lot-06-ci-qualite.md](lot-06-ci-qualite.md) |
+| 6 | CI, analyse statique et supply chain | Moyenne | M | Non | Partiel (6.1, 6.2, 6.4, 6.7), non validé | [lot-06-ci-qualite.md](lot-06-ci-qualite.md) |
 | 7 | Accessibilité et i18n | Moyenne | M | Non | À faire | [lot-07-accessibilite-i18n.md](lot-07-accessibilite-i18n.md) |
 | 8 | Robustesse front, PWA et poids des assets | Moyenne | M | Non | À faire | [lot-08-front-pwa.md](lot-08-front-pwa.md) |
 | 9 | Architecture et dette de code | Basse | L | Non | À faire | [lot-09-architecture.md](lot-09-architecture.md) |

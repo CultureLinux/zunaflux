@@ -1,6 +1,15 @@
 parameters:
     level: 6
     paths:
-        - src/Application/Reading/ArticleStateService.php
-        - src/Application/Reading/MarkSubscriptionRead.php
+        - src
     tmpDir: var/phpstan
+    ignoreErrors:
+        # Doctrine hydrates and persists mapped properties by reflection: PHPStan cannot see
+        # that they are read, and mapped columns are often only consumed through SQL.
+        # phpstan-doctrine would model this; until it is adopted, scope the exemption to entities.
+        -
+            identifiers:
+                - property.onlyWritten
+                - property.unused
+                - property.unusedType
+            path: src/Entity/*

@@ -50,7 +50,7 @@ final class SubscriptionController extends AbstractController
                     if (!$file instanceof \Symfony\Component\HttpFoundation\File\UploadedFile || !$file->isValid()) {
                         throw new \InvalidArgumentException('Veuillez sélectionner un fichier OPML valide.');
                     }
-                    if (($file->getSize() ?? 0) > 2_000_000) {
+                    if ($file->getSize() > 2_000_000) {
                         throw new \InvalidArgumentException('Le fichier OPML ne doit pas dépasser 2 Mo.');
                     }
                     $xml = file_get_contents($file->getPathname());

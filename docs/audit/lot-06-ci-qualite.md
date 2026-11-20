@@ -51,3 +51,23 @@ Les tests `tests/Container/*workflow*.sh` vérifient la structure des workflows.
 - L'image est scannée avant publication.
 - Les actions sont épinglées par SHA.
 - Dependabot est actif.
+
+## Statut d'avancement
+
+*Mis à jour le 20 novembre 2026. Tests PHP et `tests/Container/*workflow*.sh` exécutés en local ; **le workflow GitHub Actions n'a pas été exécuté** (première vraie exécution : au prochain push ou à la prochaine pull request). En attente du retour de validation du développeur.*
+
+| ID | État | Note |
+|---|---|---|
+| 6.1 | Partiel | PHPStan analyse `src/` (niveau 6) **sans baseline** : les 41 erreurs initiales sont corrigées (voir ci-dessous), en CI avec 1 Go de mémoire. **Non fait :** montée de niveau, `phpstan-symfony` et `phpstan-doctrine` (nouvelles dépendances à valider). |
+| 6.2 | Partiel | `composer audit --locked` ajouté au job `php` (aucune vulnérabilité trouvée en local). **Non fait :** scan d'image Trivy/Grype, SBOM, provenance. |
+| 6.3 | **Non traité** | Épinglage des actions par SHA et `environment: production` : demande de résoudre les SHA (réseau) et de créer l'environnement GitHub. |
+| 6.4 | Appliqué | `.github/dependabot.yml` : composer, npm, docker, github-actions, hebdomadaire, mises à jour mineures groupées. À activer côté dépôt GitHub. |
+| 6.5 | **Non traité** | PHP-CS-Fixer : nouvelle dépendance, et à faire après le reformatage du lot 9. |
+| 6.6 | **Non traité** | `doctrine:schema:validate` échoue encore (dérive, voir 4.6) : l'ajouter à la CI la casserait. |
+| 6.7 | Appliqué | Cache Composer (clé `composer.lock`) ; `develop` ajouté aux branches de `push`. |
+| 6.8 | **Non traité** | `shellcheck` en CI : outil absent ici, non testable ; les scripts pourraient déclencher des alertes à traiter d'abord. |
+
+**Traitement des 41 erreurs initiales du niveau 6 :**
+- 7 types manquants (`array<…>`) corrigés par des annotations.
+- `AdminController` : comparaison toujours vraie supprimée ; `SubscriptionController` : `??` inutile retiré ; `UserExport` : `getRepository()` appelé directement (classe littérale) au lieu d'une fonction anonyme ; `createUser` recevait un `$logger` absent (bug que j'avais introduit au lot 3, corrigé, test `AdminUserCreationTest`).
+- 30 erreurs sur les entités Doctrine (`property.onlyWritten`, `property.unused`, `property.unusedType`) : exemption **limitée à `src/Entity/*`** dans `phpstan.neon.dist`, car Doctrine lit et écrit ces propriétés par réflexion. À supprimer si `phpstan-doctrine` est adopté. Ce n'est pas une correction mais un choix de configuration : à confirmer.

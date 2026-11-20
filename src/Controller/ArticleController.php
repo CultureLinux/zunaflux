@@ -322,7 +322,10 @@ final class ArticleController extends AbstractController
         return rtrim(strtr(base64_encode(json_encode(['collectedAt' => $collectedAt, 'id' => $id], \JSON_THROW_ON_ERROR)), '+/', '-_'), '=');
     }
 
-    /** @param array<string, mixed> $item @return array<string, mixed> */
+    /**
+     * @param array<string, mixed> $item
+     * @return array<string, mixed>
+     */
     private function serializeListItem(array $item): array
     {
         return ['id' => (string) $item['id'], 'title' => html_entity_decode($item['title'], ENT_QUOTES | ENT_HTML5, 'UTF-8'), 'url' => $item['url'], 'summary' => null === $item['summary'] ? null : html_entity_decode(strip_tags($item['summary']), ENT_QUOTES | ENT_HTML5, 'UTF-8'), 'source' => $item['subscriptionTitle'] ?? $item['source'], 'subscriptionId' => (string) $item['subscriptionId'], 'categoryId' => null === $item['categoryId'] ? null : (string) $item['categoryId'], 'categoryName' => $item['categoryName'], 'publishedAt' => $item['publishedAt']?->format(DATE_ATOM), 'collectedAt' => $item['collectedAt']->format(DATE_ATOM), 'isRead' => (bool) ($item['isRead'] ?? false), 'isFavorite' => (bool) ($item['isFavorite'] ?? false), 'isSaved' => (bool) ($item['isSaved'] ?? false)];

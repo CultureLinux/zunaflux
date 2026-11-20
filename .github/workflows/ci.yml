@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - develop
   workflow_call:
 
 permissions:
@@ -60,14 +61,25 @@ jobs:
           fi
       - name: Prepare Symfony test environment
         run: touch .env
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(php85 /usr/bin/composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+      - name: Cache Composer downloads
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
       - name: Install Composer dependencies
         run: php85 /usr/bin/composer install --no-interaction --prefer-dist --no-progress
       - name: Validate Composer manifest
         run: php85 /usr/bin/composer validate --strict
+      - name: Audit locked dependencies
+        run: php85 /usr/bin/composer audit --locked
       - name: Check PHP syntax
         run: find src tests migrations public bin -type f -name '*.php' -print0 | xargs -0 -n1 php85 -l
-      - name: Analyse reading services with PHPStan
-        run: php85 vendor/bin/phpstan analyse --configuration=phpstan.neon.dist --no-progress --memory-limit=512M
+      - name: Analyse src with PHPStan
+        run: php85 vendor/bin/phpstan analyse --configuration=phpstan.neon.dist --no-progress --memory-limit=1G
       - name: Validate Symfony configuration
         run: |
           php85 bin/console lint:container
