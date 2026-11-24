@@ -83,15 +83,48 @@ final class ArticleController extends AbstractController
     }
 
     #[Route('/articles/mark-all-read', name: 'app_articles_mark_all_read', methods: ['POST'])]
-    public function markAllRead(Request $request, MarkSubscriptionRead $markRead): Response
+    public function markAllRead(Request $request, EntityManagerInterface $entityManager, MarkSubscriptionRead $markRead): Response
     {
         if (!$this->isCsrfTokenValid('mark-all-read', $request->request->getString('_token'))) {
             throw $this->createAccessDeniedException();
         }
-        $count = $markRead->markAll($this->currentUser());
+        $user = $this->currentUser();
+        $categoryId = $request->request->getString('category');
+        $subscriptionId = $request->request->getString('subscription');
+        $query = [];
+        if ('' !== $categoryId) {
+            // Scoped to the active category: only its enabled subscriptions, owned by the user.
+            $category = $entityManager->getRepository(Category::class)->findOneBy(['id' => $this->parseUuid($categoryId), 'user' => $user]);
+            if (!$category instanceof Category) {
+                throw $this->createNotFoundException();
+            }
+            $count = 0;
+            foreach ($entityManager->getRepository(Subscription::class)->findBy(['user' => $user, 'category' => $category, 'enabled' => true]) as $subscription) {
+                $count += $markRead->mark($subscription);
+            }
+            $query = ['category' => $categoryId, 'filterName' => $category->getName(), 'read' => '0'];
+        } elseif ('' !== $subscriptionId) {
+            $subscription = $entityManager->getRepository(Subscription::class)->findOneBy(['id' => $this->parseUuid($subscriptionId), 'user' => $user, 'enabled' => true]);
+            if (!$subscription instanceof Subscription) {
+                throw $this->createNotFoundException();
+            }
+            $count = $markRead->mark($subscription);
+            $query = ['subscription' => $subscriptionId, 'read' => '0'];
+        } else {
+            $count = $markRead->markAll($user);
+        }
         $this->addFlash('success', $this->translator->trans('%count% article(s) marqué(s) comme lu(s).', ['%count%' => $count]));
 
-        return $this->redirectToRoute('app_articles');
+        return $this->redirectToRoute('app_articles', $query);
+    }
+
+    private function parseUuid(string $id): Uuid
+    {
+        try {
+            return Uuid::fromString($id);
+        } catch (\InvalidArgumentException) {
+            throw $this->createNotFoundException();
+        }
     }
 
     #[Route('/categories/{id}/mark-read', name: 'app_category_mark_read', methods: ['POST'])]

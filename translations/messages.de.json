@@ -616,6 +616,8 @@
   "Mastodon a refusé la demande.": "Mastodon hat die Anfrage abgelehnt.",
   "Tout marquer comme lu": "Alles als gelesen markieren",
   "Tout marquer comme lu ?": "Alles als gelesen markieren?",
+  "Tous les articles non lus de ce flux seront marqués comme lus. Cette action ne peut pas être annulée.": "Alle ungelesenen Artikel dieser Quelle werden als gelesen markiert. Diese Aktion kann nicht rückgängig gemacht werden.",
+  "Tous les articles non lus de cette catégorie seront marqués comme lus. Cette action ne peut pas être annulée.": "Alle ungelesenen Artikel dieser Kategorie werden als gelesen markiert. Diese Aktion kann nicht rückgängig gemacht werden.",
   "Tous vos articles non lus, dans toutes vos sources, seront marqués comme lus. Cette action ne peut pas être annulée.": "Alle Ihre ungelesenen Artikel aus allen Ihren Quellen werden als gelesen markiert. Diese Aktion kann nicht rückgängig gemacht werden.",
   "Marquer tout comme lu": "Alle als gelesen markieren",
   "%count% article(s) marqué(s) comme lu(s).": "%count% Artikel als gelesen markiert.",

@@ -616,6 +616,8 @@
   "Mastodon a refusé la demande.": "Mastodon rejected the request.",
   "Tout marquer comme lu": "Mark everything as read",
   "Tout marquer comme lu ?": "Mark everything as read?",
+  "Tous les articles non lus de ce flux seront marqués comme lus. Cette action ne peut pas être annulée.": "All unread articles of this source will be marked as read. This action cannot be undone.",
+  "Tous les articles non lus de cette catégorie seront marqués comme lus. Cette action ne peut pas être annulée.": "All unread articles of this category will be marked as read. This action cannot be undone.",
   "Tous vos articles non lus, dans toutes vos sources, seront marqués comme lus. Cette action ne peut pas être annulée.": "All your unread articles, across all your sources, will be marked as read. This action cannot be undone.",
   "Marquer tout comme lu": "Mark all as read",
   "%count% article(s) marqué(s) comme lu(s).": "%count% article(s) marked as read.",

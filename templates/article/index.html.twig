@@ -69,11 +69,13 @@
     <dialog class="m-auto w-[calc(100%-2rem)] max-w-lg border border-line bg-surface p-6 text-foreground sm:p-8" id="mark-all-read-dialog" aria-labelledby="mark-all-read-title" aria-describedby="mark-all-read-description">
         <p class="font-mono text-xs uppercase tracking-[.2em] text-accent">{{ 'Rattrapage'|trans }}</p>
         <h3 class="mt-3 font-serif text-2xl" id="mark-all-read-title">{{ 'Tout marquer comme lu ?'|trans }}</h3>
-        <p class="mt-3 text-sm leading-6 text-muted" id="mark-all-read-description">{{ 'Tous vos articles non lus, dans toutes vos sources, seront marqués comme lus. Cette action ne peut pas être annulée.'|trans }}</p>
+        <p class="mt-3 text-sm leading-6 text-muted" id="mark-all-read-description" data-default-text="{{ 'Tous vos articles non lus, dans toutes vos sources, seront marqués comme lus. Cette action ne peut pas être annulée.'|trans }}" data-source-text="{{ 'Tous les articles non lus de ce flux seront marqués comme lus. Cette action ne peut pas être annulée.'|trans }}" data-category-text="{{ 'Tous les articles non lus de cette catégorie seront marqués comme lus. Cette action ne peut pas être annulée.'|trans }}">{{ 'Tous vos articles non lus, dans toutes vos sources, seront marqués comme lus. Cette action ne peut pas être annulée.'|trans }}</p>
         <div class="mt-7 flex flex-wrap justify-end gap-3">
             <button class="min-h-11 border border-line px-4 text-foreground hover:border-accent" type="button" data-confirm-close autofocus>{{ 'Annuler'|trans }}</button>
             <form method="post" action="{{ path('app_articles_mark_all_read') }}">
                 <input type="hidden" name="_token" value="{{ csrf_token('mark-all-read') }}">
+                <input type="hidden" name="subscription" value="" data-mark-all-subscription disabled>
+                <input type="hidden" name="category" value="" data-mark-all-category disabled>
                 <button class="min-h-11 border border-accent bg-accent px-4 font-semibold text-accent-foreground hover:opacity-90" type="submit">{{ 'Marquer tout comme lu'|trans }}</button>
             </form>
         </div>
