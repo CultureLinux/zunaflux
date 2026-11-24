@@ -24,6 +24,11 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # MariaDB 10.11 is the validated target (cahier des charges): only digest/patch refreshes of
+    # that line are proposed, never a new major/minor line such as 13.0.
+    ignore:
+      - dependency-name: mariadb
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
