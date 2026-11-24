@@ -53,6 +53,17 @@ if (container) {
         const categoryLabel = categoryName || t('Catégorie active');
         sourceFilter.hidden = !subscriptionFilter && !categoryFilter;
         updateSourceMarkReadControls(sourceMarkReadForms, subscriptionFilter, categoryFilter);
+        // The "mark everything as read" dialog follows the active filter: category > source > all.
+        const markAllSubscription = document.querySelector('[data-mark-all-subscription]');
+        const markAllCategory = document.querySelector('[data-mark-all-category]');
+        const markAllText = document.getElementById('mark-all-read-description');
+        if (markAllSubscription && markAllCategory && markAllText) {
+            markAllCategory.value = categoryFilter;
+            markAllCategory.disabled = !categoryFilter;
+            markAllSubscription.value = categoryFilter ? '' : subscriptionFilter;
+            markAllSubscription.disabled = !!categoryFilter || !subscriptionFilter;
+            markAllText.textContent = categoryFilter ? markAllText.dataset.categoryText : subscriptionFilter ? markAllText.dataset.sourceText : markAllText.dataset.defaultText;
+        }
         sourceFilterLabel.textContent = categoryFilter ? t('Catégorie : %name%', { name: categoryLabel }) : sourceName ? t('Flux : %name%', { name: sourceName }) : t('Filtre sur un flux actif');
         if (categoryContext) {
             categoryContext.hidden = !categoryFilter;
